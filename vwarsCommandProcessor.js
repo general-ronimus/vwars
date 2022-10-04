@@ -1,5 +1,5 @@
 /**
- * VWARS DISCORD SLASH COMMAND HANDLER
+ * VWARS DISCORD SLASH COMMAND PROCESSOR
  * 
  */
 
@@ -13,11 +13,11 @@ const cloakIntervalMinutes = 1440
 const shieldIntervalMinutes = 1440
 
 module.exports ={
-        handle
+        process
     }
 
 
-async function handle(slashCommandBody) {
+async function process(slashCommandBody) {
 	var currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	let userRecord = await db.getUser(slashCommand.userId)
