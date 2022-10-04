@@ -188,7 +188,7 @@ async function mine(user, slashCommand) {
  */
 async function build(user, slashCommand) {
 	let spend = 1
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0 && ) {
+	if(null != slashCommands.arguments && slashCommand.arguments.length > 0) {
 		if(!isNumeric(slashCommand.arguments[0])) {
 			return respond('Missing or improperly formatted argument')
 		}
@@ -282,7 +282,7 @@ async function fuel(user, slashCommand) {
 
 	//TODO: Add fuel logic here, similar to cloak and shield. Will get called from mine, train and build
 
-	return respond('Fossil fuel surplus has increased production. Yields from mine, build and train commands increased by 30% for the next 24 hours')
+	return respond('You release fossil fuel reserves increasing production. Yields from mine, build and train commands increased by 30% for the next 24 hours')
 }
 
 
