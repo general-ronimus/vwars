@@ -1,0 +1,20 @@
+service: vwars
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  stage: dev
+  region: us-west-2
+  runtime: nodejs14.x
+
+layers:
+  vwarsNodeModules:
+    path: node_modules
+
+functions:
+  vwars:
+    handler: handler.vwars
+    layers:
+      - !Ref vwarsNodeModulesLambdaLayer
+
