@@ -1,0 +1,52 @@
+{
+    "app_permissions": "1071594342400",
+    "application_id": "848768229786648606",
+    "channel_id": "1027200872171708416",
+    "data": {
+        "id": "1027200480016859188",
+        "name": "vwars",
+        "options": [
+            {
+                "name": "build",
+                "options": [
+                    {
+                        "name": "spend",
+                        "type": 4,
+                        "value": 1
+                    }
+                ],
+                "type": 1
+            }
+        ],
+        "type": 1
+    },
+    "guild_id": "756188340427948084",
+    "guild_locale": "en-US",
+    "id": "1027293351243956266",
+    "locale": "en-US",
+    "member": {
+        "avatar": null,
+        "communication_disabled_until": null,
+        "deaf": false,
+        "flags": 0,
+        "is_pending": false,
+        "joined_at": "2020-09-17T16:22:29.708000+00:00",
+        "mute": false,
+        "nick": null,
+        "pending": false,
+        "permissions": "4398046511103",
+        "premium_since": null,
+        "roles": [],
+        "user": {
+            "avatar": "6223361e64073a22d972756947c9a8ea",
+            "avatar_decoration": null,
+            "discriminator": "4622",
+            "id": "510691137988722688",
+            "public_flags": 0,
+            "username": "General Ronimus"
+        }
+    },
+    "token": "aW50ZXJhY3Rpb246MTAyNzI5MzM1MTI0Mzk1NjI2NjpOZUVhUEZlb1Uwb2Ewdk1BaDh4QnRFT1hwSmE4QjM4TVZ5d3Y1UW81aWVnd29nOEloUnNpRzJjblF2RUg1R1A3ZVhFUnp4M1VMaUJwWkJRMzFLY2hXZXlrZk5GRVI5UnlpMzRMVUlNUzJQY2tnU1dyeEk1SFJrdkRpRVFoWjVRWA",
+    "type": 2,
+    "version": 1
+}

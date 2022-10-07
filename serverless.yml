@@ -2,19 +2,70 @@ service: vwars
 
 frameworkVersion: '3'
 
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
 provider:
   name: aws
   stage: dev
   region: us-west-2
   runtime: nodejs14.x
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+       - dynamodb:Query
+       - dynamodb:Scan
+       - dynamodb:GetItem
+       - dynamodb:PutItem
+       - dynamodb:UpdateItem
+       - dynamodb:DeleteItem
+      Resource:
+        Fn::GetAtt:
+          - vwarsTable
+          - Arn
+  environment:
+    LOCALDB: true
 
 layers:
   vwarsNodeModules:
-    path: node_modules
+    path: layer
 
 functions:
   vwars:
     handler: handler.vwars
     layers:
-      - !Ref vwarsNodeModulesLambdaLayer
+      - !Ref VwarsNodeModulesLambdaLayer
+    events:
+      - http:
+          path: vwars
+          method: post
 
+resources:
+  Resources:
+    vwarsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: vwars
+        AttributeDefinitions:
+          - AttributeName: userid
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userid
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+
+custom:
+  dynamodb:
+  # If you only want to use DynamoDB Local in some stages, declare them here
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+      convertEmptyValues: true
+    migration:
+      dir: testResources/migrations  

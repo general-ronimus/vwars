@@ -10,7 +10,7 @@ const largePrizeMap = new Map([[1, 400], [2, 500], [3, 600], [4, 700], [5, 800],
 const maxEnergy = 100
 const energyIntervalMinutes = 10
 const cloakIntervalMinutes = 1440
-const shieldIntervalMinutes = 1440
+let currentTime = null
 
 module.exports ={
         process
@@ -18,15 +18,16 @@ module.exports ={
 
 
 async function process(slashCommandBody) {
-	var currentTime = Date.now()
+	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
-	let userRecord = await db.getUser(slashCommand.userId)
+	let userRecord = await db.getUser(slashCommand.userid)
 	let user = userRecord.Item
 	console.log('Retrieved user: ' + JSON.stringify(user))
-	if( null == user) {
-		user = initUser()
+	if(!user) {
+		user = initUser(slashCommand)
+		console.log('Initializing new user: ' + JSON.stringify(user))
 		await db.putUser(user)
-		console.log('Created user: ' + JSON.stringify(user))
+		console.log('User record created for userid ' + user.userid)
 	}
 	user = updateEnergy(user)
 
@@ -34,27 +35,27 @@ async function process(slashCommandBody) {
 		return await mine(user, slashCommand)
 	} else if('build' === slashCommand.subCommand) {
 		return await build(user, slashCommand)
-	} else if('train' === subCommand) {
+	} else if('train' === slashCommand.subCommand) {
 		return await train(user, slashCommand)
-	} else if('attack' === subCommand) {
+	} else if('attack' === slashCommand.subCommand) {
 		return await attack(user, slashCommand)
-	} else if('fuel' === subCommand) {
+	} else if('fuel' === slashCommand.subCommand) {
 		return await fuel(user, slashCommand)
-	} else if('cloak' === subCommand) {
+	} else if('cloak' === slashCommand.subCommand) {
 		return await cloak(user, slashCommand)
-	} else if('shield' === subCommand) {
+	} else if('shield' === slashCommand.subCommand) {
 		return await shield(user, slashCommand)
-	} else if('sabotage' === subCommand) {
+	} else if('sabotage' === slashCommand.subCommand) {
 		return await sabotage(user, slashCommand)
-	} else if('strike' === subCommand) {
+	} else if('strike' === slashCommand.subCommand) {
 		return await strike(user, slashCommand)
-	} else if('nuke' === subCommand) {
+	} else if('nuke' === slashCommand.subCommand) {
 		return await nuke(user, slashCommand)
-	} else if('buy' === subCommand) {
+	} else if('buy' === slashCommand.subCommand) {
 		return await buy(user, slashCommand)
-	} else if('stats' === subCommand) {
+	} else if('stats' === slashCommand.subCommand) {
 		return await stats(user, slashCommand)
-	} else if('leaderboard' === subCommand) {
+	} else if('leaderboard' === slashCommand.subCommand) {
 		return await leaderboard(user, slashCommand)
 	}
 	return respond('Invalid command')
@@ -62,24 +63,24 @@ async function process(slashCommandBody) {
 
 function parseSlashCommand(slashCommandBody) {
 	console.log('Slash command body: ' + JSON.stringify(slashCommandBody))
-	let userId = JSON.stringify(slashCommandBody.member.user.id).replace(/\"/g, "")
+	let userid = JSON.stringify(slashCommandBody.member.user.id).replace(/\"/g, "")
 	let username = JSON.stringify(slashCommandBody.member.user.username).replace(/\"/g, "")
 	let command = JSON.stringify(slashCommandBody.data.name).replace(/\"/g, "");
 	let subCommand = JSON.stringify(slashCommandBody.data.options[0].name).replace(/\"/g, "");
-	let arguments = [];
+	let subCommandArgs = [];
 	if(slashCommandBody.data.options[0].hasOwnProperty('options') && slashCommandBody.data.options[0].options.length > 0) {
 		for (let i = 0; i < slashCommandBody.data.options[0].options.length; i++) {
-			arguments.push(JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
+			subCommandArgs.push(JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
 		}
 	}
 	let slashCommand = {
-		userId: userId,
+		userid: userid,
 		username: username,
 		command: command,
 		subCommand: subCommand,
-		arguments: arguments
+		subCommandArgs: subCommandArgs
 	  };
-	  console.log('Command parsed, userId: ' + userId + ', username: ' + username + ', command' + command + ', subcommand: ' + subCommand + ', arguments: ' + arguments)
+	  console.log('Command parsed, userid: ' + userid + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
 	  return slashCommand
 }
 
@@ -97,11 +98,11 @@ function parseSlashCommand(slashCommandBody) {
  */
 async function mine(user, slashCommand) {
 	let spend = 1
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0) {
-		if(!isNumeric(slashCommand.arguments[0])) {
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		if(!isNumeric(slashCommand.subCommandArgs[0])) {
 			respond('Improperly formatted argument')
 		}
-		spend = slashCommand.arguments[0]
+		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < spend) {
 		return respond('You do not have enough energy')
@@ -111,8 +112,12 @@ async function mine(user, slashCommand) {
 	let oreFound = false
 	let equipmentFound = 0
 	let equipmentMap = new Map([['fuel deposit', 0], ['cloaking device', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
+	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
 		let roll = randomInteger(1, 1006)
+		console.log('Roll: ' + roll)
+		rolls += roll + ' '
+
 		if(roll <= 750) {
 			oreFound = true
 			minedOre += smallPrizeMap.get(randomInteger(1,9))
@@ -126,25 +131,26 @@ async function mine(user, slashCommand) {
 			equipmentFound += 1
 			if(roll <= 994) {
 				user.equipmentFuel += 1
-				equipmentMap.set('fuel deposit', equipmentMap.get('fuel deposit') += 1)
+				equipmentMap.set('fuel deposit', equipmentMap.get('fuel deposit') + 1)
 			} else if(roll <= 998) {
 				user.equipmentCloak += 1
-				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') += 1)
+				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') + 1)
 			} else if(roll <= 1001) {
 				user.equipmentShield += 1
-				equipmentMap.set('shield generator', equipmentMap.get('shield generator') += 1)
+				equipmentMap.set('shield generator', equipmentMap.get('shield generator') + 1)
 			} else if(roll <= 1003) {
 				user.equipmentStrike += 1
-				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') += 1)
+				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
 			} else if(roll <= 1005) {
 				user.equipmentSabotage += 1
-				equipmentMap.set('explosive', equipmentMap.get('explosive') += 1)
+				equipmentMap.set('explosive', equipmentMap.get('explosive') + 1)
 			} else if(roll == 1006) {
 				user.equipmentNuke += 1
-				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') += 1)
+				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
 			}
 		}
 	}
+	console.log(rolls)
 	user.energy -= spend
 	user.ore += minedOre
 	await db.putUser(user)
@@ -152,27 +158,27 @@ async function mine(user, slashCommand) {
 	//Form mining summary response
 	let miningResponse = 'You found '
 	if(oreFound) {
-		miningResponse.concat(minedOre + ' vibranium')
+		miningResponse += minedOre + ' vibranium'
 		if(equipmentFound > 0) {
-			miningResponse.concat(' and ')
+			miningResponse += ' and '
 		}
 	}
 	if(equipmentFound > 0) {
-		miningResponse.concat('an equipment chest containing')
+		miningResponse += 'an equipment chest containing'
 
 		let equipmentIter = 0
 		equipmentMap.forEach(function(value, key) {
 			if(value == 1) {
-				miningResponse.concat(' ' + value + ' ' + key)
+				miningResponse += ' ' + value + ' ' + key
 			} else if(value > 1) {
-				miningResponse.concat(' ' + value + ' ' + key + 's')
+				miningResponse += ' ' + value + ' ' + key + 's'
 			}
 			equipmentIter += 1
 			if(equipmentFound > 1) {
 				if(equipmentIter == equipmentFound) {
-					miningResponse.concat(' and')	
+					miningResponse += ' and'
 				} else {
-					miningResponse.concat(',')
+					miningResponse += ','
 				}
 			} 	
 		})
@@ -188,11 +194,11 @@ async function mine(user, slashCommand) {
  */
 async function build(user, slashCommand) {
 	let spend = 1
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0) {
-		if(!isNumeric(slashCommand.arguments[0])) {
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		if(!isNumeric(slashCommand.subCommandArgs[0])) {
 			return respond('Missing or improperly formatted argument')
 		}
-		spend = slashCommand.arguments[0]
+		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < spend) {
 		return respond('You do not have enough energy')
@@ -215,11 +221,11 @@ async function build(user, slashCommand) {
  */
  async function train(user, slashCommand) {
 	let spend = 1
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0) {
-		if(!isNumeric(slashCommand.arguments[0])) {
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		if(!isNumeric(slashCommand.subCommandArgs[0])) {
 			return respond('Missing or improperly formatted argument')
 		}
-		spend = slashCommand.arguments[0]	
+		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < spend) {
 		return respond('You do not have enough energy')
@@ -242,8 +248,8 @@ async function build(user, slashCommand) {
  */
  async function attack(user, slashCommand) {
 	let targetUser = null
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0 ) {
-		let targetUserId = slashCommand.arguments[0]
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
@@ -330,8 +336,8 @@ async function sabotage(user, slashCommand) {
 	if(user.equipmentSabotage < 1) {
 		return respond('You have no saboteurs in your inventory.')
 	}
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0 ) {
-		let targetUserId = slashCommand.arguments[0]
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
@@ -356,8 +362,8 @@ async function sabotage(user, slashCommand) {
 	if(user.equipmentStrike < 1) {
 		return respond('You have no missles in your inventory.')
 	}
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0 ) {
-		let targetUserId = slashCommand.arguments[0]
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
@@ -382,8 +388,8 @@ async function sabotage(user, slashCommand) {
 	if(user.equipmentNuke < 1) {
 		return respond('You have no nuclear warheads in your inventory.')
 	}
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0 ) {
-		let targetUserId = slashCommand.arguments[0]
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
@@ -409,8 +415,8 @@ async function sabotage(user, slashCommand) {
 
 	let item = null
 	let itemPurchased = null
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0) {
-		item = slashCommand.arguments[0]
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		item = slashCommand.subCommandArgs[0]
 	}
 
 	if('fuel' === item) {
@@ -479,12 +485,12 @@ async function sabotage(user, slashCommand) {
  */
  async function stats(user, slashCommand) {
 	let targetUser = user
-	if(null != slashCommands.arguments && slashCommand.arguments.length > 0 ) {
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 
-		let targetUserId = slashCommand.arguments[0]
+		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
-		if(null == targetuser) {
+		if(null == targetUser) {
 			return respond('Invalid target')
 		}
 	}
@@ -511,13 +517,13 @@ async function leaderboard(user, slashCommand) {
 	let retrievedUsers = await db.getUsers()
 	//retrieve, cloak, sort and form leaderboard response
 	retrievedUsers.Items.forEach(function(user) {
-			if(isCloaked(user.lastCloaked)) {
-				user.ore = '??'
-			}
-		})
-	.sort(compare)
-	.forEach(function(user) {
-		responseString = responseString.concat('\n', user.username + ': ' + user.ore)
+		if(isCloaked(user.lastCloaked)) {
+			user.ore = '??'
+		}
+	})
+	retrievedUsers.Items.sort(compare)
+	retrievedUsers.Items.forEach(function(user) {
+		responseString = responseString += '\n' + user.username + ': ' + user.ore
 	 });
 	 console.log(responseString)
 	 return respond(responseString)
@@ -526,10 +532,15 @@ async function leaderboard(user, slashCommand) {
 
 
 
+/**
+ * HELPER FUNCTIONS
+ * 
+ */
 
-async function initUser() {
-	user = {
-		userid: slashCommand.userId,
+function initUser(slashCommand) {
+	console.log('Initializing new user object for userid: ' + slashCommand.userid + ", username: " + slashCommand.username)
+	let initializedUser = {
+		userid: slashCommand.userid,
 		username: slashCommand.username,
 		ore: 1,
 		city: 1,
@@ -542,8 +553,9 @@ async function initUser() {
 		equipmentNuke: 0,
 		energy: maxEnergy,
 		energyUpdatedAt: currentTime
-	}
-	return user
+	};
+
+	return initializedUser
 }
 
 function updateEnergy(user) {

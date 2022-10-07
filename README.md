@@ -8,9 +8,18 @@ Vwars is a node.js project, and can be built using npm
 vwars can be deployed via serverless framework
 `serverless deploy`
 
+vwars relies on dynamodb, tables are deployed via aws command line:
+`aws dynamodb create-table --cli-input-json file://PATH_TO_SCRIPT/vwars_table.json --endpoint-url http://localhost:8000
+`
+
 ## Test
 vwars can be tested locally using serverless framework's test option
 `serverless invoke local --function vwars`
+`npm install --save-dev jest`
+Prerequisites
+- nodejs
+- jest
+- serverless
 
 ## User Guide
 ### Basic commands

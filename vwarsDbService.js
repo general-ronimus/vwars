@@ -4,21 +4,24 @@ const AWS = require("aws-sdk");
 //import { DynamoDBClient } from "@aws-sdk/client-dynamodb"; // ES6 import
 
 module.exports ={
-        getUser, putUser, getUsers
+        getUser, putUser, getUsers, deleteUser
     }
-/*
+
+///*
 AWS.config.update({
     region: "local",
     endpoint: "http://localhost:8000"
 });
-*/
-//*
+//*/
+
+/*
 AWS.config.update({
     region: "us-west-2"
 });
-//*/
+*/
 
 var ddb = new AWS.DynamoDB.DocumentClient()
+
 
 async function getUser(userId) {
 	let params = {
@@ -57,6 +60,22 @@ async function getUsers() {
   return result
 }
 
+async function deleteUser(userId) {
+	var params = {
+		TableName : 'vwars',
+		Key: { 
+			//userId 
+			//userid: userId
+			//primaryKey: userId,
+			//sortKey: "",
+			//S: userId
+			HashKey: userId
+		}
+	  };
+	console.log('db delete userid: ' + userId)
+	let result = await ddb.delete(params).promise()
+	return result
+}
 
 
 
