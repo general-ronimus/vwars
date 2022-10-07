@@ -10,6 +10,8 @@ const largePrizeMap = new Map([[1, 400], [2, 500], [3, 600], [4, 700], [5, 800],
 const maxEnergy = 100
 const energyIntervalMinutes = 10
 const cloakIntervalMinutes = 1440
+const shieldIntervalMinutes = 1440
+const fuelIntervalMinutes = 1440
 let currentTime = null
 
 module.exports ={
@@ -253,30 +255,30 @@ async function build(user, slashCommand) {
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetuser) {
+	if(null == targetUser) {
 		return respond('Invalid target')
 	}
+	if(isShielded(targetUser.lastShielded)) {
+		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
+	}
+
 	let conflict = user.military + targetUser.city
 	let winPercentage = user.military/conflict * 0.10
-	let lossPercentage = targetUser.city/conflict * 0.10
 	let stolenOre = Math.round(targetUser.ore * winPercentage)
+	/* Casualties logic
+	let lossPercentage = targetUser.city/conflict * 0.10
 	let cityDamage = Math.round(targetUser.city * winPercentage)
 	let casualties = Math.round(user.military * lossPercentage)
-	/**
-	 * TODO: War outcome reversal?
-	 * The above is how a battle typically goes with the strong opponent gaining the most and losing the least
-	 * but the strong opponent doesn't always win in war, every battle has a 1/10 chance to favor the weaker opponent
-	 * when this happens, war outcomes are reversed
-	 */
-
-	user.ore += stolenOre
 	user.military -= casualties
-	targetUser.ore -= stolenOre
 	targetUser.city -= cityDamage
+	*/
+	targetUser.ore -= stolenOre
+	user.ore += stolenOre
 	user.energy -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium! ' + casualties + ' casualties incurred in the attack. Defending city reduced by ' + cityDamage + '.')
+	return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium!')
+	//return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium! ' + casualties + ' casualties incurred in the attack. Defending city reduced by ' + cityDamage + '.')
 }
 
 
@@ -319,12 +321,12 @@ async function shield(user, slashCommand) {
 		return respond('You have no shield generators in your inventory.')
 	}
 	if(isShielded(user.lastShielded)) {
-		return respond('You already have shields up.')
+		return respond('You already have shields active.')
 	}
 	user.equipmentShield -= 1
 	user.lastShielded = currentTime
 	await db.putUser(user)
-	return respond('You now have shields up granting immunity to attack, sabotage, strike or nuke for 24 hours')
+	return respond('You now have shields active granting immunity to attack, sabotage, strike or nuke for 24 hours')
 }
 
 /**
@@ -334,15 +336,18 @@ async function shield(user, slashCommand) {
 async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentSabotage < 1) {
-		return respond('You have no saboteurs in your inventory.')
+		return respond('You have no explosives in your inventory.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetuser) {
+	if(null == targetUser) {
 		return respond('Invalid target')
+	}
+	if(isShielded(targetUser.lastShielded)) {
+		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
 	}
 	let cityDamage = Math.round(targetUser.city * .25)
 	targetUser.city -= cityDamage
@@ -367,8 +372,11 @@ async function sabotage(user, slashCommand) {
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetuser) {
+	if(null == targetUser) {
 		return respond('Invalid target')
+	}
+	if(isShielded(targetUser.lastShielded)) {
+		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
 	}
 	let militaryDamage = Math.round(targetUser.military * .25)
 	targetUser.military -= militaryDamage
@@ -393,9 +401,13 @@ async function sabotage(user, slashCommand) {
 		let targetUserRecord = await db.getUser(targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetuser) {
+	if(null == targetUser) {
 		return respond('Invalid target')
 	}
+	if(isShielded(targetUser.lastShielded)) {
+		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
+	}
+
 	let militaryDamage = Math.round(targetUser.military * .50)
 	let cityDamage = Math.round(targetUser.city * .50)
 	targetUser.city -= cityDamage
@@ -427,7 +439,7 @@ async function sabotage(user, slashCommand) {
 		} else {
 			return respond('You do not have enough vibranium.')
 		}
-	} else if('cloak' === subCommand) {
+	} else if('cloak' === item) {
 		if(user.ore >= 1000) {
 			user.ore -= 1000
 			user.equipmentCloak += 1
@@ -435,7 +447,7 @@ async function sabotage(user, slashCommand) {
 		} else {
 			return respond('You do not have enough vibranium.')
 		}	
-	} else if('shield' === subCommand) {
+	} else if('shield' === item) {
 		if(user.ore >= 2000) {
 			user.ore -= 2000
 			user.equipmentShield += 1
@@ -443,7 +455,7 @@ async function sabotage(user, slashCommand) {
 		} else {
 			return respond('You do not have enough vibranium.')
 		}	
-	} else if('sabotage' === subCommand) {
+	} else if('sabotage' === item) {
 		if(user.ore >= 3000) {
 			user.ore -= 3000
 			user.equipmentSabotage += 1
@@ -451,7 +463,7 @@ async function sabotage(user, slashCommand) {
 		} else {
 			return respond('You do not have enough vibranium.')
 		}	
-	} else if('strike' === subCommand) {
+	} else if('strike' === item) {
 		if(user.ore >= 3000) {
 			user.ore -= 3000
 			user.equipmentStrike += 1
@@ -459,7 +471,7 @@ async function sabotage(user, slashCommand) {
 		} else {
 			return respond('You do not have enough vibranium.')
 		}	
-	} else if('nuke' === subCommand) {
+	} else if('nuke' === item) {
 		if(user.ore >= 5000) {
 			user.ore -= 5000
 			user.equipmentNuke += 1

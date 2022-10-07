@@ -7,12 +7,12 @@
         "name": "vwars",
         "options": [
             {
-                "name": "mine",
+                "name": "buy",
                 "options": [
                     {
-                        "name": "spend",
+                        "name": "equipment",
                         "type": 4,
-                        "value": 1
+                        "value": "strike"
                     }
                 ],
                 "type": 1

@@ -7,14 +7,7 @@
         "name": "vwars",
         "options": [
             {
-                "name": "mine",
-                "options": [
-                    {
-                        "name": "spend",
-                        "type": 4,
-                        "value": 1
-                    }
-                ],
+                "name": "cloak",
                 "type": 1
             }
         ],

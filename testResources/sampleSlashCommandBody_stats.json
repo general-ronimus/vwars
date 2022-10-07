@@ -10,9 +10,9 @@
                 "name": "stats",
                 "options": [
                     {
-                        "name": "spend",
+                        "name": "target",
                         "type": 4,
-                        "value": 1
+                        "value": "user2"
                     }
                 ],
                 "type": 1

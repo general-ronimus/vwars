@@ -58,7 +58,6 @@ resources:
 
 custom:
   dynamodb:
-  # If you only want to use DynamoDB Local in some stages, declare them here
     stages:
       - dev
     start:

@@ -8,13 +8,6 @@
         "options": [
             {
                 "name": "leaderboard",
-                "options": [
-                    {
-                        "name": "spend",
-                        "type": 4,
-                        "value": 1
-                    }
-                ],
                 "type": 1
             }
         ],
