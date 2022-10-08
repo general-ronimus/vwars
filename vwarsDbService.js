@@ -7,21 +7,19 @@ module.exports ={
         getUser, putUser, getUsers, deleteUser
     }
 
-///*
+/*
 AWS.config.update({
     region: "local",
     endpoint: "http://localhost:8000"
 });
-//*/
-
-/*
+*/
+///*
 AWS.config.update({
     region: "us-west-2"
 });
-*/
+//*/
 
 var ddb = new AWS.DynamoDB.DocumentClient()
-
 
 async function getUser(userId) {
 	let params = {
@@ -45,7 +43,15 @@ async function putUser(user) {
     		city : user.city,
     		military : user.military,
     		energy : user.energy,
-			energyUpdatedAt : user.energyUpdatedAt
+			energyUpdatedAt : user.energyUpdatedAt,
+			equipmentFuel: user.equipmentFuel,
+			equipmentCloak: user.equipmentCloak,
+			equipmentShield: user.equipmentShield,
+			equipmentSabotage: user.equipmentSabotage,
+			equipmentStrike: user.equipmentStrike,
+			equipmentNuke: user.equipmentNuke,
+			lastCloaked: user.lastCloaked,
+			lastShielded: user.lastShielded
   		}
 	};
 	console.log('db put userid: ' + user.userid)

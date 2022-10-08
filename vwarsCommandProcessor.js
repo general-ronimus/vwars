@@ -4,11 +4,12 @@
  */
 
 const db = require('./vwarsDbService.js')
-const smallPrizeMap = new Map([[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 10], [7, 15], [8, 25], [9,0]]);
-const mediumPrizeMap = new Map([[1, 50], [2, 75], [3, 100], [4, 125], [5, 150], [6, 175], [7, 200], [8, 250], [9,300]]);
-const largePrizeMap = new Map([[1, 400], [2, 500], [3, 600], [4, 700], [5, 800], [6, 1000], [7, 1500], [8, 2000], [9, 5000]]);
+const smallPrizeMap = new Map([[1, 0], [2, 0], [3, 0], [4, 1], [5, 1], [6, 2], [7, 3], [8, 4], [9,5]]);
+const mediumPrizeMap = new Map([[1, 10], [2, 15], [3, 20], [4, 25], [5, 30], [6, 40], [7, 50], [8, 60], [9,75]]);
+const largePrizeMap = new Map([[1, 100], [2, 125], [3, 150], [4, 200], [5, 300], [6, 400], [7, 500], [8, 1000], [9, 2000]]);
 const maxEnergy = 100
-const energyIntervalMinutes = 10
+//const energyIntervalMinutes = 10 
+const energyIntervalMinutes = 1 / 12 //TODO: Increase back to 10 after beta
 const cloakIntervalMinutes = 1440
 const shieldIntervalMinutes = 1440
 const fuelIntervalMinutes = 1440
@@ -168,24 +169,25 @@ async function mine(user, slashCommand) {
 	if(equipmentFound > 0) {
 		miningResponse += 'an equipment chest containing'
 
-		let equipmentIter = 0
+		let equipmentIter = 1
 		equipmentMap.forEach(function(value, key) {
-			if(value == 1) {
-				miningResponse += ' ' + value + ' ' + key
-			} else if(value > 1) {
-				miningResponse += ' ' + value + ' ' + key + 's'
-			}
-			equipmentIter += 1
-			if(equipmentFound > 1) {
-				if(equipmentIter == equipmentFound) {
-					miningResponse += ' and'
-				} else {
-					miningResponse += ','
+			if(value > 0) {
+				if(value == 1) {
+					miningResponse += ' ' + value + ' ' + key
+				} else if(value > 1) {
+					miningResponse += ' ' + value + ' ' + key + 's'
 				}
-			} 	
+				if(equipmentIter < equipmentFound) {
+					equipmentIter += 1
+					if(equipmentIter == equipmentFound) {
+						miningResponse += ' and'
+					} else {
+						miningResponse += ','
+					}
+				}
+			}
 		})
 	}
- 
 	return respond(miningResponse)
 }
 
@@ -279,6 +281,133 @@ async function build(user, slashCommand) {
 	await db.putUser(targetUser)
 	return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium!')
 	//return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium! ' + casualties + ' casualties incurred in the attack. Defending city reduced by ' + cityDamage + '.')
+}
+
+
+/** 
+ * help
+ */
+
+/**
+ * stats [player]
+ * display stats for [player] for the active theatre. Total vibranium, city size, military size, inventory, current place
+ */
+ async function stats(user, slashCommand) {
+	let targetUser = user
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+
+		let targetUserId = slashCommand.subCommandArgs[0]
+		let targetUserRecord = await db.getUser(targetUserId)
+		targetUser = targetUserRecord.Item
+		if(null == targetUser) {
+			return respond('Invalid target')
+		}
+	}
+	if(isCloaked(targetUser.lastCloaked)) {
+		return respond('This player is cloaked.')
+	}
+	return respond('Statistics for ' + targetUser.username +
+				'\nTotal Vibranium: ' + targetUser.ore + 
+				'\nCity size: ' + targetUser.city + 
+				'\nMilitary size: ' + targetUser.military +
+				'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
+				'\nEquipment: cloak(' + targetUser.equipmentCloak + 
+					'), strike(' + targetUser.equipmentStrike + 
+					'), sabotage(' + targetUser.equipmentSabotage + 
+					'), nuke(' + targetUser.equipmentNuke + ')')
+}
+
+/**
+ * leaderboard
+ */
+async function leaderboard(user, slashCommand) {
+	let responseString = 'Vibranium Wars Leaderboard'
+	let retrievedUsers = await db.getUsers()
+	//retrieve, cloak, sort and form leaderboard response
+	retrievedUsers.Items.forEach(function(user) {
+		if(isCloaked(user.lastCloaked)) {
+			user.ore = '??'
+		}
+	})
+	retrievedUsers.Items.sort(compare)
+	retrievedUsers.Items.forEach(function(user) {
+		responseString = responseString += '\n' + user.username + ': ' + user.ore
+	 });
+	 console.log(responseString)
+	 return respond(responseString)
+}
+
+
+/**
+ * buy
+ * Purchase a chest from the equipment shop at the cost of vibranium
+ */
+ async function buy(user, slashCommand) {
+
+	let item = null
+	let itemPurchased = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		//if(isNumeric(slashCommand.subCommandArgs[0])) {
+		//	item = slashCommand.subCommandArgs[0]
+		//}
+		item = slashCommand.subCommandArgs[0]
+	}
+	console.log("User " + user.username + " purchase item: " + item)
+
+	if('fuel' === item) {
+		if(user.ore >= 1000) {
+			user.ore -= 1000
+			user.equipmentFuel += 1
+			itemPurchased = 'fuel deposit'
+		} else {
+			return respond('You do not have enough vibranium.')
+		}
+	} else if('cloak' === item) {
+		if(user.ore >= 1000) {
+			user.ore -= 1000
+			user.equipmentCloak += 1
+			itemPurchased = 'cloaking device'
+		} else {
+			return respond('You do not have enough vibranium.')
+		}	
+	} else if('shield' === item) {
+		if(user.ore >= 2000) {
+			user.ore -= 2000
+			user.equipmentShield += 1
+			itemPurchased = 'shield generator'
+		} else {
+			return respond('You do not have enough vibranium.')
+		}	
+	} else if('sabotage' === item) {
+		if(user.ore >= 3000) {
+			user.ore -= 3000
+			user.equipmentSabotage += 1
+			itemPurchased = 'explosive'
+		} else {
+			return respond('You do not have enough vibranium.')
+		}	
+	} else if('strike' === item) {
+		if(user.ore >= 3000) {
+			user.ore -= 3000
+			user.equipmentStrike += 1
+			itemPurchased = 'ballistic missle'
+		} else {
+			return respond('You do not have enough vibranium.')
+		}	
+	} else if('nuke' === item) {
+		if(user.ore >= 5000) {
+			user.ore -= 5000
+			user.equipmentNuke += 1
+			itemPurchased = 'nuclear warhead'
+		} else {
+			return respond('You do not have enough vibranium.')
+		}	
+	} else {
+		return respond('Invalid option.')
+	}
+
+	await db.putUser(user)
+	return respond('You have purchased an equipment chest containing one ' + itemPurchased + '.')
 }
 
 
@@ -419,129 +548,6 @@ async function sabotage(user, slashCommand) {
 }
 
 
-/**
- * buy
- * Purchase a chest from the equipment shop at the cost of vibranium
- */
- async function buy(user, slashCommand) {
-
-	let item = null
-	let itemPurchased = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		item = slashCommand.subCommandArgs[0]
-	}
-
-	if('fuel' === item) {
-		if(user.ore >= 1000) {
-			user.ore -= 1000
-			user.equipmentFuel += 1
-			itemPurchased = 'fuel deposit'
-		} else {
-			return respond('You do not have enough vibranium.')
-		}
-	} else if('cloak' === item) {
-		if(user.ore >= 1000) {
-			user.ore -= 1000
-			user.equipmentCloak += 1
-			itemPurchased = 'cloaking device'
-		} else {
-			return respond('You do not have enough vibranium.')
-		}	
-	} else if('shield' === item) {
-		if(user.ore >= 2000) {
-			user.ore -= 2000
-			user.equipmentShield += 1
-			itemPurchased = 'shield generator'
-		} else {
-			return respond('You do not have enough vibranium.')
-		}	
-	} else if('sabotage' === item) {
-		if(user.ore >= 3000) {
-			user.ore -= 3000
-			user.equipmentSabotage += 1
-			itemPurchased = 'explosive'
-		} else {
-			return respond('You do not have enough vibranium.')
-		}	
-	} else if('strike' === item) {
-		if(user.ore >= 3000) {
-			user.ore -= 3000
-			user.equipmentStrike += 1
-			itemPurchased = 'ballistic missle'
-		} else {
-			return respond('You do not have enough vibranium.')
-		}	
-	} else if('nuke' === item) {
-		if(user.ore >= 5000) {
-			user.ore -= 5000
-			user.equipmentNuke += 1
-			itemPurchased = 'nuclear warhead'
-		} else {
-			return respond('You do not have enough vibranium.')
-		}	
-	} else {
-		return respond('Not a valid option.')
-	}
-
-	await db.putUser(user)
-	return respond('You have purchased an equipment chest containing one ' + itemPurchased + '.')
-}
-
-/** 
- * help
- */
-
-/**
- * stats [player]
- * display stats for [player] for the active theatre. Total vibranium, city size, military size, inventory, current place
- */
- async function stats(user, slashCommand) {
-	let targetUser = user
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
-
-		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getUser(targetUserId)
-		targetUser = targetUserRecord.Item
-		if(null == targetUser) {
-			return respond('Invalid target')
-		}
-	}
-	if(isCloaked(targetUser.lastCloaked)) {
-		return respond('This player is cloaked.')
-	}
-	return respond('Statistics for ' + targetUser.username +
-				'\nTotal Vibranium: ' + targetUser.ore + 
-				'\nCity size: ' + targetUser.city + 
-				'\nMilitary size: ' + targetUser.military +
-				'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
-				'\nEquipment: cloak(' + targetUser.equipmentCloak + 
-					'), strike(' + targetUser.equipmentStrike + 
-					'), sabotage(' + targetUser.equipmentSabotage + 
-					'), nuke(' + targetUser.equipmentNuke + ')')
-}
-
-
-/**
- * leaderboard
- */
-async function leaderboard(user, slashCommand) {
-	let responseString = 'Vibranium Wars Leaderboard'
-	let retrievedUsers = await db.getUsers()
-	//retrieve, cloak, sort and form leaderboard response
-	retrievedUsers.Items.forEach(function(user) {
-		if(isCloaked(user.lastCloaked)) {
-			user.ore = '??'
-		}
-	})
-	retrievedUsers.Items.sort(compare)
-	retrievedUsers.Items.forEach(function(user) {
-		responseString = responseString += '\n' + user.username + ': ' + user.ore
-	 });
-	 console.log(responseString)
-	 return respond(responseString)
-}
-
-
 
 
 /**
@@ -563,6 +569,8 @@ function initUser(slashCommand) {
 		equipmentSabotage: 0,
 		equipmentStrike: 0,
 		equipmentNuke: 0,
+		lastCloaked: 0,
+		lastShielded: 0,
 		energy: maxEnergy,
 		energyUpdatedAt: currentTime
 	};
@@ -605,7 +613,8 @@ function isNumeric(value) {
 
 function isCloaked(lastCloaked) {
 	let cloakIntervalMillis = 1000 * 60 * cloakIntervalMinutes
-	if(currentTime > lastCloaked + cloakIntervalMillis) {
+	console.log("Current time: " + currentTime + ", lastCloaked: " + lastCloaked + ", cloakIntervalMillis: " + cloakIntervalMillis)
+	if(currentTime < lastCloaked + cloakIntervalMillis) {
 		return true
 	}
 	return false
@@ -613,7 +622,8 @@ function isCloaked(lastCloaked) {
 
 function isShielded(lastShielded) {
 	let shieldIntervalMillis = 1000 * 60 * shieldIntervalMinutes
-	if(currentTime > lastShielded + shieldIntervalMillis) {
+	console.log("Current time: " + currentTime + ", lastShielded: " + lastShielded + ", shieldIntervalMillis: " + shieldIntervalMillis)
+	if(currentTime < lastShielded + shieldIntervalMillis) {
 		return true
 	}
 	return false

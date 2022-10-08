@@ -23,9 +23,15 @@ provider:
       Resource:
         Fn::GetAtt:
           - vwarsTable
-          - Arn
-  environment:
-    LOCALDB: true
+          - Arn	
+
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.dynamodb/**'
+    - '!.vscode/**'
+    - '!deprecated/**'
+    - '!layer/**'
 
 layers:
   vwarsNodeModules:
