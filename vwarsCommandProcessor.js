@@ -9,10 +9,10 @@ const mediumPrizeMap = new Map([[1, 10], [2, 15], [3, 20], [4, 25], [5, 30], [6,
 const largePrizeMap = new Map([[1, 100], [2, 125], [3, 150], [4, 200], [5, 300], [6, 400], [7, 500], [8, 1000], [9, 2000]]);
 const maxEnergy = 100
 //const energyIntervalMinutes = 10 
-const energyIntervalMinutes = 1 / 12 //TODO: Increase back to 10 after beta
-const cloakIntervalMinutes = 1440
-const shieldIntervalMinutes = 1440
-const fuelIntervalMinutes = 1440
+const energyIntervalMinutes = 10 / 1000 //TODO: Increase back to 10 after beta
+const cloakIntervalMinutes = 1440 / 12 //TODO: Remove 1/12 reduction after beta
+const shieldIntervalMinutes = 1440 / 12 //TODO: Remove 1/12 reduction after beta
+const fuelIntervalMinutes = 1440 / 12 //TODO: Remove 1/12 reduction after beta
 let currentTime = null
 
 module.exports ={
@@ -127,21 +127,21 @@ async function mine(user, slashCommand) {
 		} else if(roll <= 900) {
 			oreFound = true
 			minedOre += mediumPrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 990) {
+		} else if(roll <= 1000) {
 			oreFound = true
 			minedOre += largePrizeMap.get(randomInteger(1,9))
 		} else {
 			equipmentFound += 1
-			if(roll <= 994) {
+			if(roll <= 1001) {
 				user.equipmentFuel += 1
 				equipmentMap.set('fuel deposit', equipmentMap.get('fuel deposit') + 1)
-			} else if(roll <= 998) {
+			} else if(roll <= 1002) {
 				user.equipmentCloak += 1
 				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') + 1)
-			} else if(roll <= 1001) {
+			} else if(roll <= 1003) {
 				user.equipmentShield += 1
 				equipmentMap.set('shield generator', equipmentMap.get('shield generator') + 1)
-			} else if(roll <= 1003) {
+			} else if(roll <= 1004) {
 				user.equipmentStrike += 1
 				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
 			} else if(roll <= 1005) {
@@ -204,14 +204,14 @@ async function build(user, slashCommand) {
 		}
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
-	if(user.energy < spend) {
+	if(user.energy < 1) {
 		return respond('You do not have enough energy')
 	}
 	if(user.ore < spend) {
 		return respond('You do not have enough vibranium')
 	}
 
-	user.energy -= spend
+	user.energy -= 1
 	user.ore -= spend
 	user.city += spend
 	await db.putUser(user)
@@ -231,14 +231,14 @@ async function build(user, slashCommand) {
 		}
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
-	if(user.energy < spend) {
+	if(user.energy < 1) {
 		return respond('You do not have enough energy')
 	}
 	if(user.ore < spend) {
 		return respond('You do not have enough vibranium')
 	}
 
-	user.energy -= spend
+	user.energy -= 1
 	user.ore -= spend
 	user.military += spend
 	await db.putUser(user)
@@ -263,6 +263,11 @@ async function build(user, slashCommand) {
 	if(isShielded(targetUser.lastShielded)) {
 		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
 	}
+	let response = user.username
+	if(isShielded(user.lastShielded)) {
+		user.lastShielded = 0
+		response += ' deactives shield and'
+	}
 
 	let conflict = user.military + targetUser.city
 	let winPercentage = user.military/conflict * 0.10
@@ -279,7 +284,7 @@ async function build(user, slashCommand) {
 	user.energy -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium!')
+	return respond(response + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium!')
 	//return respond(user.username + ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium! ' + casualties + ' casualties incurred in the attack. Defending city reduced by ' + cityDamage + '.')
 }
 
@@ -478,12 +483,18 @@ async function sabotage(user, slashCommand) {
 	if(isShielded(targetUser.lastShielded)) {
 		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
 	}
+	let response = user.username
+	if(isShielded(user.lastShielded)) {
+		user.lastShielded = 0
+		response += ' deactives shield and'
+	}
+
 	let cityDamage = Math.round(targetUser.city * .25)
 	targetUser.city -= cityDamage
 	user.equipmentSabotage -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(user.username + ' sabotages ' + targetUser.username + ' reducing city size by ' + cityDamage + '!')
+	return respond(response + ' sabotages ' + targetUser.username + ' reducing city size by ' + cityDamage + '!')
 }
 
 
@@ -507,12 +518,18 @@ async function sabotage(user, slashCommand) {
 	if(isShielded(targetUser.lastShielded)) {
 		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
 	}
+	let response = user.username
+	if(isShielded(user.lastShielded)) {
+		user.lastShielded = 0
+		response += ' deactives shield and'
+	}
+
 	let militaryDamage = Math.round(targetUser.military * .25)
 	targetUser.military -= militaryDamage
 	user.equipmentStrike -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(user.username + ' launches a missle strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + '!')
+	return respond(response + ' launches a missle strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + '!')
 }
 
 
@@ -536,6 +553,11 @@ async function sabotage(user, slashCommand) {
 	if(isShielded(targetUser.lastShielded)) {
 		return respond('Player is shielded, immune to attack, sabotage, strike and nuke.')
 	}
+	let response = user.username
+	if(isShielded(user.lastShielded)) {
+		user.lastShielded = 0
+		response += ' deactives shield and'
+	}
 
 	let militaryDamage = Math.round(targetUser.military * .50)
 	let cityDamage = Math.round(targetUser.city * .50)
@@ -544,7 +566,7 @@ async function sabotage(user, slashCommand) {
 	user.equipmentNuke -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(user.username + ' launches a nuclear strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + ' and city size by ' + cityDamage + '!')
+	return respond(response + ' launches a nuclear strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + ' and city size by ' + cityDamage + '!')
 }
 
 
@@ -630,7 +652,7 @@ function isShielded(lastShielded) {
 }
 
 function compare( a, b ) {
-	if ( a.ore < b.ore ){
+	if ( a.ore < b.ore || a.ore === '??' ){
 	  return 1;
 	}
 	if ( a.ore > b.ore ){
