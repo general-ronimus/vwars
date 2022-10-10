@@ -546,7 +546,7 @@ async function sabotage(user, slashCommand) {
 		militaryDamage = Math.round(militaryDamage * .10)
 		response += ' launches a missle strike on ' + targetUser.username + '! ' + targetUser.username + '\'s shield absorbs most of the damage reducing military losses to ' + militaryDamage + '.'
 	} else {
-		response += ' launches a missle strike on ' + targetUser.username + ' reducing military size by ' + cityDamage + '!'
+		response += ' launches a missle strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + '!'
 	}
 	targetUser.military -= militaryDamage
 	user.equipmentStrike -= 1
