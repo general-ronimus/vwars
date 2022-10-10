@@ -50,6 +50,7 @@ async function putUser(user) {
 			equipmentSabotage: user.equipmentSabotage,
 			equipmentStrike: user.equipmentStrike,
 			equipmentNuke: user.equipmentNuke,
+			lastFueled: user.lastFueled,
 			lastCloaked: user.lastCloaked,
 			lastShielded: user.lastShielded
   		}
