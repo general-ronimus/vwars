@@ -123,7 +123,7 @@ async function mine(user, slashCommand) {
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < spend) {
-		return respond('You do not have enough energy.')
+		return respondForUser(user, 'You do not have enough energy.')
 	}
 
 	let minedOre = 0
@@ -135,7 +135,6 @@ async function mine(user, slashCommand) {
 		let roll = randomInteger(1, 1006)
 		console.log('Roll: ' + roll)
 		rolls += roll + ' '
-
 		if(roll <= 750) {
 			oreFound = true
 			minedOre += smallPrizeMap.get(randomInteger(1,9))
@@ -173,7 +172,7 @@ async function mine(user, slashCommand) {
 	user.ore += minedOre
 	await db.putUser(user)
 
-	//Form mining summary response
+	//Form vibranium found response
 	let miningResponse = 'You found '
 	if(oreFound) {
 		miningResponse += minedOre + ' vibranium'
@@ -181,33 +180,31 @@ async function mine(user, slashCommand) {
 			miningResponse += ' and '
 		}
 	}
+
+	//Append equipment found response
 	if(equipmentFound > 0) {
 		miningResponse += 'an equipment chest containing'
-
-		let equipmentIter = 1
+		let equipmentIter = 0
 		equipmentMap.forEach(function(value, key) {
 			if(value > 0) {
+				equipmentIter += value
 				if(value == 1) {
 					miningResponse += ' ' + value + ' ' + key
 				} else if(value > 1) {
 					miningResponse += ' ' + value + ' ' + key + 's'
 				}
 				if(equipmentIter < equipmentFound) {
-					equipmentIter += 1
-					if(equipmentIter == equipmentFound) {
-						miningResponse += ' and'
-					} else {
-						miningResponse += ','
-					}
+					miningResponse += ','
 				}
 			}
 		})
 	}
-	miningResponse += '!'
-	if(isCloaked(user.lastCloaked)) {
-		return respondEphemeral(miningResponse)
+	let lastCommaIndex = miningResponse.lastIndexOf(',')
+	if(lastCommaIndex > 0) {
+		miningResponse = miningResponse.substring(0, lastCommaIndex) + ' and' + miningResponse.substring(lastCommaIndex + 1)
 	}
-	return respond(miningResponse)
+	miningResponse += '!'
+	return respondForUser(user, miningResponse)
 }
 
 
@@ -224,10 +221,10 @@ async function build(user, slashCommand) {
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < 1) {
-		return respond('You do not have enough energy.')
+		return respondForUser(user, 'You do not have enough energy.')
 	}
 	if(user.ore < spend) {
-		return respond('You do not have enough vibranium.')
+		return respondForUser(user, 'You do not have enough vibranium.')
 	}
 
 	user.energy -= 1
@@ -235,10 +232,7 @@ async function build(user, slashCommand) {
 	user.city += spend
 	await db.putUser(user)
 	let response = 'Your city is now size ' + user.city + ', you have ' + user.ore + ' vibranium and ' + user.energy + ' energy remaining.'
-	if(isCloaked(user.lastCloaked)) {
-		return respondEphemeral(response)
-	}
-	return respond(response)	
+	return respondForUser(user, response)	
 }
 
 
@@ -255,10 +249,10 @@ async function build(user, slashCommand) {
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < 1) {
-		return respond('You do not have enough energy.')
+		return respondForUser(user, 'You do not have enough energy.')
 	}
 	if(user.ore < spend) {
-		return respond('You do not have enough vibranium.')
+		return respondForUser(user, 'You do not have enough vibranium.')
 	}
 
 	user.energy -= 1
@@ -266,10 +260,7 @@ async function build(user, slashCommand) {
 	user.military += spend
 	await db.putUser(user)
 	let response = 'Your military is now size ' + user.military + ', you have ' + user.ore + ' vibranium and ' + user.energy + ' energy remaining.'
-	if(isCloaked(user.lastCloaked)) {
-		return respondEphemeral(response)
-	}
-	return respond(response)
+	return respondForUser(user, response)
 }
 
 
@@ -330,7 +321,7 @@ async function build(user, slashCommand) {
 			return respond('Invalid target.')
 		}
 		if(isCloaked(targetUser.lastCloaked)) {
-			return respond('This player is cloaked.')
+			return respondForUser(user, 'This player is cloaked.')
 		}
 	}
 	let response = 'Statistics for ' + targetUser.username +
@@ -339,14 +330,13 @@ async function build(user, slashCommand) {
 				'\nMilitary size: ' + targetUser.military +
 				'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
 				'\nActive shield: ' + isShielded(targetUser.lastShielded) +
-				'\nEquipment: cloak(' + targetUser.equipmentCloak + 
+				'\nEquipment: fuel(' + targetUser.equipmentFuel + 
+					'), cloak(' + targetUser.equipmentCloak + 
+					'), shield(' + targetUser.equipmentShield + 
 					'), strike(' + targetUser.equipmentStrike + 
 					'), sabotage(' + targetUser.equipmentSabotage + 
 					'), nuke(' + targetUser.equipmentNuke + ')'
-	if(isCloaked(targetUser.lastCloaked)) {
-		return respondEphemeral(response)
-	}
-	return respond(response)
+	return respondForUser(user, response)
 }
 
 
@@ -367,7 +357,7 @@ async function leaderboard(user, slashCommand) {
 		responseString = responseString += '\n' + user.username + ': ' + user.ore
 	 });
 	 console.log(responseString)
-	 return respond(responseString)
+	 return respondForUser(user, responseString)
 }
 
 
@@ -390,7 +380,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentFuel += 1
 			itemPurchased = 'fuel reserve'
 		} else {
-			return respond('You do not have enough vibranium.')
+			return respondForUser(user, 'You do not have enough vibranium.')
 		}
 	} else if('cloak' === item) {
 		if(user.ore >= 2000) {
@@ -398,7 +388,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentCloak += 1
 			itemPurchased = 'cloaking device'
 		} else {
-			return respond('You do not have enough vibranium.')
+			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('shield' === item) {
 		if(user.ore >= 4000) {
@@ -406,7 +396,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentShield += 1
 			itemPurchased = 'shield generator'
 		} else {
-			return respond('You do not have enough vibranium.')
+			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('sabotage' === item) {
 		if(user.ore >= 4000) {
@@ -414,7 +404,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentSabotage += 1
 			itemPurchased = 'explosive'
 		} else {
-			return respond('You do not have enough vibranium.')
+			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('strike' === item) {
 		if(user.ore >= 4000) {
@@ -422,7 +412,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentStrike += 1
 			itemPurchased = 'ballistic missle'
 		} else {
-			return respond('You do not have enough vibranium.')
+			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('nuke' === item) {
 		if(user.ore >= 6000) {
@@ -430,7 +420,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentNuke += 1
 			itemPurchased = 'nuclear warhead'
 		} else {
-			return respond('You do not have enough vibranium.')
+			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else {
 		return respond('Invalid option.')
@@ -438,10 +428,7 @@ async function leaderboard(user, slashCommand) {
 
 	await db.putUser(user)
 	let response = 'You have purchased an equipment chest containing one ' + itemPurchased + '.'
-	if(isCloaked(user.lastCloaked)) {
-		return respondEphemeral(response)
-	}
-	return respond(response)
+	return respondForUser(user, response)
 }
 
 
@@ -460,19 +447,16 @@ async function leaderboard(user, slashCommand) {
 async function fuel(user, slashCommand) {
 
 	if(user.equipmentFuel < 1) {
-		return respond('You have no fuel reserves in your inventory.')
+		return respondForUser(user, 'You have no fuel reserves in your inventory.')
 	}
 	if(isFueled(user.lastFueled)) {
-		return respond('You already have fueled reserves released.')
+		return respondForUser(user, 'You already have fueled reserves released.')
 	}
 	user.equipmentFuel -= 1
 	user.lastFueled = currentTime
 	await db.putUser(user)
 	let response = 'You release fossil fuel reserves boosting supply chains. Energy refreshes 30% faster for the next 12 hours.'
-	if(isCloaked(user.lastCloaked)) {
-		return respondEphemeral(response)
-	}
-	return respond(response)
+	return respondForUser(user, response)
 }
 
 
@@ -482,10 +466,10 @@ async function fuel(user, slashCommand) {
  */
 async function cloak(user, slashCommand) {
 	if(user.equipmentCloak < 1) {
-		return respond('You have no cloaking devices in your inventory.')
+		return respondForUser(user, 'You have no cloaking devices in your inventory.')
 	}
 	if(isCloaked(user.lastCloaked)) {
-		return respond('You are already cloaked.')
+		return respondForUser(user, 'You are already cloaked.')
 	}
 	user.equipmentCloak -= 1
 	user.lastCloaked = currentTime
@@ -500,19 +484,16 @@ async function cloak(user, slashCommand) {
  */
 async function shield(user, slashCommand) {
 	if(user.equipmentShield < 1) {
-		return respond('You have no shield generators in your inventory.')
+		return respondForUser(user, 'You have no shield generators in your inventory.')
 	}
 	if(isShielded(user.lastShielded)) {
-		return respond('You already have shields active.')
+		return respondForUser(user, 'You already have shields active.')
 	}
 	user.equipmentShield -= 1
 	user.lastShielded = currentTime
 	await db.putUser(user)
 	let response = 'You activate shields able to absorb 90% of incoming damage from attacks and equipment strikes for 12 hours or until your next offensive move.'
-	if(isCloaked(user.lastCloaked)) {
-		return respondEphemeral(response)
-	}
-	return respond(response)
+	return respondForUser(user, response)
 }
 
 
@@ -684,6 +665,14 @@ function updateEnergy(user) {
 		user.energyUpdatedAt = currentTime - timeRemainder
 	} 
 	return user
+}
+
+function respondForUser(user, message) {
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(message)
+	} else {
+		return respond(message)
+	}
 }
 
 function respond(message) {
