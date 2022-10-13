@@ -1,35 +1,45 @@
 const fs = require('fs')
 const AWS = require("aws-sdk");
-//import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
-//import { DynamoDBClient } from "@aws-sdk/client-dynamodb"; // ES6 import
 
 module.exports ={
-        getUser, putUser, getUsers, deleteUser
+        getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getWar, putWar, getWars, deleteWar
     }
 
-/*
+///*
 AWS.config.update({
     region: "local",
     endpoint: "http://localhost:8000"
 });
-*/
-///*
+//*/
+/*
 AWS.config.update({
     region: "us-west-2"
 });
-//*/
+*/
 
 var ddb = new AWS.DynamoDB.DocumentClient()
 
-async function getUser(userId) {
+
+/**
+ * USER DB OPERATIONS
+ * 
+ */
+
+async function getUser(warId, userId) {
 	let params = {
   		TableName: 'vwars',
   		Key: {
-    		userid: userId
+    		PK: 'WAR#' + warId,
+			SK: 'USER#' + userId
   		}
 	};
-	console.log('db get userid: ' + userId)
+	console.log('db get user - warId: ' + warId + ', userId: ' + userId)
 	let result = await ddb.get(params).promise()
+	if(result.Item) {
+		console.log("Retrieved user object: " + JSON.stringify(result.Item))
+		result.Item.warId = result.Item.PK.replace(/^(WAR#)/,"");
+		result.Item.userId = result.Item.SK.replace(/^(USER#)/,"");
+	}
 	return result
 }
 
@@ -37,7 +47,8 @@ async function putUser(user) {
 	var params = {
  		TableName: 'vwars',
   		Item: {
-    		userid : user.userid,
+			PK : 'WAR#' + user.warId,
+    		SK : 'USER#' + user.userId,
     		username : user.username,
     		ore : user.ore,
     		city : user.city,
@@ -53,33 +64,168 @@ async function putUser(user) {
 			lastFueled: user.lastFueled,
 			lastCloaked: user.lastCloaked,
 			lastShielded: user.lastShielded
-  		}
+  		},
+		ReturnValues: 'ALL_OLD'
 	};
-	console.log('db put userid: ' + user.userid)
+	console.log('db put user - warId: ' + user.warId + ',userId: ' + user.userId)
 	let result = await ddb.put(params).promise()
 	return result
 }
 
-async function getUsers() {
-	let result = ddb.scan({
-		TableName: "vwars",
-	  }).promise()
+async function getUsers(warId) {
+	let params = {
+		TableName: 'vwars',
+		KeyConditionExpression: 'PK = :hkey and begins_with(SK, :rkey)',
+		ExpressionAttributeValues: {
+    		':hkey': 'WAR#' + warId,
+    		':rkey': 'USER#'
+  		}
+	};
+	console.log('db get users - warId: ' + warId)
+  	let result = await ddb.query(params).promise()
+  	result.Items.forEach(function(user) {
+		console.log("Retrieved user: " + JSON.stringify(user))
+		user.warId = user.PK.replace(/^(WAR#)/,"");
+		user.userId = user.SK.replace(/^(USER#)/,"");
+	});  
+	return result
+}
+
+async function deleteUser(warId, userId) {
+	var params = {
+		TableName : 'vwars',
+		Key: {
+			PK: 'WAR#' + warId,
+			SK: 'USER#' + userId
+		}
+	  };
+	console.log('db delete user - warId: ' + warId + ', userId: ' + userId)
+	let result = await ddb.delete(params).promise()
+	return result
+}
+
+
+
+
+/**
+ * GUILD DB OPERATIONS
+ * 
+ */
+
+async function getGuild(guildId) {
+	let params = {
+  		TableName: 'vwars',
+  		Key: {
+    		PK: 'GUILD#' + guildId,
+			SK: 'GUILD#' + guildId,
+  		}
+	};
+	console.log('db get guild - guildId: ' + guildId)
+	let result = await ddb.get(params).promise()
+	if(result.Item) {
+		console.log('Retrieved guild: ' + JSON.stringify(result.Item))
+		result.Item.guildId = result.Item.PK.replace(/^(GUILD#)/,"");
+	}
+	return result
+}
+
+async function putGuild(guild) {
+	var params = {
+ 		TableName: 'vwars',
+  		Item: {
+			PK : 'GUILD#' + guild.guildId,
+    		SK: 'GUILD#' + guild.guildId
+  		}
+	};
+	console.log('db put guild - guildId: ' + guild.guildId)
+	let result = await ddb.put(params).promise()
+	return result
+}
+
+async function deleteGuild(guildId) {
+	var params = {
+		TableName : 'vwars',
+		Key: {
+			PK: 'GUILD#' + guildId,
+			SK: 'GUILD#' + guildId
+		}
+	  };
+	console.log('db delete guild: ' + guildId)
+	let result = await ddb.delete(params).promise()
+	return result
+}
+
+
+
+/**
+ * WAR DB OPERATIONS
+ * 
+ */
+
+async function getWar(guildId, warId) {
+	let params = {
+  		TableName: 'vwars',
+  		Key: {
+    		PK: 'GUILD#' + guildId,
+			SK: 'WAR#' + warId
+  		}
+	};
+	console.log('db get war - guildId: ' + guildId + ', warId: ' + warId)
+	let result = await ddb.get(params).promise()
+	if(result.Item) {
+		console.log("Retrieved war: " + JSON.stringify(result.Item))
+		result.Item.guildId = result.Item.PK.replace(/^(GUILD#)/,"");
+		result.Item.warId = result.Item.SK.replace(/^(WAR#)/,"");
+	}
+	return result
+}
+
+async function putWar(war) {
+	var params = {
+ 		TableName: 'vwars',
+  		Item: {
+			PK : 'GUILD#' + war.guildId,
+    		SK: 'WAR#' + war.warId,
+			name: war.name,
+			isActive: war.isActive,
+			expiration: war.expiration,
+			energyRefresh: war.energyRefresh,
+			cycleTime: war.cycleTime
+  		}
+	};
+	console.log('db put war - guildId: ' + war.guildId + ', warId: ' + war.warId)
+	let result = await ddb.put(params).promise()
+	return result
+}
+
+async function getWars(guildId) {
+	let params = {
+		TableName: 'vwars',
+		KeyConditionExpression: 'PK = :hkey and begins_with(SK, :rkey)',
+		ExpressionAttributeValues: {
+    		':hkey': 'GUILD#' + guildId,
+    		':rkey': 'WAR#'
+  		}
+  	};
+	console.log('db get wars - guildId: ' + guildId)
+  	let result = await ddb.query(params).promise()
+  	result.Items.forEach(function(war) {
+		console.log("Retrieved war: " + JSON.stringify(war))
+		war.guildId = war.PK.replace(/^(GUILD#)/,"");
+		war.warId = war.SK.replace(/^(WAR#)/,"");
+ 	});
   return result
 }
 
-async function deleteUser(userId) {
+async function deleteWar(guildId, warId) {
 	var params = {
 		TableName : 'vwars',
-		Key: { 
-			//userId 
-			//userid: userId
-			//primaryKey: userId,
-			//sortKey: "",
-			//S: userId
-			HashKey: userId
+		Key: {
+			PK: 'GUILD#' + guildId,
+			SK: 'WAR#' + warId
 		}
 	  };
-	console.log('db delete userid: ' + userId)
+	console.log('db delete war - guildId: ' + guildId + ', warId: ' + warId)
 	let result = await ddb.delete(params).promise()
 	return result
 }

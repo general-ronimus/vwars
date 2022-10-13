@@ -8,7 +8,7 @@ const headerSignature = 'x-signature-ed25519'
 const headerTimestamp = 'x-signature-timestamp'
 'use strict';
 
-exports.vwars = async (event) => {
+exports.handle = async (event) => {
   return processEvent(event)
 };
 

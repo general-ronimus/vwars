@@ -1,0 +1,16 @@
+{
+  "TableName": "vwars",
+  "KeySchema": [
+    {
+      "KeyType": "HASH",
+      "AttributeName": "userid"
+    }
+  ],
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "userid",
+      "AttributeType": "S"
+    }
+  ],
+  "BillingMode": "PAY_PER_REQUEST"
+}

@@ -2,16 +2,17 @@
 
 ### Access patterns
 1. Get guild
-2. Get all theatres for a guild
-3. CRUD theatre by guild
-3. CRUD user by theatre
-4. Get all users for a theatre
+2. Get all wars for a guild
+3. CRUD war by guild
+3. CRUD user by war
+4. Get all users for a war
 
 ### DynamoDB data model
 Table: vwars
-| PRIMARY       |  KEY        | ATTRIBUTES                         |
-| ------------- | ----------- | ---------------------------------- |
-| Partition Key | Sort Key    | Attributes                         |
-| GUILD:ID      |             | theatreCount                       |
-| GUILD:ID      | THEATRE:ID  | name isActive expiration cycleTime |
-| THEATRE:ID    | USER:ID     | ore city military equipment        |
+| PRIMARY       |  KEY        | ATTRIBUTES                                       |
+| ------------- | ----------- | ------------------------------------------------ |
+| Partition Key | Sort Key    | Attributes                                       |
+| GUILD:ID      |             | theatreCount                                     |
+| GUILD:ID      | WAR:ID      | name isActive expiration energyRefresh cycleTime |
+| WAR:ID        | USER:ID     | ore city military equipment, etc...              |
+

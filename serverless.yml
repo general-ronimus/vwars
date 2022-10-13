@@ -39,13 +39,21 @@ layers:
 
 functions:
   vwars:
-    handler: handler.vwars
+    handler: vwarsHandler.handle
     layers:
       - !Ref VwarsNodeModulesLambdaLayer
     events:
       - http:
           path: vwars
           method: post
+#  vwars-background:
+#    handler: vwarsBackgroundHandler.handle
+#    layers:
+#      - !Ref VwarsNodeModulesLambdaLayer
+#    events: #TODO Replace http with sqs
+#      - http:
+#          path: vwars
+#          method: post
 
 resources:
   Resources:
@@ -54,13 +62,16 @@ resources:
       Properties:
         TableName: vwars
         AttributeDefinitions:
-          - AttributeName: userid
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
             AttributeType: S
         KeySchema:
-          - AttributeName: userid
+          - AttributeName: PK
             KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-
 
 custom:
   dynamodb:

@@ -4,8 +4,6 @@
  */
 
 const db = require('./vwarsDbService.js')
-const warService = require('./warService.js')
-
 const smallPrizeMap = new Map([[1, 0], [2, 0], [3, 0], [4, 1], [5, 1], [6, 2], [7, 3], [8, 4], [9,5]]);
 const mediumPrizeMap = new Map([[1, 10], [2, 15], [3, 20], [4, 25], [5, 30], [6, 40], [7, 50], [8, 60], [9,75]]);
 const largePrizeMap = new Map([[1, 100], [2, 125], [3, 150], [4, 200], [5, 300], [6, 400], [7, 500], [8, 1000], [9, 2000]]);
@@ -24,27 +22,14 @@ module.exports ={
 async function process(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
-
-	let activeWar = null
-	let warsExist = await warService.warsExist(slashCommand.guildId)
-	if(!warsExist) {
-		activeWar = await warService.createDefaultActiveWar(slashCommand.guildId)
-	} else {
-		activeWar = await warService.getActiveWar(slashCommand.guildId)
-	}
-	if(!activeWar) {
-		respond('There is no active war for this server.')
-	}
-	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
-
-	let userRecord = await db.getUser(activeWar.warId, slashCommand.userId)
+	let userRecord = await db.getUser(slashCommand.userid)
 	let user = userRecord.Item
 	console.log('Retrieved user: ' + JSON.stringify(user))
 	if(!user) {
 		user = initUser(slashCommand)
 		console.log('Initializing new user: ' + JSON.stringify(user))
 		await db.putUser(user)
-		console.log('User record created for userId ' + user.userId)
+		console.log('User record created for userid ' + user.userid)
 	}
 	user = updateEnergy(user)
 
@@ -80,8 +65,7 @@ async function process(slashCommandBody) {
 
 function parseSlashCommand(slashCommandBody) {
 	console.log('Slash command body: ' + JSON.stringify(slashCommandBody))
-	let guildId = JSON.stringify(slashCommandBody.guild_id).replace(/\"/g, "")
-	let userId = JSON.stringify(slashCommandBody.member.user.id).replace(/\"/g, "")
+	let userid = JSON.stringify(slashCommandBody.member.user.id).replace(/\"/g, "")
 	let username = JSON.stringify(slashCommandBody.member.user.username).replace(/\"/g, "")
 	let command = JSON.stringify(slashCommandBody.data.name).replace(/\"/g, "");
 	let subCommand = JSON.stringify(slashCommandBody.data.options[0].name).replace(/\"/g, "");
@@ -92,14 +76,13 @@ function parseSlashCommand(slashCommandBody) {
 		}
 	}
 	let slashCommand = {
-		guildId: guildId,
-		userId: userId,
+		userid: userid,
 		username: username,
 		command: command,
 		subCommand: subCommand,
 		subCommandArgs: subCommandArgs
 	  };
-	  console.log('Command parsed; guildId: ' + guildId + ', userId: ' + userId + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
+	  console.log('Command parsed, userid: ' + userid + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
 	  return slashCommand
 }
 
@@ -622,9 +605,9 @@ async function sabotage(user, slashCommand) {
  */
 
 function initUser(slashCommand) {
-	console.log('Initializing new user object for userId: ' + slashCommand.userId + ", username: " + slashCommand.username)
+	console.log('Initializing new user object for userid: ' + slashCommand.userid + ", username: " + slashCommand.username)
 	let initializedUser = {
-		userId: slashCommand.userId,
+		userid: slashCommand.userid,
 		username: slashCommand.username,
 		ore: 1,
 		city: 1,
@@ -729,5 +712,3 @@ function compare( a, b ) {
 	return 0;
   }
   
-
-

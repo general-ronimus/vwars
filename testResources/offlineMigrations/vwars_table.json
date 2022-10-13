@@ -1,14 +1,22 @@
 {
-  "TableName": "vwars",
+  "TableName": "vwars_table",
   "KeySchema": [
     {
       "KeyType": "HASH",
-      "AttributeName": "userid"
+      "AttributeName": "PK"
+    },
+    {
+      "KeyType": "RANGE",
+      "AttributeName": "SK"
     }
   ],
   "AttributeDefinitions": [
     {
-      "AttributeName": "userid",
+      "AttributeName": "PK",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "SK",
       "AttributeType": "S"
     }
   ],
