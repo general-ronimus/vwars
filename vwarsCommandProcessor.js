@@ -415,8 +415,8 @@ async function leaderboard(user, slashCommand) {
 			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('nuke' === item) {
-		if(user.ore >= 6000) {
-			user.ore -= 6000
+		if(user.ore >= 8000) {
+			user.ore -= 8000
 			user.equipmentNuke += 1
 			itemPurchased = 'nuclear warhead'
 		} else {
