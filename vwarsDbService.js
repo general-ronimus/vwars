@@ -5,17 +5,17 @@ module.exports ={
         getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getWar, putWar, getWars, deleteWar
     }
 
-///*
+/*
 AWS.config.update({
     region: "local",
     endpoint: "http://localhost:8000"
 });
-//*/
-/*
+*/
+///*
 AWS.config.update({
     region: "us-west-2"
 });
-*/
+//*/
 
 var ddb = new AWS.DynamoDB.DocumentClient()
 

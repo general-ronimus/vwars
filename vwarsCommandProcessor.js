@@ -15,6 +15,7 @@ const cloakIntervalMinutes = 720 / 10 //TODO: Remove 1/10 reduction after beta
 const shieldIntervalMinutes = 720 / 10 //TODO: Remove 1/10 reduction after beta
 const fuelIntervalMinutes = 720 / 10 //TODO: Remove 1/10 reduction after beta
 let currentTime = null
+let activeWar = null
 
 module.exports ={
         process
@@ -25,13 +26,11 @@ async function process(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
 
-	let activeWar = null
 	let warsExist = await warService.warsExist(slashCommand.guildId)
 	if(!warsExist) {
-		activeWar = await warService.createDefaultActiveWar(slashCommand.guildId)
-	} else {
-		activeWar = await warService.getActiveWar(slashCommand.guildId)
+		await warService.createDefaultActiveWar(slashCommand.guildId)
 	}
+	activeWar = await warService.getActiveWar(slashCommand.guildId)
 	if(!activeWar) {
 		respond('There is no active war for this server.')
 	}
@@ -41,8 +40,7 @@ async function process(slashCommandBody) {
 	let user = userRecord.Item
 	console.log('Retrieved user: ' + JSON.stringify(user))
 	if(!user) {
-		user = initUser(slashCommand)
-		console.log('Initializing new user: ' + JSON.stringify(user))
+		user = initUser(activeWar.warId, slashCommand)
 		await db.putUser(user)
 		console.log('User record created for userId ' + user.userId)
 	}
@@ -206,6 +204,9 @@ async function mine(user, slashCommand) {
 		})
 	}
 	miningResponse += '!'
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(miningResponse)
+	}
 	return respond(miningResponse)
 }
 
@@ -233,7 +234,11 @@ async function build(user, slashCommand) {
 	user.ore -= spend
 	user.city += spend
 	await db.putUser(user)
-	return respond('Your city is now size ' + user.city + ', you have ' + user.ore + ' vibranium and ' + user.energy + ' energy remaining.')
+	let response = 'Your city is now size ' + user.city + ', you have ' + user.ore + ' vibranium and ' + user.energy + ' energy remaining.'
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(response)
+	}
+	return respond(response)	
 }
 
 
@@ -260,7 +265,11 @@ async function build(user, slashCommand) {
 	user.ore -= spend
 	user.military += spend
 	await db.putUser(user)
-	return respond('Your military is now size ' + user.military + ', you have ' + user.ore + ' vibranium and ' + user.energy + ' energy remaining.')
+	let response = 'Your military is now size ' + user.military + ', you have ' + user.ore + ' vibranium and ' + user.energy + ' energy remaining.'
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(response)
+	}
+	return respond(response)
 }
 
 
@@ -272,7 +281,7 @@ async function build(user, slashCommand) {
 	let targetUser = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getUser(targetUserId)
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser) {
@@ -315,7 +324,7 @@ async function build(user, slashCommand) {
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 
 		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getUser(targetUserId)
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 		if(null == targetUser) {
 			return respond('Invalid target.')
@@ -346,7 +355,7 @@ async function build(user, slashCommand) {
  */
 async function leaderboard(user, slashCommand) {
 	let responseString = 'Vibranium Wars Leaderboard'
-	let retrievedUsers = await db.getUsers()
+	let retrievedUsers = await db.getUsers(activeWar.warId)
 	//retrieve, cloak, sort and form leaderboard response
 	retrievedUsers.Items.forEach(function(user) {
 		if(isCloaked(user.lastCloaked)) {
@@ -428,7 +437,11 @@ async function leaderboard(user, slashCommand) {
 	}
 
 	await db.putUser(user)
-	return respond('You have purchased an equipment chest containing one ' + itemPurchased + '.')
+	let response = 'You have purchased an equipment chest containing one ' + itemPurchased + '.'
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(response)
+	}
+	return respond(response)
 }
 
 
@@ -455,7 +468,11 @@ async function fuel(user, slashCommand) {
 	user.equipmentFuel -= 1
 	user.lastFueled = currentTime
 	await db.putUser(user)
-	return respond('You release fossil fuel reserves boosting supply chains. Energy refreshes 30% faster for the next 12 hours.')
+	let response = 'You release fossil fuel reserves boosting supply chains. Energy refreshes 30% faster for the next 12 hours.'
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(response)
+	}
+	return respond(response)
 }
 
 
@@ -473,7 +490,7 @@ async function cloak(user, slashCommand) {
 	user.equipmentCloak -= 1
 	user.lastCloaked = currentTime
 	await db.putUser(user)
-	return respond('You are now cloaked. Players will be unable to see your stats for 12 hours.')
+	return respondEphemeral('You are now cloaked. Players will be unable to see your stats for 12 hours.')
 }
 
 
@@ -491,7 +508,11 @@ async function shield(user, slashCommand) {
 	user.equipmentShield -= 1
 	user.lastShielded = currentTime
 	await db.putUser(user)
-	return respond('You activate shields able to absorb 90% of incoming damage from attacks and equipment strikes for 12 hours or until your next offensive move.')
+	let response = 'You activate shields able to absorb 90% of incoming damage from attacks and equipment strikes for 12 hours or until your next offensive move.'
+	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(response)
+	}
+	return respond(response)
 }
 
 
@@ -506,7 +527,7 @@ async function sabotage(user, slashCommand) {
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getUser(targetUserId)
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser) {
@@ -545,7 +566,7 @@ async function sabotage(user, slashCommand) {
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getUser(targetUserId)
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser) {
@@ -584,7 +605,7 @@ async function sabotage(user, slashCommand) {
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getUser(targetUserId)
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser) {
@@ -621,9 +642,10 @@ async function sabotage(user, slashCommand) {
  * 
  */
 
-function initUser(slashCommand) {
-	console.log('Initializing new user object for userId: ' + slashCommand.userId + ", username: " + slashCommand.username)
+function initUser(warId, slashCommand) {
+	console.log('Initializing new user for warId: ' + warId + ', userId: ' + slashCommand.userId + ", username: " + slashCommand.username)
 	let initializedUser = {
+		warId: warId,
 		userId: slashCommand.userId,
 		username: slashCommand.username,
 		ore: 1,
