@@ -10,10 +10,10 @@ const smallPrizeMap = new Map([[1, 0], [2, 0], [3, 0], [4, 1], [5, 1], [6, 2], [
 const mediumPrizeMap = new Map([[1, 10], [2, 15], [3, 20], [4, 25], [5, 30], [6, 40], [7, 50], [8, 60], [9,75]]);
 const largePrizeMap = new Map([[1, 100], [2, 125], [3, 150], [4, 200], [5, 300], [6, 400], [7, 500], [8, 1000], [9, 2000]]);
 const maxEnergy = 100
-const energyIntervalMinutes = 10 / 1000 //TODO: Remove 1/1000 after beta
-const cloakIntervalMinutes = 720 / 10 //TODO: Remove 1/10 reduction after beta
-const shieldIntervalMinutes = 720 / 10 //TODO: Remove 1/10 reduction after beta
-const fuelIntervalMinutes = 720 / 10 //TODO: Remove 1/10 reduction after beta
+const energyIntervalMinutes = 3 //TODO: Set to 10 after beta
+const cloakIntervalMinutes = 180 //TODO: Set to 720 after beta
+const shieldIntervalMinutes = 180 //TODO: Set to 720 after beta
+const fuelIntervalMinutes = 180 //TODO: Set to 720 after beta
 let currentTime = null
 let activeWar = null
 
@@ -72,6 +72,8 @@ async function process(slashCommandBody) {
 		return await stats(user, slashCommand)
 	} else if('leaderboard' === slashCommand.subCommand) {
 		return await leaderboard(user, slashCommand)
+	} else if('help' === slashCommand.subCommand) {
+		return await help(user, slashCommand)
 	}
 	return respond('Invalid command')
 }
@@ -304,6 +306,9 @@ async function build(user, slashCommand) {
 /** 
  * help
  */
+ async function help(user, slashCommand) {
+	 return respondEphemeral(helpResponse)
+}
 
 
 /**
@@ -739,6 +744,24 @@ function compare( a, b ) {
 	}
 	return 0;
   }
-  
 
-
+  const helpResponse = 'Objective:\
+  \nAcquire more vibranium than your competitors.\
+  \n\
+  \nHow to play:\
+  \nUse [mine] command to mine for vibranium and rare chances of equipment chests.\
+  \n\
+  \nUse [build] and [train] commands to build up your city or train up your military. A strong city better protects your vibranium from attackers. A strong military allows you to steal more vibranium from defenders.\
+  \n\
+  \nUse [attack] command to attack and steal a portion of a player’s vibranium.\
+  \n\
+  \nEquipment chests unlock advanced commands, each giving you a tactical advantage over your competitors. These can be purchased with vibranium using [buy] command, or found during mining.\
+  \n\
+  \nCheck in on you & your competitors’ standings using [stats] and [leaderboard] commands.\
+  \n\
+  \nCreator and developer:\
+  \nGeneral Ronimus\
+  \n\
+  \nGame design:\
+  \nPlayBoyPK\
+  '
