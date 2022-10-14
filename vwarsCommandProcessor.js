@@ -25,6 +25,9 @@ module.exports ={
 async function process(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
+	if('help' === slashCommand.subCommand) {
+		return await help()
+	}
 
 	let warsExist = await warService.warsExist(slashCommand.guildId)
 	if(!warsExist) {
@@ -32,7 +35,7 @@ async function process(slashCommandBody) {
 	}
 	activeWar = await warService.getActiveWar(slashCommand.guildId)
 	if(!activeWar) {
-		respond('There is no active war for this server.')
+		return respond('There is no active war for this server.')
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
 
@@ -72,8 +75,6 @@ async function process(slashCommandBody) {
 		return await stats(user, slashCommand)
 	} else if('leaderboard' === slashCommand.subCommand) {
 		return await leaderboard(user, slashCommand)
-	} else if('help' === slashCommand.subCommand) {
-		return await help(user, slashCommand)
 	}
 	return respond('Invalid command')
 }
@@ -306,7 +307,7 @@ async function build(user, slashCommand) {
 /** 
  * help
  */
- async function help(user, slashCommand) {
+ async function help() {
 	 return respondEphemeral(helpResponse)
 }
 
@@ -745,7 +746,8 @@ function compare( a, b ) {
 	return 0;
   }
 
-  const helpResponse = 'Objective:\
+  const helpResponse = '```Welcome to Vibranium Wars!\
+  \nObjective:\
   \nAcquire more vibranium than your competitors.\
   \n\
   \nHow to play:\
@@ -764,4 +766,5 @@ function compare( a, b ) {
   \n\
   \nGame design:\
   \nPlayBoyPK\
+  \n```\
   '

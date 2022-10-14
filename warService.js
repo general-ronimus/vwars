@@ -7,7 +7,7 @@ module.exports ={
 
 async function warsExist(guildId) {
     let wars = await db.getWars(guildId)
-    if(wars.Items.length > 1) {
+    if(wars.Items.length > 0) {
         return true
     }
     return false
