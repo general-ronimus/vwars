@@ -89,3 +89,8 @@ vwars can be tested locally using serverless framework
 - Energy gain - 1 per 10 minutes (6 per hour, 144 per day)
 - Mining rates - chance of 0 - 2000 vibranium with higher amounts having lower drop rates. Rare chance of finding an equipment chest.
 
+---
+## Contributors
+Creator and developer: @General Ronimus
+
+Game design: @PlayBoyPk
