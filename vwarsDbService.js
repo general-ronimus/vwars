@@ -1,23 +1,30 @@
 const fs = require('fs')
 const AWS = require("aws-sdk");
+const yaml = require('js-yaml');
 
 module.exports ={
         getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getWar, putWar, getWars, deleteWar
     }
 
-/*
-AWS.config.update({
-    region: "local",
-    endpoint: "http://localhost:8000"
-});
-*/
-///*
-AWS.config.update({
-    region: "us-west-2"
-});
-//*/
+const config = yaml.safeLoad(fs.readFileSync('build-properties.yml', 'utf8'))
+const dbLocalHost = config.db_local_host
+const dbLocalPort = config.db_local_port
+console.log('Confguration loaded: ' + JSON.stringify(config))
 
-var ddb = new AWS.DynamoDB.DocumentClient()
+if(dbLocalHost || dbLocalPort) {
+	console.log('Using local dynamodb at http://' + dbLocalHost + ':' + dbLocalPort)
+
+	AWS.config.update({
+		region: "local",
+		endpoint: "http://" + dbLocalHost + ":" + dbLocalPort
+	});
+} else {
+	AWS.config.update({
+		region: "us-west-2"
+	});
+}
+
+const ddb = new AWS.DynamoDB.DocumentClient()
 
 
 /**
