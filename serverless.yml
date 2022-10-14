@@ -1,0 +1,87 @@
+service: vwars
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
+provider:
+  name: aws
+  stage: dev
+  region: us-west-2
+  runtime: nodejs14.x
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+       - dynamodb:Query
+       - dynamodb:Scan
+       - dynamodb:GetItem
+       - dynamodb:PutItem
+       - dynamodb:UpdateItem
+       - dynamodb:DeleteItem
+      Resource:
+        Fn::GetAtt:
+          - vwarsTable
+          - Arn	
+
+package:
+  patterns:
+    - '!node_modules/**'
+    - '!.dynamodb/**'
+    - '!.vscode/**'
+    - '!deprecated/**'
+    - '!layer/**'
+
+layers:
+  vwarsNodeModules:
+    path: layer
+
+functions:
+  vwars:
+    handler: vwarsHandler.handle
+    layers:
+      - !Ref VwarsNodeModulesLambdaLayer
+    events:
+      - http:
+          path: vwars
+          method: post
+#  vwars-background:
+#    handler: vwarsBackgroundHandler.handle
+#    layers:
+#      - !Ref VwarsNodeModulesLambdaLayer
+#    events: #TODO Replace http with sqs
+#      - http:
+#          path: vwars
+#          method: post
+
+resources:
+  Resources:
+    vwarsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: vwars
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+      convertEmptyValues: true
+    migration:
+      dir: testResources/migrations  

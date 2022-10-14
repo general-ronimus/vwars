@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
@@ -13,6 +13,9 @@
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "jest": "^29.1.2",
+    "serverless-dynamodb-local": "^0.2.40"
+  },
   "description": ""
 }

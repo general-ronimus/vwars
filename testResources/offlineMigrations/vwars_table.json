@@ -1,0 +1,24 @@
+{
+  "TableName": "vwars_table",
+  "KeySchema": [
+    {
+      "KeyType": "HASH",
+      "AttributeName": "PK"
+    },
+    {
+      "KeyType": "RANGE",
+      "AttributeName": "SK"
+    }
+  ],
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "PK",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "SK",
+      "AttributeType": "S"
+    }
+  ],
+  "BillingMode": "PAY_PER_REQUEST"
+}
