@@ -1,6 +1,7 @@
 # Vibranium Wars!
 
 ## Pre-requisites
+- aws-cli
 - nvm
 - npm
 - node
@@ -13,9 +14,11 @@ vwars is a node.js project, and can be built using npm
 `npm install`
 
 ## Deployment
-vwars can be deployed via serverless framework
-
-`serverless deploy`
+vwars can be deployed via serverless framework and aws-cli
+1. Use aws-cli to configure and provide AWS credentials
+    - `aws configure`
+2. Deploy lambdas and supporting infrastructure with serverless
+    - `serverless deploy`
 
 ## Test
 vwars can be tested locally using serverless framework
