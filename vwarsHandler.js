@@ -1,9 +1,11 @@
 const nacl = require('tweetnacl')
 const fs = require("fs");
+const yaml = require('js-yaml');
 const vwarsCommandProcessor = require('./vwarsCommandProcessor')
 
-//const publicKey = 'ffe639ee3dc9fdcfc6355c3f40dc99dbd56e4e1804002e04987fcc30cd6d6e8b'
-const publicKey = '7b18f0ee016f56d10eb3aa43f4aef5c3b0d7a9df4941bec4930649dbb9b1a5a5'
+const config = yaml.safeLoad(fs.readFileSync('build-properties.yml', 'utf8'));
+console.log('Confguration loaded: ' + JSON.stringify(config))
+const publicKey = config.discord_public_key
 const headerSignature = 'x-signature-ed25519'
 const headerTimestamp = 'x-signature-timestamp'
 'use strict';
@@ -16,10 +18,12 @@ async function processEvent(event) {
   const body = JSON.parse(event.body)
   const signature = event.headers[headerSignature]
   const timestamp = event.headers[headerTimestamp]
+
   console.log('Event received: ' + JSON.stringify(event))
   console.log("body: " + JSON.stringify(body))
   console.log("signature: " + signature)
   console.log("timestamp: " + timestamp)
+  console.log("publicKey: " + publicKey)
 
   let response = {
           statusCode: 401
