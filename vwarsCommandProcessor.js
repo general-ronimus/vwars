@@ -278,6 +278,9 @@ async function build(user, slashCommand) {
 		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
+	if(user.energy < 1) {
+		return respond('You do not have enough energy.')
+	}
 	if(null == targetUser) {
 		return respond('Invalid target.')
 	}
