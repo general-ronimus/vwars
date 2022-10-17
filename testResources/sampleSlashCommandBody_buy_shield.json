@@ -7,12 +7,12 @@
         "name": "vwars",
         "options": [
             {
-                "name": "stats",
+                "name": "buy",
                 "options": [
                     {
-                        "name": "target",
+                        "name": "equipment",
                         "type": 4,
-                        "value": "TESTUSER2"
+                        "value": "shield"
                     }
                 ],
                 "type": 1

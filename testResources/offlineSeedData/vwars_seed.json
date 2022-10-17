@@ -1,0 +1,45 @@
+[
+    {
+      "PK": "WAR#TESTWAR1",
+      "SK": "USER#TESTUSER1",
+      "username": "Test User One",
+      "ore": 100000,
+      "city": 1000,
+      "military": 1000,
+      "equipmentFuel": 0,
+      "equipmentCloak": 0,
+      "equipmentShield": 0,
+      "equipmentSabotage": 0,
+      "equipmentStrike": 0,
+      "equipmentNuke": 0,
+      "lastCloaked": 0,
+      "lastShielded": 0,
+      "lastFueled": 0,
+      "energy": 100,
+      "energyUpdatedAt": 0
+    },
+    {
+        "PK": "WAR#TESTWAR1",
+        "SK": "USER#TESTUSER2",
+        "username": "Test User Two",
+        "ore": 0,
+        "city": 1,
+        "military": 1,
+        "equipmentFuel": 0,
+        "equipmentCloak": 0,
+        "equipmentShield": 0,
+        "equipmentSabotage": 0,
+        "equipmentStrike": 0,
+        "equipmentNuke": 0,
+        "lastCloaked": 0,
+        "lastShielded": 0,
+        "lastFueled": 0,
+        "energy": 100,
+        "energyUpdatedAt": 0
+      },
+      {
+        "PK": "GUILD#756188340427948084",
+        "SK": "WAR#TESTWAR1",
+        "isActive": true
+      }
+  ]    

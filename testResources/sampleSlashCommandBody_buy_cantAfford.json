@@ -12,7 +12,7 @@
                     {
                         "name": "equipment",
                         "type": 4,
-                        "value": "strike"
+                        "value": "nuke"
                     }
                 ],
                 "type": 1
@@ -41,9 +41,9 @@
             "avatar": "6223361e64073a22d972756947c9a8ea",
             "avatar_decoration": null,
             "discriminator": "4622",
-            "id": "510691137988722688",
+            "id": "TESTUSER2",
             "public_flags": 0,
-            "username": "General Ronimus"
+            "username": "Test User Two"
         }
     },
     "token": "aW50ZXJhY3Rpb246MTAyNzI5MzM1MTI0Mzk1NjI2NjpOZUVhUEZlb1Uwb2Ewdk1BaDh4QnRFT1hwSmE4QjM4TVZ5d3Y1UW81aWVnd29nOEloUnNpRzJjblF2RUg1R1A3ZVhFUnp4M1VMaUJwWkJRMzFLY2hXZXlrZk5GRVI5UnlpMzRMVUlNUzJQY2tnU1dyeEk1SFJrdkRpRVFoWjVRWA",

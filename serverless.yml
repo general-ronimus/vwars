@@ -84,4 +84,9 @@ custom:
       seed: true
       convertEmptyValues: true
     migration:
-      dir: testResources/migrations  
+      dir: testResources/offlineMigrations  
+    seed:
+      vwarsSeed:
+        sources:
+          - table: vwars
+            sources: [./testResources/offlineSeedData/vwars_seed.json]
