@@ -720,8 +720,7 @@ function updateEnergy(user) {
 
 function updateShield(user) {
 	if(user.shieldHealth > 0) {
-		let shieldDegredationMillis = 1000 * 60 //TODO: Switch back to 360
-		console.log('Preparing shieldDegradation, millis: ' + shieldDegredationMillis + ', updatedAt: ' + user.shieldUpdatedAt + ', currentTime: ' + currentTime)
+		let shieldDegredationMillis = 1000 * 360
 		if(currentTime > user.shieldUpdatedAt + shieldDegredationMillis) {
 			let timePassed = currentTime - user.shieldUpdatedAt
 			let shieldDegradation = Math.floor(timePassed / shieldDegredationMillis)
@@ -802,7 +801,13 @@ function compare( a, b ) {
   \n\
   \nUse /vw attack command to attack and steal a portion of a player’s vibranium.\
   \n\
-  \nEquipment chests unlock advanced commands, each giving you a tactical advantage over your competitors. These can be purchased with vibranium using /vw buy command, or found during mining.\
+  \nEquipment chests unlock advanced commands giving you an advantage in the war. These can be purchased with vibranium using /vw buy command, or found during mining.\
+  \n\Fuel - gain 50 energy\
+  \n\Cloak - hide your info from other players\
+  \n\Shield - absorb incoming damage\
+  \n\Sabotage - destroy 25% of an opponent\'s city\
+  \n\Strike - destroy 25% of an opponent\'s military\
+  \n\Nuke - destroy 50% of an opponent\'s city & military\
   \n\
   \nCheck up on you or our competitors’ standings using /vw stats and /vw leaderboard commands.\
   \n\
