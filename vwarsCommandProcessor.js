@@ -297,6 +297,7 @@ async function build(user, slashCommand) {
 	let conflict = user.military + targetUser.city
 	let winPercentage = user.military/conflict * 0.10
 	response += ' attacks ' + targetUser.username
+	updateShield(targetUser)
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
 		targetUser.shieldHealth -= Math.round(100 * winPercentage)
@@ -548,7 +549,8 @@ async function sabotage(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' sabotages ' + targetUser.username 
+	response += ' sabotages ' + targetUser.username
+	targetUser = updateShield(targetUser) 
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
 		targetUser.shieldHealth -= 25
@@ -595,7 +597,8 @@ async function sabotage(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' launches a missle strike on ' + targetUser.username 
+	response += ' launches a missle strike on ' + targetUser.username
+	targetUser = updateShield(targetUser)  
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
 		targetUser.shieldHealth -= 25
@@ -643,6 +646,7 @@ async function sabotage(user, slashCommand) {
 
 	//calculate damage dealt
 	response += ' launches a nuclear strike on ' + targetUser.username 
+	targetUser = updateShield(targetUser) 
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
 		targetUser.shieldHealth -= 25
