@@ -62,6 +62,7 @@ async function putUser(user) {
     		military : user.military,
     		energy : user.energy,
 			energyUpdatedAt : user.energyUpdatedAt,
+			shieldUpdatedAt : user.shieldUpdatedAt,
 			equipmentFuel: user.equipmentFuel,
 			equipmentCloak: user.equipmentCloak,
 			equipmentShield: user.equipmentShield,
@@ -70,7 +71,8 @@ async function putUser(user) {
 			equipmentNuke: user.equipmentNuke,
 			lastFueled: user.lastFueled,
 			lastCloaked: user.lastCloaked,
-			lastShielded: user.lastShielded
+			lastShielded: user.lastShielded,
+			shieldHealth: user.shieldHealth
   		},
 		ReturnValues: 'ALL_OLD'
 	};

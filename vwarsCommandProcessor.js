@@ -10,10 +10,10 @@ const smallPrizeMap = new Map([[1, 0], [2, 0], [3, 0], [4, 1], [5, 1], [6, 2], [
 const mediumPrizeMap = new Map([[1, 10], [2, 15], [3, 20], [4, 25], [5, 30], [6, 40], [7, 50], [8, 60], [9,75]]);
 const largePrizeMap = new Map([[1, 100], [2, 125], [3, 150], [4, 200], [5, 300], [6, 400], [7, 500], [8, 1000], [9, 2000]]);
 const maxEnergy = 100
-const energyIntervalMinutes = 3 //TODO: Set to 10 after beta
-const cloakIntervalMinutes = 180 //TODO: Set to 720 after beta
-const shieldIntervalMinutes = 180 //TODO: Set to 720 after beta
-const fuelIntervalMinutes = 180 //TODO: Set to 720 after beta
+const cloakIntervalMinutes = 720
+const shieldIntervalMinutes = 720
+const fuelIntervalMinutes = 720 
+let energyIntervalMinutes = 5
 let currentTime = null
 let activeWar = null
 
@@ -38,6 +38,9 @@ async function process(slashCommandBody) {
 		return respond('There is no active war for this server.')
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
+	if(activeWar.energyRefreshMinutes) {
+		energyIntervalMinutes = activeWar.energyRefreshMinutes
+	}
 
 	let userRecord = await db.getUser(activeWar.warId, slashCommand.userId)
 	let user = userRecord.Item
@@ -48,6 +51,7 @@ async function process(slashCommandBody) {
 		console.log('User record created for userId ' + user.userId)
 	}
 	user = updateEnergy(user)
+	user = updateShield(user)
 
 	if('mine' === slashCommand.subCommand) {
 		return await mine(user, slashCommand)
@@ -285,21 +289,30 @@ async function build(user, slashCommand) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
-	if(isShielded(user.lastShielded)) {
-		user.lastShielded = 0
+	if(user.shieldHealth > 0) {
+		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
 
 	let conflict = user.military + targetUser.city
 	let winPercentage = user.military/conflict * 0.10
-	let stolenOre = Math.round(targetUser.ore * winPercentage)
-	response += ' attacks ' + targetUser.username + ' stealing ' + stolenOre + ' vibranium! '
-	if(isShielded(targetUser.lastShielded)) {
-		stolenOre = Math.round(stolenOre * .10)
-		response += targetUser.username + '\'s shield absorbs the attack reducing vibranium stolen to ' + stolenOre + '.'
+	response += ' attacks ' + targetUser.username
+	if(targetUser.shieldHealth > 0) {
+		response += ' however the defender\'s shield absorbs the damage!'
+		targetUser.shieldHealth -= Math.round(100 * winPercentage)
+		if(targetUser.shieldHealth <= 0) {
+			targetUser.shieldHealth = 0
+			response += ' Their shield is now deactived.'
+		} else {
+			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+		}
+	} else {
+		let stolenOre = Math.round(targetUser.ore * winPercentage)
+		targetUser.ore -= stolenOre
+		user.ore += stolenOre
+		response += ' stealing ' + stolenOre + ' vibranium!'
 	}
-	targetUser.ore -= stolenOre
-	user.ore += stolenOre
+
 	user.energy -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
@@ -332,13 +345,19 @@ async function build(user, slashCommand) {
 		if(isCloaked(targetUser.lastCloaked)) {
 			return respondForUser(user, 'This player is cloaked.')
 		}
+		updateEnergy(targetUser)
+		updateShield(targetUser)
+	}
+	let shieldIntegrity = 'None active'
+	if(targetUser.shieldHealth > 0) {
+		shieldIntegrity = targetUser.shieldHealth + '%'
 	}
 	let response = 'Statistics for ' + targetUser.username +
 				'\nTotal Vibranium: ' + targetUser.ore + 
 				'\nCity size: ' + targetUser.city + 
 				'\nMilitary size: ' + targetUser.military +
 				'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
-				'\nActive shield: ' + isShielded(targetUser.lastShielded) +
+				'\nShield integrity: ' + shieldIntegrity +
 				'\nEquipment: fuel(' + targetUser.equipmentFuel + 
 					'), cloak(' + targetUser.equipmentCloak + 
 					'), shield(' + targetUser.equipmentShield + 
@@ -392,16 +411,16 @@ async function leaderboard(user, slashCommand) {
 			return respondForUser(user, 'You do not have enough vibranium.')
 		}
 	} else if('cloak' === item) {
-		if(user.ore >= 2000) {
-			user.ore -= 2000
+		if(user.ore >= 3000) {
+			user.ore -= 3000
 			user.equipmentCloak += 1
 			itemPurchased = 'cloaking device'
 		} else {
 			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('shield' === item) {
-		if(user.ore >= 4000) {
-			user.ore -= 4000
+		if(user.ore >= 6000) {
+			user.ore -= 6000
 			user.equipmentShield += 1
 			itemPurchased = 'shield generator'
 		} else {
@@ -424,8 +443,8 @@ async function leaderboard(user, slashCommand) {
 			return respondForUser(user, 'You do not have enough vibranium.')
 		}	
 	} else if('nuke' === item) {
-		if(user.ore >= 8000) {
-			user.ore -= 8000
+		if(user.ore >= 10000) {
+			user.ore -= 10000
 			user.equipmentNuke += 1
 			itemPurchased = 'nuclear warhead'
 		} else {
@@ -458,13 +477,10 @@ async function fuel(user, slashCommand) {
 	if(user.equipmentFuel < 1) {
 		return respondForUser(user, 'You have no fuel reserves in your inventory.')
 	}
-	if(isFueled(user.lastFueled)) {
-		return respondForUser(user, 'You already have fueled reserves released.')
-	}
+	user.energy += 50
 	user.equipmentFuel -= 1
-	user.lastFueled = currentTime
 	await db.putUser(user)
-	let response = 'You release fossil fuel reserves boosting supply chains. Energy refreshes 30% faster for the next 12 hours.'
+	let response = 'You release fossil fuel reserves granting you 50 energy.'
 	return respondForUser(user, response)
 }
 
@@ -495,13 +511,15 @@ async function shield(user, slashCommand) {
 	if(user.equipmentShield < 1) {
 		return respondForUser(user, 'You have no shield generators in your inventory.')
 	}
-	if(isShielded(user.lastShielded)) {
+	if(user.shieldHealth > 0) {
 		return respondForUser(user, 'You already have shields active.')
 	}
+
+	user.shieldHealth = 100
+	user.shieldUpdatedAt = currentTime
 	user.equipmentShield -= 1
-	user.lastShielded = currentTime
 	await db.putUser(user)
-	let response = 'You activate shields able to absorb 90% of incoming damage from attacks and equipment strikes for 12 hours or until your next offensive move.'
+	let response = 'You activate shields able to absorb incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or you make your next offensive move.'
 	return respondForUser(user, response)
 }
 
@@ -524,20 +542,28 @@ async function sabotage(user, slashCommand) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
-	if(isShielded(user.lastShielded)) {
-		user.lastShielded = 0
+	if(user.shieldHealth > 0) {
+		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
 
 	//calculate damage dealt
-	let cityDamage = Math.round(targetUser.city * .25)
-	if(isShielded(targetUser.lastShielded)) {
-		cityDamage = Math.round(cityDamage * .10)
-		response += ' sabotages ' + targetUser.username + '! ' + targetUser.username + '\'s shield absorbs most of the damage reducing city losses to ' + cityDamage + '.'
+	response += ' sabotages ' + targetUser.username 
+	if(targetUser.shieldHealth > 0) {
+		response += ' however the defender\'s shield absorbs the damage!'
+		targetUser.shieldHealth -= 25
+		if(targetUser.shieldHealth <= 0) {
+			targetUser.shieldHealth = 0
+			response += ' Their shield is now deactived.'
+		} else {
+			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+		}
 	} else {
-		response += ' sabotages ' + targetUser.username + ' reducing city size by ' + cityDamage + '!'
+		let cityDamage = Math.round(targetUser.city * .25)
+		targetUser.city -= cityDamage
+		response += ' reducing city size by ' + cityDamage + '!'
 	}
-	targetUser.city -= cityDamage
+
 	user.equipmentSabotage -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
@@ -563,20 +589,28 @@ async function sabotage(user, slashCommand) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
-	if(isShielded(user.lastShielded)) {
-		user.lastShielded = 0
+	if(user.shieldHealth > 0) {
+		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
 
 	//calculate damage dealt
-	let militaryDamage = Math.round(targetUser.military * .25)
-	if(isShielded(targetUser.lastShielded)) {
-		militaryDamage = Math.round(militaryDamage * .10)
-		response += ' launches a missle strike on ' + targetUser.username + '! ' + targetUser.username + '\'s shield absorbs most of the damage reducing military losses to ' + militaryDamage + '.'
+	response += ' launches a missle strike on ' + targetUser.username 
+	if(targetUser.shieldHealth > 0) {
+		response += ' however the defender\'s shield absorbs the damage!'
+		targetUser.shieldHealth -= 25
+		if(targetUser.shieldHealth <= 0) {
+			targetUser.shieldHealth = 0
+			response += ' Their shield is now deactived.'
+		} else {
+			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+		}
 	} else {
-		response += ' launches a missle strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + '!'
+		let militaryDamage = Math.round(targetUser.military * .25)
+		targetUser.military -= militaryDamage
+		response += ' reducing military size by ' + militaryDamage + '!'
 	}
-	targetUser.military -= militaryDamage
+
 	user.equipmentStrike -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
@@ -602,22 +636,30 @@ async function sabotage(user, slashCommand) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
-	if(isShielded(user.lastShielded)) {
-		user.lastShielded = 0
+	if(user.shieldHealth > 0) {
+		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
 
 	//calculate damage dealt
-	let militaryDamage = Math.round(targetUser.military * .50)
-	let cityDamage = Math.round(targetUser.city * .50)
-	if(isShielded(targetUser.lastShielded)) {
-		militaryDamage = Math.round(militaryDamage * .10)
-		response += ' launches a nuclear strike on ' + targetUser.username + '! ' + targetUser.username + '\'s shield absorbs most of the damage reducing military losses to ' + militaryDamage + ', and city losses to ' + cityDamage + '.'
+	response += ' launches a nuclear strike on ' + targetUser.username 
+	if(targetUser.shieldHealth > 0) {
+		response += ' however the defender\'s shield absorbs the damage!'
+		targetUser.shieldHealth -= 25
+		if(targetUser.shieldHealth <= 0) {
+			targetUser.shieldHealth = 0
+			response += ' Their shield is now deactived.'
+		} else {
+			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+		}
 	} else {
-		response += ' launches a nuclear strike on ' + targetUser.username + ' reducing military size by ' + militaryDamage + ' and city size by ' + cityDamage + '!'
+		let militaryDamage = Math.round(targetUser.military * .50)
+		let cityDamage = Math.round(targetUser.city * .50)
+		targetUser.city -= cityDamage
+		targetUser.military -= militaryDamage
+		response += ' reducing military size by ' + militaryDamage + ' and city size by ' + cityDamage + '!'
 	}
-	targetUser.city -= cityDamage
-	targetUser.military -= militaryDamage
+
 	user.equipmentNuke -= 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
@@ -650,8 +692,11 @@ function initUser(warId, slashCommand) {
 		lastCloaked: 0,
 		lastShielded: 0,
 		lastFueled: 0,
+		shieldHealth: 0,
 		energy: maxEnergy,
-		energyUpdatedAt: currentTime
+		energyUpdatedAt: currentTime,
+		shieldUpdatedAt: currentTime
+
 	};
 
 	return initializedUser
@@ -659,9 +704,6 @@ function initUser(warId, slashCommand) {
 
 function updateEnergy(user) {
 	let energyIntervalMillis = 1000 * 60 * energyIntervalMinutes
-	if(user.isFueled) {
-		energyIntervalMillis = energyIntervalMillis * .66
-	}
 	if(currentTime > user.energyUpdatedAt + energyIntervalMillis) {
 		let timePassed = currentTime - user.energyUpdatedAt
 		let energyGain = Math.floor(timePassed / energyIntervalMillis)
@@ -673,6 +715,24 @@ function updateEnergy(user) {
 		}
 		user.energyUpdatedAt = currentTime - timeRemainder
 	} 
+	return user
+}
+
+function updateShield(user) {
+	if(user.shieldHealth > 0) {
+		let shieldDegredationMillis = 1000 * 60 //TODO: Switch back to 360
+		console.log('Preparing shieldDegradation, millis: ' + shieldDegredationMillis + ', updatedAt: ' + user.shieldUpdatedAt + ', currentTime: ' + currentTime)
+		if(currentTime > user.shieldUpdatedAt + shieldDegredationMillis) {
+			let timePassed = currentTime - user.shieldUpdatedAt
+			let shieldDegradation = Math.floor(timePassed / shieldDegredationMillis)
+			let timeRemainder = timePassed % shieldDegredationMillis
+			user.shieldHealth -= shieldDegradation
+			if(user.shieldHealth <= 0) {
+				user.shieldHealth = 0
+			}
+			user.shieldUpdatedAt = currentTime - timeRemainder
+		} 
+	}
 	return user
 }
 
@@ -712,15 +772,6 @@ function isNumeric(value) {
     return /^\d+$/.test(value);
 }
 
-function isFueled(lastFueled) {
-	let fuelIntervalMillis = 1000 * 60 * fuelIntervalMinutes
-	console.log("Current time: " + currentTime + ", lastFueled: " + lastFueled + ", fuelIntervalMillis: " + fuelIntervalMillis)
-	if(currentTime < lastFueled + fuelIntervalMillis) {
-		return true
-	}
-	return false
-}
-
 function isCloaked(lastCloaked) {
 	let cloakIntervalMillis = 1000 * 60 * cloakIntervalMinutes
 	console.log("Current time: " + currentTime + ", lastCloaked: " + lastCloaked + ", cloakIntervalMillis: " + cloakIntervalMillis)
@@ -730,20 +781,11 @@ function isCloaked(lastCloaked) {
 	return false
 }
 
-function isShielded(lastShielded) {
-	let shieldIntervalMillis = 1000 * 60 * shieldIntervalMinutes
-	console.log("Current time: " + currentTime + ", lastShielded: " + lastShielded + ", shieldIntervalMillis: " + shieldIntervalMillis)
-	if(currentTime < lastShielded + shieldIntervalMillis) {
-		return true
-	}
-	return false
-}
-
 function compare( a, b ) {
-	if ( a.ore < b.ore ){ 
+	if ( a.ore === '??' || a.ore < b.ore ){ 
 	  return 1;
 	}
-	if ( a.ore > b.ore ){
+	if ( b.ore === '??' || a.ore > b.ore ){
 	  return -1;
 	}
 	return 0;
@@ -754,15 +796,15 @@ function compare( a, b ) {
   \nAcquire more vibranium than your competitors.\
   \n\
   \nHow to play:\
-  \nUse [mine] command to mine for vibranium and rare chances of equipment chests.\
+  \nUse /vw mine command to mine for vibranium and rare chances of equipment chests.\
   \n\
-  \nUse [build] and [train] commands to build up your city or train up your military. A strong city better protects your vibranium from attackers. A strong military allows you to steal more vibranium from defenders.\
+  \nUse /vw build and /vw train commands to build up your city or train up your military. A strong city better protects your vibranium from attackers. A strong military allows you to steal more vibranium from defenders.\
   \n\
-  \nUse [attack] command to attack and steal a portion of a player’s vibranium.\
+  \nUse /vw attack command to attack and steal a portion of a player’s vibranium.\
   \n\
-  \nEquipment chests unlock advanced commands, each giving you a tactical advantage over your competitors. These can be purchased with vibranium using [buy] command, or found during mining.\
+  \nEquipment chests unlock advanced commands, each giving you a tactical advantage over your competitors. These can be purchased with vibranium using /vw buy command, or found during mining.\
   \n\
-  \nCheck in on you & your competitors’ standings using [stats] and [leaderboard] commands.\
+  \nCheck up on you or our competitors’ standings using /vw stats and /vw leaderboard commands.\
   \n\
   \nCreator and developer:\
   \nGeneral Ronimus\
