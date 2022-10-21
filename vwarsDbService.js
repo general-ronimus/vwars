@@ -58,19 +58,30 @@ async function putUser(user) {
     		SK : 'USER#' + user.userId,
     		username : user.username,
     		ore : user.ore,
+			bar : user.bar,
     		city : user.city,
     		military : user.military,
     		energy : user.energy,
 			energyUpdatedAt : user.energyUpdatedAt,
+			shieldUpdatedAt : user.shieldUpdatedAt,
+			shieldHealth: user.shieldHealth,
+			lastCloaked: user.lastCloaked,
 			equipmentFuel: user.equipmentFuel,
 			equipmentCloak: user.equipmentCloak,
 			equipmentShield: user.equipmentShield,
 			equipmentSabotage: user.equipmentSabotage,
 			equipmentStrike: user.equipmentStrike,
 			equipmentNuke: user.equipmentNuke,
-			lastFueled: user.lastFueled,
-			lastCloaked: user.lastCloaked,
-			lastShielded: user.lastShielded
+			netMined : user.netMined,
+			netStolen : user.netStolen,
+			netCityDamage : user.netCityDamage,
+			netMilitaryDamage : user.netMilitaryDamage,
+			netFuel : user.netFuel,
+			netCloak : user.netCloak,
+			netShield : user.netShield,
+			netSabotage : user.netSabotage,
+			netStrike : user.netStrike,
+			netNuke : user.netNuke
   		},
 		ReturnValues: 'ALL_OLD'
 	};
@@ -196,8 +207,7 @@ async function putWar(war) {
 			name: war.name,
 			isActive: war.isActive,
 			expiration: war.expiration,
-			energyRefresh: war.energyRefresh,
-			cycleTime: war.cycleTime
+			energyRefreshMinutes: war.energyRefreshMinutes
   		}
 	};
 	console.log('db put war - guildId: ' + war.guildId + ', warId: ' + war.warId)

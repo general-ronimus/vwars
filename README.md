@@ -89,8 +89,25 @@ vwars can be tested locally using serverless framework
 
 ## Game attributes
 - Energy cap - 100
-- Energy gain - 1 per 10 minutes (6 per hour, 144 per day)
+- Energy gain - 1 per 5 minutes (12 per hour, 288 per day)
 - Mining rates - chance of 0 - 2000 vibranium with higher amounts having lower drop rates. Rare chance of finding an equipment chest.
+
+## Placements & Titles
+### Placements
+- First place - earn first place medal and a bonus of 20% more bars from this war
+- Second place - earn second place medal and a bonus of 10% more bars from this war
+- Third place - earn third place medal and a bonus of 5% more bars from this war
+### Titles
+Titles can be applied to a user's name at any time, however the title active on a user's name at the onset of a war will apply the associated advantage for the duration of that war.
+- The Architect (Largest city) - 10% reduced building cost
+- The Warmonger (Largest military) - 10% reduced training cost
+- The Destroyer (most cities burned) - sabotage now deals 35% damage
+- The Bloody (most militaries slaughtered) - strike now deals 35% damage
+- The Greedy (most ore stolen) - steal 10% more vibranium ore
+- The Earnest (most ore mined) - 10% more vibranium when mining
+- The Shadow (most cloaks used) - cloak lasts 25% longer
+- The Stalwart (most shields used) - 25% more shield health
+- The Mad (most nukes launched) - reduced nuke price to 8000
 
 ---
 ## Contributors
