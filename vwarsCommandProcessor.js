@@ -878,7 +878,7 @@ function compare( a, b ) {
   \nEquipment chests unlock advanced commands giving you an advantage in the war. These can be purchased with vibranium ore using /vw buy command, or found during mining.\
   \n\Fuel - gain 50 energy, any energy over the maximum energy limit is lost\
   \n\Cloak - hide your stats and non-offensive moves from other players\
-  \n\Shield - absorb incoming damage at the cost shield integrity  \
+  \n\Shield - absorb incoming attack and equipment damage at the cost shield integrity  \
   \n\       - shield integrity degrades slowly over time \
   \n\       - shield deactivates once integrity reaches 0% or upon your next offenseive move \
   \n\Sabotage - destroy 25% of an opponent\'s city\
