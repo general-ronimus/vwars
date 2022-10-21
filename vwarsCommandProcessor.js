@@ -869,16 +869,16 @@ function compare( a, b ) {
   \nHow to play:\
   \nUse /vw mine command to mine for vibranium ore and rare chances of equipment chests.\
   \n\
-  \nUse /vw build and /vw train commands to build up your city or train up your military. A strong city better protects your vibranium ore from attackers. A strong military allows you to steal more vibranium ore from defenders.\
+  \nUse /vw build and /vw train commands to build up your city or train up your military. A strong city better protects your ore from attackers. A strong military allows you to steal more ore from defenders.\
   \n\
-  \nUse /vw attack command to attack and steal a portion of a player’s vibranium ore.\
+  \nUse /vw attack command to attack and steal a portion of a player’s ore.\
   \n\
-  \nUse /vw smelt command to convert vibranium ore to bars. 1 bar costs 10,000 ore and cannot be stolen via attack command.\
+  \nUse /vw smelt command to convert ore to vibranium bars. 1 bar costs 10,000 ore and cannot be stolen via attack command.\
   \n\
-  \nEquipment chests unlock advanced commands giving you an advantage in the war. These can be purchased with vibranium ore using /vw buy command, or found during mining.\
+  \nEquipment chests unlock advanced commands for use in the war. These can be purchased with ore using /vw buy command, or found during mining.\
   \n\Fuel - gain 50 energy, any energy over the maximum energy limit is lost\
   \n\Cloak - hide your stats and non-offensive moves from other players\
-  \n\Shield - absorb incoming attack and equipment damage at the cost shield integrity  \
+  \n\Shield - absorb incoming damage at the cost shield integrity  \
   \n\       - shield integrity degrades slowly over time \
   \n\       - shield deactivates once integrity reaches 0% or upon your next offenseive move \
   \n\Sabotage - destroy 25% of an opponent\'s city\
@@ -886,6 +886,7 @@ function compare( a, b ) {
   \n\Nuke - destroy 50% of an opponent\'s city & military\
   \n\
   \nUse /vw leaderboard to check this war\'s standings and /vw stats to investigate individual player information.\
+  \nEnergy refresh rate is 1 per every 5 minutes.\
   \n\
   \n\End game: \
   \n\At the conclusion of the war, ore, cities and militaries are also converted (at the same rate as smelting) and added to your total vibranium bar count. Those with the most vibranium bars win the war.\
