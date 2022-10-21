@@ -13,7 +13,7 @@ async function warsExist(guildId) {
     return false
 }
 
-async function getActiveWar(guildId) {
+async function getActiveWar(guildId, currentTime) {
     let wars = await db.getWars(guildId)
     let activeWar = null
     wars.Items.forEach(function(war) {
@@ -21,6 +21,11 @@ async function getActiveWar(guildId) {
             activeWar = war
         }
     })
+    if(activeWar.expiration && activeWar.expiration <= currentTime) {
+        activeWar.isActive = false
+        await db.putWar(activeWar)
+        return null
+    }
     return activeWar
 }
 

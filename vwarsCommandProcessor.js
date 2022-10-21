@@ -31,9 +31,9 @@ async function process(slashCommandBody) {
 	if(!warsExist) {
 		await warService.createDefaultActiveWar(slashCommand.guildId)
 	}
-	activeWar = await warService.getActiveWar(slashCommand.guildId)
+	activeWar = await warService.getActiveWar(slashCommand.guildId, currentTime)
 	if(!activeWar) {
-		return respond('There is no active war for this server.')
+		return respondEphemeral('There is no active war for this server.')
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
 	if(activeWar.energyRefreshMinutes) {
@@ -376,7 +376,14 @@ async function build(user, slashCommand) {
  * leaderboard
  */
 async function leaderboard(user, slashCommand) {
-	let responseString = 'Vibranium Wars Leaderboard'
+	let responseString = 'Leaderboard'
+	responseString += '\nWar: ' + activeWar.name
+	let expirationDate = 'n/a'
+	if(activeWar.expiration) {
+		expirationDate = new Date(activeWar.expiration).toUTCString()
+	}
+	responseString += '\nExpires: ' + expirationDate
+
 	let retrievedUsers = await db.getUsers(activeWar.warId)
 	//retrieve, cloak, sort and form leaderboard response
 	retrievedUsers.Items.forEach(function(user) {
