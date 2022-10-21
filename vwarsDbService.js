@@ -207,8 +207,7 @@ async function putWar(war) {
 			name: war.name,
 			isActive: war.isActive,
 			expiration: war.expiration,
-			energyRefresh: war.energyRefresh,
-			cycleTime: war.cycleTime
+			energyRefreshMinutes: war.energyRefreshMinutes
   		}
 	};
 	console.log('db put war - guildId: ' + war.guildId + ', warId: ' + war.warId)

@@ -286,7 +286,7 @@ async function build(user, slashCommand) {
 	if(user.energy < 1) {
 		return respond('You do not have enough energy.')
 	}
-	if(null == targetUser) {
+	if(null == targetUser || user.userId == targetUser.userId) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
@@ -585,7 +585,7 @@ async function sabotage(user, slashCommand) {
 		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetUser) {
+	if(null == targetUser || user.userId == targetUser.userId) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
@@ -635,7 +635,7 @@ async function sabotage(user, slashCommand) {
 		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetUser) {
+	if(null == targetUser || user.userId == targetUser.userId) {
 		return respond('Invalid target.')
 	}
 	let response = user.username
@@ -685,7 +685,7 @@ async function sabotage(user, slashCommand) {
 		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
 		targetUser = targetUserRecord.Item
 	}
-	if(null == targetUser) {
+	if(null == targetUser || user.userId == targetUser.userId) {
 		return respond('Invalid target.')
 	}
 	let response = user.username

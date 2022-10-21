@@ -21,7 +21,7 @@ async function getActiveWar(guildId, currentTime) {
             activeWar = war
         }
     })
-    if(activeWar.expiration && activeWar.expiration <= currentTime) {
+    if(activeWar && activeWar.expiration && activeWar.expiration <= currentTime) {
         activeWar.isActive = false
         await db.putWar(activeWar)
         return null
@@ -46,8 +46,7 @@ async function createWar(requestedWar) {
     let uuid = crypto.randomUUID()
 	let name = uuid
 	let expiration = null
-	let energyRefreshMinutes = 10
-	let cycleTimeMinutes = 240
+	let energyRefreshMinutes = 5
     let isActive = false
     if(requestedWar.name) {
         name = requestedWar.name
