@@ -65,6 +65,7 @@ async function putUser(user) {
 			energyUpdatedAt : user.energyUpdatedAt,
 			shieldUpdatedAt : user.shieldUpdatedAt,
 			shieldHealth: user.shieldHealth,
+			lastFueled: user.lastFueled,
 			lastCloaked: user.lastCloaked,
 			equipmentFuel: user.equipmentFuel,
 			equipmentCloak: user.equipmentCloak,
