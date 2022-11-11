@@ -11,6 +11,7 @@ const mediumPrizeMap = new Map([[1, 10], [2, 15], [3, 20], [4, 25], [5, 30], [6,
 const largePrizeMap = new Map([[1, 100], [2, 125], [3, 150], [4, 200], [5, 300], [6, 400], [7, 500], [8, 1000], [9, 2000]]);
 const maxEnergy = 100
 const cloakIntervalMinutes = 720
+const fuelIntervalMinutes = 30
 let energyIntervalMinutes = 5
 let currentTime = null
 let activeWar = null
@@ -47,6 +48,8 @@ async function process(slashCommandBody) {
 		user = initUser(activeWar.warId, slashCommand)
 		await db.putUser(user)
 		console.log('User record created for userId ' + user.userId)
+	} else {
+		user = migrateUser(user)
 	}
 	user = updateEnergy(user)
 	user = updateShield(user)
@@ -521,11 +524,16 @@ async function fuel(user, slashCommand) {
 	if(user.equipmentFuel < 1) {
 		return respondForUser(user, 'You have no fuel reserves in your inventory.')
 	}
-	user.energy += 50
+	if(isFueled(user.lastFueled)) {
+		return respondForUser(user, 'Fuel reserves are still on cool down.')
+	}
+
+	user.energy += 20
 	user.equipmentFuel -= 1
 	user.netFuel += 1
+	user.lastFueled = currentTime
 	await db.putUser(user)
-	let response = 'You release fossil fuel reserves granting you 50 energy.'
+	let response = 'You release fossil fuel reserves granting you 20 energy.'
 	return respondForUser(user, response)
 }
 
@@ -745,6 +753,7 @@ function initUser(warId, slashCommand) {
 		energyUpdatedAt: currentTime,
 		shieldUpdatedAt: currentTime,
 		shieldHealth: 0,
+		lastFueled: 0,
 		lastCloaked: 0,
 		equipmentFuel: 0,
 		equipmentCloak: 0,
@@ -765,6 +774,13 @@ function initUser(warId, slashCommand) {
 	};
 
 	return initializedUser
+}
+
+function migrateUser(user) {
+	if(!user.lastFueled) {
+		user.lastFueled = 0
+	}
+	return user
 }
 
 function updateEnergy(user) {
@@ -836,6 +852,15 @@ function isNumeric(value) {
     return /^\d+$/.test(value);
 }
 
+function isFueled(lastFueled) {
+	let fuelIntervalMillis = 1000 * 60 * fuelIntervalMinutes
+	console.log("Current time: " + currentTime + ", lastFueled: " + lastFueled + ", fuelIntervalMillis: " + fuelIntervalMillis)
+	if(currentTime < lastFueled + fuelIntervalMillis) {
+		return true
+	}
+	return false
+}
+
 function isCloaked(lastCloaked) {
 	let cloakIntervalMillis = 1000 * 60 * cloakIntervalMinutes
 	console.log("Current time: " + currentTime + ", lastCloaked: " + lastCloaked + ", cloakIntervalMillis: " + cloakIntervalMillis)
@@ -869,14 +894,14 @@ function compare( a, b ) {
   \nHow to play:\
   \nUse /vw mine command to mine for vibranium ore and rare chances of equipment chests.\
   \n\
-  \nUse /vw build and /vw train commands to build up your city or train up your military. A strong city better protects your ore from attackers. A strong military allows you to steal more ore from defenders.\
+  \nUse /vw build and /vw train to build up your city or train up your military. A strong city better protects your ore from attackers. A strong military allows you to steal more ore from defenders.\
   \n\
-  \nUse /vw attack command to attack and steal a portion of a player’s ore.\
+  \nUse /vw attack to attack and steal a portion of a player’s ore.\
   \n\
-  \nUse /vw smelt command to convert ore to vibranium bars. 1 bar costs 10,000 ore and cannot be stolen via attack command.\
+  \nUse /vw smelt to convert ore to vibranium bars. 1 bar costs 10,000 ore and cannot be stolen via attack command.\
   \n\
-  \nEquipment chests unlock advanced commands for use in the war. These can be purchased with ore using /vw buy command, or found during mining.\
-  \n\Fuel - gain 50 energy, any energy over the maximum energy limit is lost\
+  \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
+  \n\Fuel - gain 20 energy, 30 minute cool down. Any amount over the max energy limit is lost\
   \n\Cloak - hide your stats and non-offensive moves from other players\
   \n\Shield - absorb incoming damage at the cost shield integrity  \
   \n\       - shield integrity degrades slowly over time \
@@ -885,7 +910,7 @@ function compare( a, b ) {
   \n\Strike - destroy 25% of an opponent\'s military\
   \n\Nuke - destroy 50% of an opponent\'s city & military\
   \n\
-  \nUse /vw leaderboard to check this war\'s standings and /vw stats to investigate individual player information.\
+  \nUse /vw leaderboard to check this war\'s standings and /vw stats for individual player information.\
   \nEnergy refresh rate is 1 per every 5 minutes.\
   \n\
   \n\End game: \
