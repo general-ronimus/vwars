@@ -37,7 +37,6 @@ async function getActiveWar(guildId, currentTime) {
  *  name,
  *  expiration,
  *  energyRefreshMinutes,
- *  cycleTimeMinutes,
  *  isActive
  * }
  * @returns 
@@ -57,9 +56,6 @@ async function createWar(requestedWar) {
     if(requestedWar.energyRefreshMinutes) {
         energyRefreshMinutes = requestedWar.energyRefreshMinutes
     }
-    if(requestedWar.cycleTimeMinutes) {
-        cycleTimeMinutes = requestedWar.cycleTimeMinutes
-    }
     if(requestedWar.isActive) {
         isActive = requestedWar.isActive
     }
@@ -70,8 +66,7 @@ async function createWar(requestedWar) {
 		name: name,
 		expiration: expiration,
 		isActive: isActive,
-		energyRefreshMinutes: energyRefreshMinutes,
-		cycleTimeMinutes: cycleTimeMinutes
+		energyRefreshMinutes: energyRefreshMinutes
 	};
     console.log('Creating new war: ' + JSON.stringify(initializedWar))
 	return await db.putWar(initializedWar)

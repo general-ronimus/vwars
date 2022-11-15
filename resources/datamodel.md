@@ -9,10 +9,11 @@
 
 ### DynamoDB data model
 Table: vwars
-| PRIMARY       |  KEY        | ATTRIBUTES                                       |
-| ------------- | ----------- | ------------------------------------------------ |
-| Partition Key | Sort Key    | Attributes                                       |
-| GUILD:ID      |             | theatreCount                                     |
-| GUILD:ID      | WAR:ID      | name isActive expiration energyRefresh cycleTime |
-| WAR:ID        | USER:ID     | ore city military equipment, etc...              |
+| PRIMARY       |  KEY        | ATTRIBUTES                                        |
+| ------------- | ----------- | ------------------------------------------------- |
+| Partition Key | Sort Key    | Attributes                                        |
+| GUILD:ID      | GUILD:ID    | theatreCount                                      |
+| GUILD:ID      | USER:ID     | totalBars, bars, structures[], medals[], titles[] |
+| GUILD:ID      | WAR:ID      | name isActive expiration energyRefresh cycleTime  |
+| WAR:ID        | USER:ID     | ore city military equipment, etc...               |
 

@@ -1,5 +1,5 @@
 {
-  "TableName": "vwars",
+  "TableName": "vwars-local",
   "KeySchema": [
     {
       "KeyType": "HASH",
