@@ -28,13 +28,12 @@ async function process(slashCommandBody) {
 		return await help()
 	}
 
-	let warsExist = await warService.warsExist(slashCommand.guildId)
-	if(!warsExist) {
-		await warService.createDefaultActiveWar(slashCommand.guildId)
-	}
 	activeWar = await warService.getActiveWar(slashCommand.guildId, currentTime)
 	if(!activeWar) {
 		return respondEphemeral('There is no active war for this server.')
+	} else if(activeWar.start && activeWar.start < currentTime) {
+		let expirationDate = new Date(activeWar.start).toUTCString()
+		return respondEphemeral('War ' + activeWar.iteration + ' begins ' + expirationDate )
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
 	if(activeWar.energyRefreshMinutes) {

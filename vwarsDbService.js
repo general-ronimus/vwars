@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 
 module.exports ={
-        getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getWar, putWar, getWars, deleteWar
+        getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getGuildUser, putGuildUser, getGuildUsers, deleteGuildUser, getWar, putWar, getWars, deleteWar
     }
 
 let stage = 'local'
@@ -172,6 +172,88 @@ async function deleteGuild(guildId) {
 		}
 	  };
 	console.log('db delete guild: ' + guildId)
+	let result = await ddb.delete(params).promise()
+	return result
+}
+
+async function getGuildUser(guildId, userId) {
+	let params = {
+  		TableName: vwarsTable,
+  		Key: {
+    		PK: 'GUILD#' + guildId,
+			SK: 'USER#' + userId
+  		}
+	};
+	console.log('db get guild user - guildId: ' + guildId + ', userId: ' + userId)
+	let result = await ddb.get(params).promise()
+	if(result.Item) {
+		console.log("Retrieved user object: " + JSON.stringify(result.Item))
+		result.Item.guildId = result.Item.PK.replace(/^(GUILD#)/,"");
+		result.Item.userId = result.Item.SK.replace(/^(USER#)/,"");
+	}
+	return result
+}
+
+async function putGuildUser(user) {
+	var params = {
+ 		TableName: vwarsTable,
+  		Item: {
+			PK : 'GUILD#' + user.guildId,
+    		SK : 'USER#' + user.userId,
+    		username : user.username,
+			barHistoricalVibranium : user.barHistoricalVibranium,
+			barVibranium : user.barVibranium,
+			medalFirst : user.medalFirst,
+			medalSecond : user.medalSecond,
+			medalThird : user.medalThird,
+			titles : user.titles,
+			wars: user.wars,
+			netMined : user.netMined,
+			netStolen : user.netMined,
+			netCityDamage : user.netCityDamage,
+			netMilitaryDamage : user.newMilitaryDamage,
+			netFuel : user.netFuel,
+			netCloak : user.netCloak,
+			netShield : user.netShield,
+			netSabotage : user.netSabotage,
+			netStrike : user.netStrike,
+			netNuke : user.netNuke
+  		},
+		ReturnValues: 'ALL_OLD'
+	};
+	console.log('db put guild user - guildId: ' + user.guildId + ',userId: ' + user.userId)
+	let result = await ddb.put(params).promise()
+	return result
+}
+
+async function getGuildUsers(guildId) {
+	let params = {
+		TableName: vwarsTable,
+		KeyConditionExpression: 'PK = :hkey and begins_with(SK, :rkey)',
+		ExpressionAttributeValues: {
+    		':hkey': 'GUILD#' + guildId,
+    		':rkey': 'USER#'
+  		}
+	};
+	console.log('db get guild users - guildId: ' + guildId)
+  	let result = await ddb.query(params).promise()
+  	result.Items.forEach(function(user) {
+		console.log("Retrieved user: " + JSON.stringify(user))
+		user.guildId = user.PK.replace(/^(GUILD#)/,"");
+		user.userId = user.SK.replace(/^(USER#)/,"");
+	});  
+	return result
+}
+
+async function deleteGuildUser(guildId, userId) {
+	var params = {
+		TableName : vwarsTable,
+		Key: {
+			PK: 'GUILD#' + guildId,
+			SK: 'USER#' + userId
+		}
+	  };
+	console.log('db delete guild user - guildId: ' + guildId + ', userId: ' + userId)
 	let result = await ddb.delete(params).promise()
 	return result
 }
