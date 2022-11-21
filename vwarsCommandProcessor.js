@@ -583,6 +583,7 @@ async function jam(user, slashCommand) {
 
 /** 
  * SHIELD
+ * 
  */
 async function shield(user, slashCommand) {
 	if(user.equipmentShield < 1) {
@@ -605,6 +606,7 @@ async function shield(user, slashCommand) {
 
 /**
  * SABOTAGE
+ * 
  */
 async function sabotage(user, slashCommand) {
 	let targetUser = null
@@ -811,10 +813,91 @@ function initUser(warId, slashCommand) {
 }
 
 function migrateUser(user) {
-	//TODO: Add jam to migration
+	if(!user.ore) {
+		user.ore = 0
+	}
+	if(!user.bar) {
+		user.bar = 0
+	}
+	if(!user.city) {
+		user.city = 0
+	}
+	if(!user.military) {
+		user.military = 0
+	}
+	if(!user.energy) {
+		user.energy = maxEnergy
+	}
+	if(!user.energyUpdatedAt) {
+		user.energyUpdatedAt = 0
+	}
+	if(!user.shieldUpdatedAt) {
+		user.shieldUpdatedAt = 0
+	}
+	if(!user.shieldHealth) {
+		user.shieldHealth = 0
+	}
 	if(!user.lastFueled) {
 		user.lastFueled = 0
 	}
+	if(!user.lastCloaked) {
+		user.lastCloaked = 0
+	}
+	if(!user.lastJammed) {
+		user.lastJammed = 0
+	}
+	if(!user.equipmentFuel) {
+		user.equipmentFuel = 0
+	}
+	if(!user.equipmentCloak) {
+		user.equipmentCloak = 0
+	}
+	if(!user.equipmentJam) {
+		user.equipmentJam = 0
+	}
+	if(!user.equipmentShield) {
+		user.equipmentShield = 0
+	}
+	if(!user.equipmentSabotage) {
+		user.equipmentSabotage = 0
+	}
+	if(!user.equipmentStrike) {
+		user.equipmentStrike = 0
+	}
+	if(!user.netMined) {
+		user.netMined = 0
+	}
+	if(!user.netStolen) {
+		user.netStolen = 0
+	}
+	if(!user.netCityDamage) {
+		user.netCityDamage = 0
+	}
+	if(!user.netMilitaryDamage) {
+		user.netMilitaryDamage = 0
+	}
+	if(!user.netFuel) {
+		user.netFuel = 0
+	}
+	if(!user.netCloak) {
+		user.netCloak = 0
+	}
+	if(!user.netJam) {
+		user.netJam = 0
+	}
+	if(!user.netShield) {
+		user.netShield = 0
+	}
+	if(!user.netSabotage) {
+		user.netSabotage = 0
+	}
+	if(!user.netStrike) {
+		user.netStrike = 0
+	}
+	if(!user.netNuke) {
+		user.netNuke = 0
+	}
+		
 	return user
 }
 
