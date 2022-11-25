@@ -67,6 +67,8 @@ async function process(slashCommandBody) {
 		return await fuel(user, slashCommand)
 	} else if('cloak' === slashCommand.subCommand) {
 		return await cloak(user, slashCommand)
+	} else if('jam' === slashCommand.subCommand) {
+		return await jam(user, slashCommand)
 	} else if('shield' === slashCommand.subCommand) {
 		return await shield(user, slashCommand)
 	} else if('sabotage' === slashCommand.subCommand) {
@@ -137,6 +139,32 @@ async function mine(user, slashCommand) {
 		return respondForUser(user, 'You do not have enough energy.')
 	}
 
+	/**
+	 * MIRACLE AND CHAOS ROLLS
+	 * Natural daily energy gain: 288 
+	 * Maximum daily energy gain if average ore gains are spent on fuel: 470
+	 * At 10,000 chaos roll, chance per 100 energy spent of each chaos event is 1 in 100
+	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
+	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
+	 */
+	let chaosRoll = randomInteger(1, Math.round(10 * spend)) //TODO: Switch to 10,000
+	if(chaosRoll === 1) {
+		user.energy -= spend
+		let cityDamage = Math.round(user.city * .10)
+		user.city -= cityDamage
+		await db.putUser(user)
+		return respondForUser(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
+	}
+	let miracleRoll = randomInteger(1, Math.round(1000 / spend)) //TODO: Switch to 10,000
+	if(miracleRoll === 1) {
+		user.energy -= spend
+		user.bar += 1
+		await db.putUser(user)
+		return respondForUser(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
+	}
+
+
+	// STANDARD ROLL
 	let minedOre = 0
 	let oreFound = false
 	let equipmentFound = 0
@@ -155,32 +183,32 @@ async function mine(user, slashCommand) {
 		} else if(roll <= 1000) {
 			oreFound = true
 			minedOre += largePrizeMap.get(randomInteger(1,9))
+		} else if(roll <= 1001) {
+			oreFound = true
+			minedOre += 4000
 		} else {
 			equipmentFound += 1
-			if(roll <= 1001) {
+			if(roll <= 1002) {
 				user.equipmentFuel += 1
 				equipmentMap.set('fuel reserve', equipmentMap.get('fuel reserve') + 1)
-			} else if(roll <= 1002) {
+			} else if(roll <= 1003) {
 				user.equipmentCloak += 1
 				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') + 1)
-			} else if(roll <= 1003) {
+			} else if(roll <= 1004) {
 				user.equipmentShield += 1
 				equipmentMap.set('shield generator', equipmentMap.get('shield generator') + 1)
-			} else if(roll <= 1004) {
+			} else if(roll <= 1005) {
 				user.equipmentStrike += 1
 				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
-			} else if(roll <= 1005) {
+			} else if(roll <= 1006) {
 				user.equipmentSabotage += 1
 				equipmentMap.set('explosive', equipmentMap.get('explosive') + 1)
-			} else if(roll == 1006) {
+			} else if(roll == 1007) {
 				user.equipmentNuke += 1
 				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
-			} else if(roll == 1007) {
+			} else if(roll == 1008) {
 				user.equipmentJam += 1
 				equipmentMap.set('communications jammer', equipmentMap.get('communications jammer') + 1)
-			} else if(roll == 1008) {
-				oreFound = true
-				minedOre += 4000
 			}
 		}
 	}
@@ -228,6 +256,7 @@ async function mine(user, slashCommand) {
 
 /**
  * BUILD
+ * 
  */
 async function build(user, slashCommand) {
 	let spend = 1
@@ -255,6 +284,7 @@ async function build(user, slashCommand) {
 
 /**
  * TRAIN
+ * 
  */
  async function train(user, slashCommand) {
 	let spend = 1
@@ -282,6 +312,7 @@ async function build(user, slashCommand) {
 
 /**
  * ATTACK
+ * 
  */
  async function attack(user, slashCommand) {
 	let targetUser = null
@@ -297,36 +328,124 @@ async function build(user, slashCommand) {
 		return respond('Invalid target.')
 	}
 	if(isJammed(user.lastJammed)) {
-		return respond('Your communications are jammed, you are unable to make offensive moves at this time.')
+		return respond('Your radio communications are jammed, you are unable to coordinate attacks at this time.')
 	}
 	let response = user.username
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
-		response += ' deactives shield and'
+		response += ' deactivates shield and'
 	}
+	updateShield(targetUser)
 
+	//Calculate win percentage, rout conditions and chance of rout special scenario
 	let conflict = user.military + targetUser.city
 	let winPercentage = user.military/conflict * 0.10
-	response += ' attacks ' + targetUser.username
-	updateShield(targetUser)
-	if(targetUser.shieldHealth > 0) {
-		response += ' however the defender\'s shield absorbs the damage!'
-		targetUser.shieldHealth -= Math.round(100 * winPercentage)
-		if(targetUser.shieldHealth <= 0) {
-			targetUser.shieldHealth = 0
-			response += ' Their shield is now deactived.'
-		} else {
-			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+	let isRout = false
+	let isRoutBar = false
+	let isRoutEquipment = false
+	let routRoll = 0
+	if(winPercentage >= 0.08) {
+		isRout = true
+		winPercentage += 0.015
+		routRoll = randomInteger(1, 10) //TODO: Change to 1/100 chance
+		if(routRoll === 1 && isVulnerable(targetUser)) {
+			isRoutBar = true
+		} else if(routRoll >= 2 && routRoll <= 8) {
+			isRoutEquipment = true
 		}
-	} else {
-		let stolenOre = Math.round(targetUser.ore * winPercentage)
-		targetUser.ore -= stolenOre
-		user.ore += stolenOre
-		user.netStolen += stolenOre
-		response += ' stealing ' + stolenOre + ' vibranium ore!'
 	}
 
+	//Rout special scenarios logic
+	if(isRoutBar) {
+		let shatteredOre = randomInteger(7500, 10000)
+		targetUser.bar -= 1
+		targetUser.ore += shatteredOre
+		targetUser.lastShattered = currentTime
+		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium storage facility! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
+	} else if(isRoutEquipment) {
+		let equipmentStolen = null
+		if(routRoll === 2) {
+			if(targetUser.equipmentFuel > 0) {
+				targetUser.equipmentFuel -= 1
+				user.equipmentFuel += 1
+				equipmentStolen = 'fuel reserve'
+			}
+		} else if(routRoll === 3) {
+			if(targetUser.equipmentCloak > 0) {
+				targetUser.equipmentCloak -= 1
+				user.equipmentCloak += 1
+				equipmentStolen = 'cloaking device'
+			}
+		} else if(routRoll === 4) {
+			if(targetUser.equipmentShield > 0) {
+				targetUser.equipmentShield -= 1
+				user.equipmentShield += 1
+				equipmentStolen = 'shield generator'
+			}
+		} else if(routRoll === 5) {
+			if(targetUser.equipmentJam > 0) {
+				targetUser.equipmentJam -= 1
+				user.equipmentJam += 1
+				equipmentStolen = 'communications jammer'
+			}
+		} else if(routRoll === 6) {
+			if(targetUser.equipmentSabotage > 0) {
+				targetUser.equipmentSabotage -= 1
+				user.equipmentSabotage += 1
+				equipmentStolen = 'explosive'
+			}
+		} else if(routRoll === 7) {
+			if(targetUser.equipmentStrike > 0) {
+				targetUser.equipmentStrike -= 1
+				user.equipmentStrike += 1
+				equipmentStolen = 'ballistic missile'
+			}
+		} else if(routRoll === 8) {
+			if(targetUser.equipmentNuke > 0) {
+				targetUser.equipmentNuke -= 1
+				user.equipmentNuke += 1
+				equipmentStolen = 'nuclear warhead'
+			}
+		}
+
+		if(equipmentStolen != null) {
+			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
+		} else {
+			isRoutEquipment = false
+		}
+	} 
+	
+	//Basic attack logic
+	if(!isRoutBar && !isRoutEquipment) {
+		if(isRout) {
+			response += ' routs ' + targetUser.username + '\'s forces'
+		} else {
+			response += ' attacks ' + targetUser.username
+		}
+
+		if(targetUser.shieldHealth > 0) {
+			response += ' however the defender\'s shield absorbs the damage!'
+			targetUser.shieldHealth -= Math.round(100 * winPercentage)
+			if(targetUser.shieldHealth <= 0) {
+				targetUser.shieldHealth = 0
+				response += ' Their shield is now deactived.'
+			} else {
+				response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+			}
+		} else {
+			let stolenOre = Math.round(targetUser.ore * winPercentage)
+			targetUser.ore -= stolenOre
+			user.ore += stolenOre
+			user.netStolen += stolenOre
+			response += ' stealing ' + stolenOre + ' vibranium ore!'
+		}
+	}
+		
 	user.energy -= 1
+	user.netAttack += 1
+	if(isRout) {
+		user.netRout += 1
+	}
 	await db.putUser(user)
 	await db.putUser(targetUser)
 	return respond(response)
@@ -335,6 +454,7 @@ async function build(user, slashCommand) {
 
 /** 
  * HELP
+ * 
  */
  async function help() {
 	 return respondEphemeral(helpResponse)
@@ -343,6 +463,7 @@ async function build(user, slashCommand) {
 
 /**
  * STATS
+ * 
  */
  async function stats(user, slashCommand) {
 	let targetUser = user
@@ -384,6 +505,7 @@ async function build(user, slashCommand) {
 
 /**
  * LEADERBOARD
+ * 
  */
 async function leaderboard(user, slashCommand) {
 	let responseString = 'Leaderboard'
@@ -416,6 +538,7 @@ async function leaderboard(user, slashCommand) {
 
 /**
  * SMELT
+ * 
  */
  async function smelt(user, slashCommand) {
 	if(user.ore < 10000) {
@@ -432,6 +555,7 @@ async function leaderboard(user, slashCommand) {
 
 /**
  * BUY
+ * 
  */
  async function buy(user, slashCommand) {
 
@@ -467,8 +591,8 @@ async function leaderboard(user, slashCommand) {
 			return respondForUser(user, 'You do not have enough vibranium ore.')
 		}
 	} else if('shield' === item) {
-		if(user.ore >= 5000) {
-			user.ore -= 5000
+		if(user.ore >= 4000) {
+			user.ore -= 4000
 			user.equipmentShield += 1
 			itemPurchased = 'shield generator'
 		} else {
@@ -491,8 +615,8 @@ async function leaderboard(user, slashCommand) {
 			return respondForUser(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('nuke' === item) {
-		if(user.ore >= 7000) {
-			user.ore -= 7000
+		if(user.ore >= 6000) {
+			user.ore -= 6000
 			user.equipmentNuke += 1
 			itemPurchased = 'nuclear warhead'
 		} else {
@@ -518,6 +642,7 @@ async function leaderboard(user, slashCommand) {
 
 /**
  * FUEL
+ * 
  */
 async function fuel(user, slashCommand) {
 
@@ -540,6 +665,7 @@ async function fuel(user, slashCommand) {
 
 /** 
  * CLOAK
+ * 
  */
 async function cloak(user, slashCommand) {
 	if(user.equipmentCloak < 1) {
@@ -572,7 +698,11 @@ async function jam(user, slashCommand) {
 	if(null == targetUser || user.userId == targetUser.userId) {
 		return respond('Invalid target.')
 	}
-	let response = user.username + ' jams ' + targetUser.username + '\'s forward communications preventing offensive moves for the next 30 minutes!'
+	if(isJammed(targetUser.lastJammed)) {
+		return respondForUser(user, 'This player\'s communications are already jammed.')
+	}
+
+	let response = user.username + ' jams ' + targetUser.username + '\'s communications rendering them unable to attack for the next 30 minutes!'
 	user.equipmentJam -= 1
 	user.netJam += 1
 	targetUser.lastJammed = currentTime
@@ -589,15 +719,36 @@ async function shield(user, slashCommand) {
 	if(user.equipmentShield < 1) {
 		return respondForUser(user, 'You have no shield generators in your inventory.')
 	}
-	user = updateShield(user)
-	user.shieldHealth += 100
-	user.shieldUpdatedAt = currentTime
-	user.equipmentShield -= 1
-	user.netShield += 1
-	await db.putUser(user)
-	let response = 'You activate shields able to absorb incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or you make your next offensive move.'
-	if(user.shieldHealth > 100) {
-		response = 'You reinforce shields, bringing shield integrity to ' + user.shieldHealth + '%. Reinforced shields degrade slowly over time.'
+	let response = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
+		let targetUser = targetUserRecord.Item
+		if(null == targetUser) {
+			return respond('Invalid target.')
+		}
+		targetUser = updateShield(targetUser)
+		targetUser.shieldHealth += 100
+		targetUser.shieldUpdatedAt = currentTime
+		user.equipmentShield -= 1
+		user.netShield += 1
+		await db.putUser(targetUser)
+		await db.putUser(user)
+		response = user.username + ' shields ' + targetUser.username + ' absorbing incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or the player makes their next offensive move.'
+		if(targetUser.shieldHealth > 100) {
+			response = user.username + ' reinforces ' + targetUser.username + '\'s shield, bringing shield integrity to ' + targetUser.shieldHealth + '%. Reinforced shields degrade slowly over time.'
+		}
+	} else {
+		user = updateShield(user)
+		user.shieldHealth += 100
+		user.shieldUpdatedAt = currentTime
+		user.equipmentShield -= 1
+		user.netShield += 1
+		await db.putUser(user)
+		response = 'You activate shields able to absorb incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or you make your next offensive move.'
+		if(user.shieldHealth > 100) {
+			response = 'You reinforce shields, bringing shield integrity to ' + user.shieldHealth + '%. Reinforced shields degrade slowly over time.'
+		}
 	}
 
 	return respondForUser(user, response)
@@ -612,9 +763,6 @@ async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentSabotage < 1) {
 		return respond('You have no explosives in your inventory.')
-	}
-	if(isJammed(user.lastJammed)) {
-		return respond('Your communications are jammed, you are unable to make offensive moves at this time.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -666,9 +814,6 @@ async function sabotage(user, slashCommand) {
 	if(user.equipmentStrike < 1) {
 		return respond('You have no missles in your inventory.')
 	}
-	if(isJammed(user.lastJammed)) {
-		return respond('Your communications are jammed, you are unable to make offensive moves at this time.')
-	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
 		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
@@ -718,9 +863,6 @@ async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentNuke < 1) {
 		return respond('You have no nuclear warheads in your inventory.')
-	}
-	if(isJammed(user.lastJammed)) {
-		return respond('Your communications are jammed, you are unable to make offensive moves at this time.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -790,6 +932,7 @@ function initUser(warId, slashCommand) {
 		lastFueled: 0,
 		lastCloaked: 0,
 		lastJammed: 0,
+		lastShattered: 0,
 		equipmentFuel: 0,
 		equipmentCloak: 0,
 		equipmentJam: 0,
@@ -801,6 +944,9 @@ function initUser(warId, slashCommand) {
 		netStolen : 0,
 		netCityDamage : 0,
 		netMilitaryDamage : 0,
+		netMine: 0,
+		netAttack: 0,
+		netRout: 0,
 		netFuel : 0,
 		netCloak : 0,
 		netShield : 0,
@@ -813,88 +959,100 @@ function initUser(warId, slashCommand) {
 }
 
 function migrateUser(user) {
-	if(!user.ore) {
+	if(user.ore === undefined) {
 		user.ore = 0
 	}
-	if(!user.bar) {
+	if(user.bar === undefined) {
 		user.bar = 0
 	}
-	if(!user.city) {
+	if(user.city === undefined) {
 		user.city = 0
 	}
-	if(!user.military) {
+	if(user.military === undefined) {
 		user.military = 0
 	}
-	if(!user.energy) {
+	if(user.energy === undefined) {
 		user.energy = maxEnergy
 	}
-	if(!user.energyUpdatedAt) {
+	if(user.energyUpdatedAt === undefined) {
 		user.energyUpdatedAt = 0
 	}
-	if(!user.shieldUpdatedAt) {
+	if(user.shieldUpdatedAt === undefined) {
 		user.shieldUpdatedAt = 0
 	}
-	if(!user.shieldHealth) {
+	if(user.shieldHealth === undefined) {
 		user.shieldHealth = 0
 	}
-	if(!user.lastFueled) {
+	if(user.lastFueled === undefined) {
 		user.lastFueled = 0
 	}
-	if(!user.lastCloaked) {
+	if(user.lastCloaked === undefined) {
 		user.lastCloaked = 0
 	}
-	if(!user.lastJammed) {
+	if(user.lastJammed === undefined) {
 		user.lastJammed = 0
 	}
-	if(!user.equipmentFuel) {
+	if(user.lastShattered === undefined) {
+		user.lastShattered = 0
+	}
+	if(user.equipmentFuel === undefined) {
 		user.equipmentFuel = 0
 	}
-	if(!user.equipmentCloak) {
+	if(user.equipmentCloak === undefined) {
 		user.equipmentCloak = 0
 	}
-	if(!user.equipmentJam) {
+	if(user.equipmentJam === undefined) {
 		user.equipmentJam = 0
 	}
-	if(!user.equipmentShield) {
+	if(user.equipmentShield === undefined) {
 		user.equipmentShield = 0
 	}
-	if(!user.equipmentSabotage) {
+	if(user.equipmentSabotage === undefined) {
 		user.equipmentSabotage = 0
 	}
-	if(!user.equipmentStrike) {
+	if(user.equipmentStrike === undefined) {
 		user.equipmentStrike = 0
 	}
-	if(!user.netMined) {
+	if(user.netMined === undefined) {
 		user.netMined = 0
 	}
-	if(!user.netStolen) {
+	if(user.netStolen === undefined) {
 		user.netStolen = 0
 	}
-	if(!user.netCityDamage) {
+	if(user.netCityDamage === undefined) {
 		user.netCityDamage = 0
 	}
-	if(!user.netMilitaryDamage) {
+	if(user.netMilitaryDamage === undefined) {
 		user.netMilitaryDamage = 0
 	}
-	if(!user.netFuel) {
+	if(user.netMine === undefined) {
+		user.netMine = 0
+	}
+	if(user.netAttack === undefined) {
+		user.netAttack = 0
+	}
+	if(user.netRout === undefined) {
+		user.netRout = 0
+	}
+	if(user.netFuel === undefined) {
 		user.netFuel = 0
 	}
-	if(!user.netCloak) {
+	if(user.netCloak === undefined) {
 		user.netCloak = 0
 	}
-	if(!user.netJam) {
+	if(user.netJam === undefined) {
 		user.netJam = 0
 	}
-	if(!user.netShield) {
+	if(user.netShield === undefined) {
 		user.netShield = 0
 	}
-	if(!user.netSabotage) {
+	if(user.netSabotage === undefined) {
 		user.netSabotage = 0
 	}
-	if(!user.netStrike) {
+	if(user.netStrike === undefined) {
 		user.netStrike = 0
 	}
-	if(!user.netNuke) {
+	if(user.netNuke === undefined) {
 		user.netNuke = 0
 	}
 		
@@ -916,6 +1074,57 @@ function updateEnergy(user) {
 	} 
 	return user
 }
+
+/**
+ * 
+ * establish degredation rate based on shield health
+ * determine how far back in time to degrade at current rate to reach the 100 modulus
+ * degrade to health boundary, update backInTime stamp, restart loop
+ * increment degradation one at a time
+ * 
+ * rates
+ * 101 - 200: 1 - 2
+ * 201 - 300: 2 - 4
+ * 301 - 400: 3 - 8
+ * 401 - 500: 4 - 10
+ * 501 - 600: 5 - 12
+ * 601 - 700: 6 - 64
+ * health - 100 
+ * 
+ */
+ /* 
+ function updateShieldNew(user) {
+	let degredationRates = [3, 5, 8, 13, 21, 34, 55, 89]
+	let timePassed = 0
+	if(user.shieldHealth > 100) {
+		while(currentTime > shieldUpdatedAt + timePassed) {
+			let shieldDegradationMillis = (1000 * 60 * 60) / 100
+			let shieldStack = user.shieldHealth / 100
+			if(shieldStack < 9) {
+				shieldDegradationMillis = (1000 * 60 * 60) / degredationRates[shieldStack - 1]
+			}
+			let shieldRemainder = user.shieldHealth % 100
+			let timePassed = shieldRemainder
+			
+		}
+	}
+
+	if(user.shieldHealth > 100) {
+		let shieldDegredationMillis = 1000 * 900
+		if(currentTime > user.shieldUpdatedAt + shieldDegredationMillis) {
+			let timePassed = currentTime - user.shieldUpdatedAt
+			let shieldDegradation = Math.floor(timePassed / shieldDegredationMillis)
+			let timeRemainder = timePassed % shieldDegredationMillis
+			user.shieldHealth -= shieldDegradation
+			if(user.shieldHealth <= 100) {
+				user.shieldHealth = 100
+			}
+			user.shieldUpdatedAt = currentTime - timeRemainder
+		} 
+	}
+	return user
+}
+*/
 
 function updateShield(user) {
 	if(user.shieldHealth > 100) {
@@ -997,6 +1206,41 @@ function isJammed(lastJammed) {
 	return false
 }
 
+function isVulnerable(user) {
+	let maxInvulnerableIntervalMinutes = 5760
+	let minInvulnerableIntervalMinutes = 720
+	let invulnerableIntervalMinutes = 28800 / user.bar
+	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
+		//User has more than 40 bars, adhere to hard max of 2 shattered bars daily
+		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
+	} else if(invulnerableIntervalMinutes > maxInvulnerableIntervalMinutes) {
+		//User has less than 5 bars, return as invulnerale
+		return false
+	}
+
+	let invulnerableIntervalMillis = 1000 * 60 * invulnerableIntervalMinutes
+	console.log("Current time: " + currentTime + ", lastShattered: " + user.lastShattered + ", invulnerableIntervalMillis: " + invulnerableIntervalMillis)
+	if(currentTime > user.lastShattered + invulnerableIntervalMillis) {
+		return true
+	}
+	return false
+}
+
+/*
+function getTimeRemaining(targetDateMillis) {
+	let remainingMillis = targetDateMillis - currentTime
+	const milliseconds = 76329456;
+
+	let seconds = Math.floor((remainingMillis / 1000) % 60);
+	
+	const minutes = Math.floor((remainingMillis / 1000 / 60) % 60);
+	
+	const hours = Math.floor((remainingMillis / 1000 / 60 / 60) % 24);
+	
+	console.log(hours); // 21 
+}
+*/
+
 function compare( a, b ) {
 	if ( a.bar === '??' || a.bar < b.bar ){ 
 		return 1;
@@ -1030,7 +1274,8 @@ function compare( a, b ) {
   \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
   \n\Fuel - gain 20 energy, 30 minute cool down. 100 max energy limit still applies\
   \n\Cloak - hide your stats and non-offensive moves from other players\
-  \n\Shield - absorb incoming damage at the cost shield integrity. Shield deactivates once integrity reaches 0% or upon your next offenseive move \
+  \n\Jam - prevent opponent from attacking for 30 minutes\
+  \n\Shield - absorb incoming damage, shield deactivates once integrity reaches 0% or upon your next offenseive move \
   \n\Sabotage - destroy 30% of an opponent\'s city\
   \n\Strike - destroy 30% of an opponent\'s military\
   \n\Nuke - destroy 40% of an opponent\'s city & military\

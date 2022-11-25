@@ -19,10 +19,11 @@ async function getActiveWar(guildId, currentTime) {
     }
     
     if(activeWar && activeWar.expiration && activeWar.expiration <= currentTime) {
-        await concludeWar(activeWar)
-        //activeWar.isActive = false
-        //await db.putWar(activeWar)
-        activeWar = await createNextWar(activeWar)
+        //await concludeWar(activeWar)
+        activeWar.isActive = false
+        await db.putWar(activeWar)
+        return null
+        //activeWar = await createNextWar(activeWar)
     }
     return activeWar
 }
@@ -133,7 +134,6 @@ async function createNextWar(previousWar) {
 }
 
 async function concludeWar(activeWar) {
-    activeWar.isActive = false
     activeWar.isConcluded = true
     await db.putWar(activeWar)
     let users = db.getUsers(activeWar.warId)
