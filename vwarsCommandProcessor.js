@@ -35,7 +35,7 @@ async function process(slashCommandBody) {
 		return respondEphemeral('There is no active war for this server.')
 	} else if(activeWar.start && activeWar.start > currentTime) {
 		let timeRemaining = timeRemainingAsCountdown(activeWar.start - currentTime)
-		return respondEphemeral('War ' + activeWar.iteration + ' begins in ' + timeRemaining)
+		return respondEphemeral('War: ' + activeWar.name + ' begins in ' + timeRemaining)
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
 	if(activeWar.energyRefreshMinutes) {
@@ -157,7 +157,7 @@ async function mine(user, slashCommand) {
 	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
 	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
 	 */
-	let chaosRoll = randomInteger(1, Math.round(10 * spend)) //TODO: Switch to 10,000
+	let chaosRoll = randomInteger(1, Math.round(10000 * spend))
 	if(chaosRoll === 1) {
 		user.energy -= spend
 		let cityDamage = Math.round(user.city * .10)
@@ -165,7 +165,7 @@ async function mine(user, slashCommand) {
 		await db.putUser(user)
 		return respondForUser(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
 	}
-	let miracleRoll = randomInteger(1, Math.round(1000 / spend)) //TODO: Switch to 10,000
+	let miracleRoll = randomInteger(1, Math.round(10000 / spend))
 	if(miracleRoll === 1) {
 		user.energy -= spend
 		user.bar += 1
@@ -357,7 +357,7 @@ async function build(user, slashCommand) {
 	if(winPercentage >= 0.08) {
 		isRout = true
 		winPercentage += 0.015
-		routRoll = randomInteger(1, 10) //TODO: Change to 1/100 chance
+		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
 			if(routRoll === 1 || routRoll === 2) {
 				isRoutBar = true
@@ -501,7 +501,7 @@ async function build(user, slashCommand) {
 	if(isVulnerable(targetUser)) {
 		warehouse = 'Located'
 	} else {
-		let remainingMillis = (user.lastShattered + (getInvulnerableIntervalMinutes(targetUser) * 60 * 1000)) - currentTime
+		let remainingMillis = (targetUser.lastShattered + (getInvulnerableIntervalMinutes(targetUser) * 60 * 1000)) - currentTime
 		warehouse = 'Location in ' + timeRemainingAsCountdown(remainingMillis)
 	}
 	let response = 'Statistics for ' + targetUser.username +
@@ -750,10 +750,13 @@ async function shield(user, slashCommand) {
 			return respond('Invalid target.')
 		}
 		targetUser = updateShield(targetUser)
-		if(targetUser.shieldHealth > 400) {
-			return respond('You cannot reinforce shields beyond 500%.')
+		if(targetUser.shieldHealth >= 600) {
+			return respond('You cannot reinforce shields beyond 600%.')
 		}
 		targetUser.shieldHealth += 100
+		if(targetUser.shieldHealth > 600) {
+			targetUser.shieldHealth = 600
+		}
 		targetUser.shieldUpdatedAt = currentTime
 		user.equipmentShield -= 1
 		user.netShield += 1
@@ -766,10 +769,13 @@ async function shield(user, slashCommand) {
 		return respond(user, response)
 	} else {
 		user = updateShield(user)
-		if(user.shieldHealth > 400) {
-			return respond('You cannot reinforce shields beyond 500%.')
+		if(user.shieldHealth >= 600) {
+			return respond('You cannot reinforce shields beyond 600%.')
 		}
 		user.shieldHealth += 100
+		if(user.shieldHealth > 600) {
+			user.shieldHealth = 600
+		}
 		user.shieldUpdatedAt = currentTime
 		user.equipmentShield -= 1
 		user.netShield += 1
@@ -1236,8 +1242,8 @@ function isJammed(lastJammed) {
 }
 
 function isVulnerable(user) {
-	let invulnerablIntervalMinutes = getInvulnerableIntervalMinutes(user)
-	if(invulnerablIntervalMinutes === null) {
+	let invulnerableIntervalMinutes = getInvulnerableIntervalMinutes(user)
+	if(invulnerableIntervalMinutes === null) {
 		return false
 	}
 	let invulnerableIntervalMillis = 1000 * 60 * invulnerableIntervalMinutes
