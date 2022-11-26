@@ -501,8 +501,11 @@ async function build(user, slashCommand) {
 	if(isVulnerable(targetUser)) {
 		warehouse = 'Located'
 	} else {
-		let remainingMillis = (targetUser.lastShattered + (getInvulnerableIntervalMinutes(targetUser) * 60 * 1000)) - currentTime
-		warehouse = 'Location in ' + timeRemainingAsCountdown(remainingMillis)
+		let invulnerableIntervalMinutes = getInvulnerableIntervalMinutes(targetUser)
+		if(invulnerableIntervalMinutes != null) {
+			let remainingMillis = (targetUser.lastShattered + (invulnerableIntervalMinutes * 60 * 1000)) - currentTime
+			warehouse = 'Location in ' + timeRemainingAsCountdown(remainingMillis)
+		}	
 	}
 	let response = 'Statistics for ' + targetUser.username +
 				'\nVibranium bars: ' + targetUser.bar + 
@@ -1339,32 +1342,31 @@ function compare( a, b ) {
 
   const helpResponse = '```Welcome to Vibranium Wars!\
   \nObjective:\
-  \nAcquire more vibranium bars than your competitors.\
+  \nAcquire more vibranium bars than your opponents.\
   \n\
   \nHow to play:\
-  \nUse /vw mine command to mine for vibranium ore and rare chances of equipment chests.\
+  \nUse /vw mine command to mine for vibranium ore & rare chances of equipment chests.\
   \n\
-  \nUse /vw build and /vw train to build up your city or train up your military. A strong city better protects your ore from attackers. A strong military allows you to steal more ore from defenders.\
+  \nUse /vw build & /vw train to build up your city or train up your military.\
   \n\
-  \nUse /vw attack to attack and steal a portion of a player’s ore.\
+  \nUse /vw attack to attack & steal a portion of a player’s ore. The amount stolen is determined by the attacker\'s military & the defender\'s city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponents warehouse is listed as "located", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
   \n\
-  \nUse /vw smelt to convert ore to vibranium bars. 1 bar costs 10,000 ore and cannot be stolen via attack command.\
+  \nUse /vw smelt to convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\
   \n\
   \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
-  \n\Fuel - gain 20 energy, 30 minute cool down. 100 max energy limit still applies\
-  \n\Cloak - hide your stats and non-offensive moves from other players\
-  \n\Jam - prevent opponent from attacking for 30 minutes\
-  \n\Shield - absorb incoming damage, shield deactivates once integrity reaches 0% or upon your next offenseive move \
-  \n\Sabotage - destroy 30% of an opponent\'s city\
-  \n\Strike - destroy 30% of an opponent\'s military\
-  \n\Nuke - destroy 40% of an opponent\'s city & military\
+  \n\Fuel - Gain 20 energy, 30 min cool down. 100 max energy limit still applies\
+  \n\Cloak - Hide your stats & non-offensive moves from other players\
+  \n\Jam - Prevent opponent from using attack command for 30 min\
+  \n\Shield – Max 600%. Absorb incoming damage, shield deactivates once integrity reaches 0% or upon your next offensive move \
+  \n\Sabotage - Destroy 30% of an opponent\'s city\
+  \n\Strike - Destroy 30% of an opponent\'s military\
+  \n\Nuke - Destroy 40% of an opponent\'s city & military\
   \n\
-  \nUse /vw leaderboard to check this war\'s standings and /vw stats for individual player information.\
+  \nUse /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\
   \nEnergy refresh rate is 1 per every 5 minutes.\
   \n\
   \n\End game: \
   \n\At the conclusion of the war, ore, cities and militaries are also converted (at the same rate as smelting) and added to your total vibranium bar count. Those with the most vibranium bars win the war.\
-  \n\Medals and bonus vibranium bars are bestowed upon the winners. These rewards are permanent and persist between individual wars.\
   \n\Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).\
   \n\
   \nCreator and developer:\
