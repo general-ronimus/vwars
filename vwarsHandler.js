@@ -1,11 +1,7 @@
 const nacl = require('tweetnacl')
-const fs = require("fs");
-const yaml = require('js-yaml');
 const vwarsCommandProcessor = require('./vwarsCommandProcessor')
 
-const config = yaml.safeLoad(fs.readFileSync('build-properties.yml', 'utf8'));
-console.log('Confguration loaded: ' + JSON.stringify(config))
-const publicKey = config.discord_public_key
+const publicKey = process.env.DISCORD_PUBLIC_KEY
 const headerSignature = 'x-signature-ed25519'
 const headerTimestamp = 'x-signature-timestamp'
 'use strict';

@@ -5,13 +5,14 @@
 - nvm
 - npm
 - node
-- jest
 - serverless
+- jest (test dependency)
+- java (test dependency)
 
 ## Build
-vwars is a node.js project, and can be built using npm
-
-`npm install`
+vwars is a node.js project, and can be built using npm. 
+Build script will first prepare reduced size, lambda ready packages. Then will do a full npm install.
+- `npm run build`
 
 ## Deployment
 vwars can be deployed via serverless framework and aws-cli
@@ -23,6 +24,8 @@ vwars can be deployed via serverless framework and aws-cli
 ## Test
 vwars can be tested locally using serverless framework
 1. Install plugins and local dynamodb for integration testing
+    - `serverless plugin install -n serverless-dynamodb-local`
+    - `serverless plugin install -n serverless-offline`
     - `serverless dynamodb install`
     - `npm install --save-dev jest`
     - `npm install --save serverless-dynamodb-local`

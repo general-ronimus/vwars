@@ -8,9 +8,10 @@ plugins:
 
 provider:
   name: aws
-  stage: dev
+  stage: "${opt:stage, 'local'}"
   region: us-west-2
   runtime: nodejs14.x
+  environment: ${file(resources/env.${self:provider.stage}.json)}
   iamRoleStatements:
     - Effect: "Allow"
       Action:
@@ -35,6 +36,7 @@ package:
 
 layers:
   vwarsNodeModules:
+    name: vwarsNodeModules-${self:provider.stage}
     path: layer
 
 functions:
@@ -60,7 +62,7 @@ resources:
     vwarsTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: vwars
+        TableName: "${self:custom.vwarsTableName}"
         AttributeDefinitions:
           - AttributeName: PK
             AttributeType: S
@@ -74,9 +76,10 @@ resources:
         BillingMode: PAY_PER_REQUEST
 
 custom:
+  vwarsTableName: "vwars-${self:provider.stage}"
   dynamodb:
     stages:
-      - dev
+      - local
     start:
       port: 8000
       inMemory: true
@@ -88,5 +91,5 @@ custom:
     seed:
       vwarsSeed:
         sources:
-          - table: vwars
+          - table: "vwars-local"
             sources: [./testResources/offlineSeedData/vwars_seed.json]
