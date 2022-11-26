@@ -13,6 +13,7 @@ const cloakIntervalMinutes = 480
 const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 30
 let energyIntervalMinutes = 5
+let idleIntervalMinutes = 2880
 let currentTime = null
 let activeWar = null
 
@@ -33,8 +34,8 @@ async function process(slashCommandBody) {
 	if(!activeWar) {
 		return respondEphemeral('There is no active war for this server.')
 	} else if(activeWar.start && activeWar.start > currentTime) {
-		let startDate = new Date(activeWar.start).toUTCString()
-		return respondEphemeral('War ' + activeWar.iteration + ' begins ' + startDate)
+		let timeRemaining = timeRemainingAsCountdown(activeWar.start - currentTime)
+		return respondEphemeral('War ' + activeWar.iteration + ' begins in ' + timeRemaining)
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
 	if(activeWar.energyRefreshMinutes) {
@@ -52,8 +53,17 @@ async function process(slashCommandBody) {
 	} else {
 		user = migrateUser(user)
 	}
-	user = updateEnergy(user)
-	user = updateShield(user)
+
+	//Check for and protect idle users
+	let idleIntervalMillis = 1000 * 60 * idleIntervalMinutes
+	let millisElapsed = currentTime - user.energyUpdatedAt
+	console.log('millisElapsed: ' + millisElapsed)
+	if(millisElapsed > idleIntervalMillis) {
+		return await protect(user, millisElapsed)
+	} else {
+		user = updateEnergy(user)
+		user = updateShield(user)
+	}
 
 	if('mine' === slashCommand.subCommand) {
 		return await mine(user, slashCommand)
@@ -348,10 +358,12 @@ async function build(user, slashCommand) {
 		isRout = true
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 10) //TODO: Change to 1/100 chance
-		if(routRoll === 1 && isVulnerable(targetUser)) {
-			isRoutBar = true
-		} else if(routRoll >= 2 && routRoll <= 8) {
-			isRoutEquipment = true
+		if(isVulnerable(targetUser)) {
+			if(routRoll === 1 || routRoll === 2) {
+				isRoutBar = true
+			} else if(routRoll >= 3 && routRoll <= 9) {
+				isRoutEquipment = true
+			}
 		}
 	}
 
@@ -361,46 +373,46 @@ async function build(user, slashCommand) {
 		targetUser.bar -= 1
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
-		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium storage facility! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
+		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
 	} else if(isRoutEquipment) {
 		let equipmentStolen = null
-		if(routRoll === 2) {
+		if(routRoll === 3) {
 			if(targetUser.equipmentFuel > 0) {
 				targetUser.equipmentFuel -= 1
 				user.equipmentFuel += 1
 				equipmentStolen = 'fuel reserve'
 			}
-		} else if(routRoll === 3) {
+		} else if(routRoll === 4) {
 			if(targetUser.equipmentCloak > 0) {
 				targetUser.equipmentCloak -= 1
 				user.equipmentCloak += 1
 				equipmentStolen = 'cloaking device'
 			}
-		} else if(routRoll === 4) {
+		} else if(routRoll === 5) {
 			if(targetUser.equipmentShield > 0) {
 				targetUser.equipmentShield -= 1
 				user.equipmentShield += 1
 				equipmentStolen = 'shield generator'
 			}
-		} else if(routRoll === 5) {
+		} else if(routRoll === 6) {
 			if(targetUser.equipmentJam > 0) {
 				targetUser.equipmentJam -= 1
 				user.equipmentJam += 1
 				equipmentStolen = 'communications jammer'
 			}
-		} else if(routRoll === 6) {
+		} else if(routRoll === 7) {
 			if(targetUser.equipmentSabotage > 0) {
 				targetUser.equipmentSabotage -= 1
 				user.equipmentSabotage += 1
 				equipmentStolen = 'explosive'
 			}
-		} else if(routRoll === 7) {
+		} else if(routRoll === 8) {
 			if(targetUser.equipmentStrike > 0) {
 				targetUser.equipmentStrike -= 1
 				user.equipmentStrike += 1
 				equipmentStolen = 'ballistic missile'
 			}
-		} else if(routRoll === 8) {
+		} else if(routRoll === 9) {
 			if(targetUser.equipmentNuke > 0) {
 				targetUser.equipmentNuke -= 1
 				user.equipmentNuke += 1
@@ -485,6 +497,13 @@ async function build(user, slashCommand) {
 	if(targetUser.shieldHealth > 0) {
 		shieldIntegrity = targetUser.shieldHealth + '%'
 	}
+	let warehouse = 'Unknown'
+	if(isVulnerable(targetUser)) {
+		warehouse = 'Located'
+	} else {
+		let remainingMillis = (user.lastShattered + (getInvulnerableIntervalMinutes(targetUser) * 60 * 1000)) - currentTime
+		warehouse = 'Location in ' + timeRemainingAsCountdown(remainingMillis)
+	}
 	let response = 'Statistics for ' + targetUser.username +
 				'\nVibranium bars: ' + targetUser.bar + 
 				'\nVibranium ore: ' + targetUser.ore + 
@@ -492,6 +511,7 @@ async function build(user, slashCommand) {
 				'\nMilitary size: ' + targetUser.military +
 				'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
 				'\nShield integrity: ' + shieldIntegrity +
+				'\nWarehouse: ' + warehouse +
 				'\nEquipment: fuel(' + targetUser.equipmentFuel + 
 					'), cloak(' + targetUser.equipmentCloak + 
 					'), jam(' + targetUser.equipmentJam + 
@@ -510,11 +530,11 @@ async function build(user, slashCommand) {
 async function leaderboard(user, slashCommand) {
 	let responseString = 'Leaderboard'
 	responseString += '\nWar: ' + activeWar.name
-	let expirationDate = 'n/a'
+	let timeRemaining = 'n/a'
 	if(activeWar.expiration) {
-		expirationDate = new Date(activeWar.expiration).toUTCString()
+		timeRemaining = timeRemainingAsCountdown(activeWar.expiration - currentTime)
 	}
-	responseString += '\nExpires: ' + expirationDate
+	responseString += '\nTime remaining: ' + timeRemaining
 
 	let retrievedUsers = await db.getUsers(activeWar.warId)
 	//retrieve, cloak, sort and form leaderboard response
@@ -650,7 +670,8 @@ async function fuel(user, slashCommand) {
 		return respondForUser(user, 'You have no fuel reserves in your inventory.')
 	}
 	if(isFueled(user.lastFueled)) {
-		return respondForUser(user, 'Fuel reserves are still on cool down.')
+		let remainingMillis = (user.lastFueled + (fuelIntervalMinutes * 60 * 1000)) - currentTime
+		return respondForUser(user, 'Fuel reserves are still on cool down. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 
 	user.energy += 20
@@ -672,7 +693,8 @@ async function cloak(user, slashCommand) {
 		return respondForUser(user, 'You have no cloaking devices in your inventory.')
 	}
 	if(isCloaked(user.lastCloaked)) {
-		return respondForUser(user, 'You are already cloaked.')
+		let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
+		return respondForUser(user, 'You are already cloaked. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 	user.equipmentCloak -= 1
 	user.netCloak += 1
@@ -728,6 +750,9 @@ async function shield(user, slashCommand) {
 			return respond('Invalid target.')
 		}
 		targetUser = updateShield(targetUser)
+		if(targetUser.shieldHealth > 400) {
+			return respond('You cannot reinforce shields beyond 500%.')
+		}
 		targetUser.shieldHealth += 100
 		targetUser.shieldUpdatedAt = currentTime
 		user.equipmentShield -= 1
@@ -738,20 +763,24 @@ async function shield(user, slashCommand) {
 		if(targetUser.shieldHealth > 100) {
 			response = user.username + ' reinforces ' + targetUser.username + '\'s shield, bringing shield integrity to ' + targetUser.shieldHealth + '%. Reinforced shields degrade slowly over time.'
 		}
+		return respond(user, response)
 	} else {
 		user = updateShield(user)
+		if(user.shieldHealth > 400) {
+			return respond('You cannot reinforce shields beyond 500%.')
+		}
 		user.shieldHealth += 100
 		user.shieldUpdatedAt = currentTime
 		user.equipmentShield -= 1
 		user.netShield += 1
 		await db.putUser(user)
-		response = 'You activate shields able to absorb incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or you make your next offensive move.'
+		response = 'You activate shields absorbing incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or you make your next offensive move.'
 		if(user.shieldHealth > 100) {
 			response = 'You reinforce shields, bringing shield integrity to ' + user.shieldHealth + '%. Reinforced shields degrade slowly over time.'
 		}
+		return respondForUser(user, response)
 	}
 
-	return respondForUser(user, response)
 }
 
 
@@ -1207,17 +1236,10 @@ function isJammed(lastJammed) {
 }
 
 function isVulnerable(user) {
-	let maxInvulnerableIntervalMinutes = 5760
-	let minInvulnerableIntervalMinutes = 720
-	let invulnerableIntervalMinutes = 28800 / user.bar
-	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
-		//User has more than 40 bars, adhere to hard max of 2 shattered bars daily
-		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
-	} else if(invulnerableIntervalMinutes > maxInvulnerableIntervalMinutes) {
-		//User has less than 5 bars, return as invulnerale
+	let invulnerablIntervalMinutes = getInvulnerableIntervalMinutes(user)
+	if(invulnerablIntervalMinutes === null) {
 		return false
 	}
-
 	let invulnerableIntervalMillis = 1000 * 60 * invulnerableIntervalMinutes
 	console.log("Current time: " + currentTime + ", lastShattered: " + user.lastShattered + ", invulnerableIntervalMillis: " + invulnerableIntervalMillis)
 	if(currentTime > user.lastShattered + invulnerableIntervalMillis) {
@@ -1226,20 +1248,71 @@ function isVulnerable(user) {
 	return false
 }
 
-/*
-function getTimeRemaining(targetDateMillis) {
-	let remainingMillis = targetDateMillis - currentTime
-	const milliseconds = 76329456;
-
-	let seconds = Math.floor((remainingMillis / 1000) % 60);
-	
-	const minutes = Math.floor((remainingMillis / 1000 / 60) % 60);
-	
-	const hours = Math.floor((remainingMillis / 1000 / 60 / 60) % 24);
-	
-	console.log(hours); // 21 
+function getInvulnerableIntervalMinutes(user) {
+	let maxInvulnerableIntervalMinutes = 5760
+	let minInvulnerableIntervalMinutes = 720
+	let invulnerableIntervalMinutes = 28800 / user.bar
+	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
+		//User has more than 40 bars, adhere to hard max of 2 shattered bars daily
+		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
+	} else if(invulnerableIntervalMinutes > maxInvulnerableIntervalMinutes) {
+		//User has less than 5 bars, return as invulnerale
+		invulnerableIntervalMinutes = null
+	}
+	return invulnerableIntervalMinutes
 }
-*/
+
+async function protect(user, millisEllapsed) {
+	let dayElapsed = Math.floor(millisEllapsed / 86400000)
+	if(dayElapsed > 10) {
+		dayElapsed = 10
+	}
+	user = updateShield(user)
+	if(user.shieldHealth < 100) {
+		user.shieldHealth = 100
+		user.shieldUpdatedAt = currentTime
+	}
+	user.lastCloaked = currentTime
+	let addedFuel = Math.floor(dayElapsed / 2)
+	let addedMilitary = dayElapsed * 200
+	let addedCity = dayElapsed * 200
+	user.equipmentFuel += addedFuel
+	user.military += addedMilitary 
+	user.city += addedCity
+	user = updateEnergy(user)
+	await db.putUser(user)
+	let response = 'Welcome back to the war! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play.'
+	return respondForUser(user, response)
+}
+
+
+function timeRemainingAsCountdown(remainingMillis) {
+	if(remainingMillis < 1) {
+		return 0
+	}
+	let seconds = Math.floor((remainingMillis / 1000) % 60)
+	let minutes = Math.floor((remainingMillis / 1000 / 60) % 60)
+	let hours = Math.floor((remainingMillis / 1000 / 60 / 60) % 24)
+	let days = Math.floor(remainingMillis / 1000 / 60 / 60 / 24)
+
+	// 00d:00h:12m:10s
+	let timeRemaining = ''
+	if(days > 0) {
+		timeRemaining += (days).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'd:'
+	}
+	if(hours > 0) {
+		timeRemaining += (hours).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'h:'
+	}
+	if(minutes > 0) {
+		timeRemaining += (minutes).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'm:'
+	}
+	if(seconds > 0) {
+		timeRemaining += (seconds).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 's'
+	}	
+	console.log(timeRemaining); // 21 
+	return timeRemaining
+}
+
 
 function compare( a, b ) {
 	if ( a.bar === '??' || a.bar < b.bar ){ 
