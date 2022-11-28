@@ -157,7 +157,7 @@ async function mine(user, slashCommand) {
 	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
 	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
 	 */
-	let chaosRoll = randomInteger(1, Math.round(10000 * spend))
+	let chaosRoll = randomInteger(1, Math.round(5000 * spend))
 	if(chaosRoll === 1) {
 		user.energy -= spend
 		let cityDamage = Math.round(user.city * .10)
@@ -165,7 +165,7 @@ async function mine(user, slashCommand) {
 		await db.putUser(user)
 		return respondForUser(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
 	}
-	let miracleRoll = randomInteger(1, Math.round(10000 / spend))
+	let miracleRoll = randomInteger(1, Math.round(5000 / spend))
 	if(miracleRoll === 1) {
 		user.energy -= spend
 		user.bar += 1
@@ -359,9 +359,9 @@ async function build(user, slashCommand) {
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
-			if(routRoll === 1 || routRoll === 2) {
+			if(routRoll >= 96) {
 				isRoutBar = true
-			} else if(routRoll >= 3 && routRoll <= 9) {
+			} else if(routRoll >= 1 && routRoll <= 7) {
 				isRoutEquipment = true
 			}
 		}
@@ -376,43 +376,43 @@ async function build(user, slashCommand) {
 		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
 	} else if(isRoutEquipment) {
 		let equipmentStolen = null
-		if(routRoll === 3) {
+		if(routRoll === 1) {
 			if(targetUser.equipmentFuel > 0) {
 				targetUser.equipmentFuel -= 1
 				user.equipmentFuel += 1
 				equipmentStolen = 'fuel reserve'
 			}
-		} else if(routRoll === 4) {
+		} else if(routRoll === 2) {
 			if(targetUser.equipmentCloak > 0) {
 				targetUser.equipmentCloak -= 1
 				user.equipmentCloak += 1
 				equipmentStolen = 'cloaking device'
 			}
-		} else if(routRoll === 5) {
+		} else if(routRoll === 3) {
 			if(targetUser.equipmentShield > 0) {
 				targetUser.equipmentShield -= 1
 				user.equipmentShield += 1
 				equipmentStolen = 'shield generator'
 			}
-		} else if(routRoll === 6) {
+		} else if(routRoll === 4) {
 			if(targetUser.equipmentJam > 0) {
 				targetUser.equipmentJam -= 1
 				user.equipmentJam += 1
 				equipmentStolen = 'communications jammer'
 			}
-		} else if(routRoll === 7) {
+		} else if(routRoll === 5) {
 			if(targetUser.equipmentSabotage > 0) {
 				targetUser.equipmentSabotage -= 1
 				user.equipmentSabotage += 1
 				equipmentStolen = 'explosive'
 			}
-		} else if(routRoll === 8) {
+		} else if(routRoll === 6) {
 			if(targetUser.equipmentStrike > 0) {
 				targetUser.equipmentStrike -= 1
 				user.equipmentStrike += 1
 				equipmentStolen = 'ballistic missile'
 			}
-		} else if(routRoll === 9) {
+		} else if(routRoll === 7) {
 			if(targetUser.equipmentNuke > 0) {
 				targetUser.equipmentNuke -= 1
 				user.equipmentNuke += 1
@@ -753,13 +753,7 @@ async function shield(user, slashCommand) {
 			return respond('Invalid target.')
 		}
 		targetUser = updateShield(targetUser)
-		if(targetUser.shieldHealth >= 600) {
-			return respond('You cannot reinforce shields beyond 600%.')
-		}
 		targetUser.shieldHealth += 100
-		if(targetUser.shieldHealth > 600) {
-			targetUser.shieldHealth = 600
-		}
 		targetUser.shieldUpdatedAt = currentTime
 		user.equipmentShield -= 1
 		user.netShield += 1
@@ -767,25 +761,19 @@ async function shield(user, slashCommand) {
 		await db.putUser(user)
 		response = user.username + ' shields ' + targetUser.username + ' absorbing incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or the player makes their next offensive move.'
 		if(targetUser.shieldHealth > 100) {
-			response = user.username + ' reinforces ' + targetUser.username + '\'s shield, bringing shield integrity to ' + targetUser.shieldHealth + '%. Reinforced shields degrade slowly over time.'
+			response = user.username + ' reinforces ' + targetUser.username + '\'s shield increasing shield integrity to ' + targetUser.shieldHealth + '%. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack.'
 		}
 		return respond(user, response)
 	} else {
 		user = updateShield(user)
-		if(user.shieldHealth >= 600) {
-			return respond('You cannot reinforce shields beyond 600%.')
-		}
 		user.shieldHealth += 100
-		if(user.shieldHealth > 600) {
-			user.shieldHealth = 600
-		}
 		user.shieldUpdatedAt = currentTime
 		user.equipmentShield -= 1
 		user.netShield += 1
 		await db.putUser(user)
 		response = 'You activate shields absorbing incoming damage at the cost of shield integrity. Shield deactivates when integrity reaches 0% or you make your next offensive move.'
 		if(user.shieldHealth > 100) {
-			response = 'You reinforce shields, bringing shield integrity to ' + user.shieldHealth + '%. Reinforced shields degrade slowly over time.'
+			response = 'You reinforce shield increasing shield integrity to ' + user.shieldHealth + '%. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack.'
 		}
 		return respondForUser(user, response)
 	}
@@ -1112,61 +1100,46 @@ function updateEnergy(user) {
 	} 
 	return user
 }
+ 
+ function updateShield(user) {
+	let elapsedTimeMillis = 0
+	let stacks = Math.floor(user.shieldHealth / 101)
 
-/**
- * 
- * establish degredation rate based on shield health
- * determine how far back in time to degrade at current rate to reach the 100 modulus
- * degrade to health boundary, update backInTime stamp, restart loop
- * increment degradation one at a time
- * 
- * rates
- * 101 - 200: 1 - 2
- * 201 - 300: 2 - 4
- * 301 - 400: 3 - 8
- * 401 - 500: 4 - 10
- * 501 - 600: 5 - 12
- * 601 - 700: 6 - 64
- * health - 100 
- * 
- */
- /* 
- function updateShieldNew(user) {
-	let degredationRates = [3, 5, 8, 13, 21, 34, 55, 89]
-	let timePassed = 0
-	if(user.shieldHealth > 100) {
-		while(currentTime > shieldUpdatedAt + timePassed) {
-			let shieldDegradationMillis = (1000 * 60 * 60) / 100
-			let shieldStack = user.shieldHealth / 100
-			if(shieldStack < 9) {
-				shieldDegradationMillis = (1000 * 60 * 60) / degredationRates[shieldStack - 1]
+	if(stacks > 0) {
+		console.log('Reinforced shield identified with ' + stacks + ' stacks.')
+		elapsedTimeMillis = currentTime - user.shieldUpdatedAt
+		while(stacks > 0) {
+			let degredationRate = Math.pow(3, stacks)
+			let degradationMillisPerPercent = 1000 * 60 * 60 / degredationRate
+			let percentageOverStackBoundary = user.shieldHealth % 100
+			if(percentageOverStackBoundary === 0) {
+				percentageOverStackBoundary = 100
 			}
-			let shieldRemainder = user.shieldHealth % 100
-			let timePassed = shieldRemainder
-			
+			let calculatedMillisWithinBoundary = percentageOverStackBoundary * degradationMillisPerPercent
+			console.log('degradationRate: ' + degredationRate + ', degradationMillisPerPercent: ' + degradationMillisPerPercent + ', percentageOverStackBoundary: ' + percentageOverStackBoundary + ', calculatedMillisWithinBoundary: ' + calculatedMillisWithinBoundary)
+			if(elapsedTimeMillis > calculatedMillisWithinBoundary) {
+				elapsedTimeMillis -= calculatedMillisWithinBoundary
+				user.shieldHealth -= percentageOverStackBoundary
+				stacks -= 1
+				if(stacks === 0) {
+					elapsedTimeMillis = 0
+				}
+			} else {
+				let realizedDegradationPercent = Math.floor(elapsedTimeMillis / degradationMillisPerPercent)
+				user.shieldHealth -= realizedDegradationPercent
+				elapsedTimeMillis = elapsedTimeMillis % degradationMillisPerPercent
+				break
+			}
 		}
 	}
-
-	if(user.shieldHealth > 100) {
-		let shieldDegredationMillis = 1000 * 900
-		if(currentTime > user.shieldUpdatedAt + shieldDegredationMillis) {
-			let timePassed = currentTime - user.shieldUpdatedAt
-			let shieldDegradation = Math.floor(timePassed / shieldDegredationMillis)
-			let timeRemainder = timePassed % shieldDegredationMillis
-			user.shieldHealth -= shieldDegradation
-			if(user.shieldHealth <= 100) {
-				user.shieldHealth = 100
-			}
-			user.shieldUpdatedAt = currentTime - timeRemainder
-		} 
-	}
+	
+	user.shieldUpdatedAt = currentTime - elapsedTimeMillis
 	return user
 }
-*/
 
-function updateShield(user) {
+function updateShieldSimple(user) {
 	if(user.shieldHealth > 100) {
-		let shieldDegredationMillis = 1000 * 900
+		let shieldDegredationMillis = 1000 * 3600
 		if(currentTime > user.shieldUpdatedAt + shieldDegredationMillis) {
 			let timePassed = currentTime - user.shieldUpdatedAt
 			let shieldDegradation = Math.floor(timePassed / shieldDegredationMillis)
@@ -1357,7 +1330,7 @@ function compare( a, b ) {
   \n\Fuel - Gain 20 energy, 30 min cool down. 100 max energy limit still applies\
   \n\Cloak - Hide your stats & non-offensive moves from other players\
   \n\Jam - Prevent opponent from using attack command for 30 min\
-  \n\Shield – Max 600%. Absorb incoming damage, shield deactivates once integrity reaches 0% or upon your next offensive move \
+  \n\Shield – Absorb incoming damage. Shield deactivates once integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack. \
   \n\Sabotage - Destroy 30% of an opponent\'s city\
   \n\Strike - Destroy 30% of an opponent\'s military\
   \n\Nuke - Destroy 40% of an opponent\'s city & military\
