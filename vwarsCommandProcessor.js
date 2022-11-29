@@ -46,17 +46,19 @@ async function process(slashCommandBody) {
 	let userRecord = await db.getUser(activeWar.warId, slashCommand.userId)
 	let user = userRecord.Item
 	console.log('Retrieved user: ' + JSON.stringify(user))
+	let millisElapsed = 0
 	if(!user) {
 		user = initUser(activeWar.warId, slashCommand)
 		await db.putUser(user)
 		console.log('User record created for userId ' + user.userId)
+		millisElapsed = currentTime - activeWar.start
 	} else {
 		user = migrateUser(user)
+		millisElapsed = currentTime - user.energyUpdatedAt
 	}
 
 	//Check for and protect idle users
 	let idleIntervalMillis = 1000 * 60 * idleIntervalMinutes
-	let millisElapsed = currentTime - user.energyUpdatedAt
 	console.log('millisElapsed: ' + millisElapsed)
 	if(millisElapsed > idleIntervalMillis) {
 		return await protect(user, millisElapsed)
@@ -622,16 +624,16 @@ async function leaderboard(user, slashCommand) {
 			return respondForUser(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('sabotage' === item) {
-		if(user.ore >= 3000) {
-			user.ore -= 3000
+		if(user.ore >= 2500) {
+			user.ore -= 2500
 			user.equipmentSabotage += 1
 			itemPurchased = 'explosive'
 		} else {
 			return respondForUser(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('strike' === item) {
-		if(user.ore >= 3000) {
-			user.ore -= 3000
+		if(user.ore >= 2500) {
+			user.ore -= 2500
 			user.equipmentStrike += 1
 			itemPurchased = 'ballistic missle'
 		} else {
@@ -763,7 +765,7 @@ async function shield(user, slashCommand) {
 		if(targetUser.shieldHealth > 100) {
 			response = user.username + ' reinforces ' + targetUser.username + '\'s shield increasing shield integrity to ' + targetUser.shieldHealth + '%. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack.'
 		}
-		return respond(user, response)
+		return respond(response)
 	} else {
 		user = updateShield(user)
 		user.shieldHealth += 100
@@ -1318,19 +1320,19 @@ function compare( a, b ) {
   \nAcquire more vibranium bars than your opponents.\
   \n\
   \nHow to play:\
-  \nUse /vw mine command to mine for vibranium ore & rare chances of equipment chests.\
+  \nUse /vw mine command to mine for vibranium ore & rare equipment chests.\
   \n\
   \nUse /vw build & /vw train to build up your city or train up your military.\
   \n\
-  \nUse /vw attack to attack & steal a portion of a player’s ore. The amount stolen is determined by the attacker\'s military & the defender\'s city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponents warehouse is listed as "located", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
+  \nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "located", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
   \n\
   \nUse /vw smelt to convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\
   \n\
   \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
-  \n\Fuel - Gain 20 energy, 30 min cool down. 100 max energy limit still applies\
+  \n\Fuel - Gain 20 energy, 30 min cool down\
   \n\Cloak - Hide your stats & non-offensive moves from other players\
   \n\Jam - Prevent opponent from using attack command for 30 min\
-  \n\Shield – Absorb incoming damage. Shield deactivates once integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack. \
+  \n\Shield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\
   \n\Sabotage - Destroy 30% of an opponent\'s city\
   \n\Strike - Destroy 30% of an opponent\'s military\
   \n\Nuke - Destroy 40% of an opponent\'s city & military\
@@ -1339,10 +1341,10 @@ function compare( a, b ) {
   \nEnergy refresh rate is 1 per every 5 minutes.\
   \n\
   \n\End game: \
-  \n\At the conclusion of the war, ore, cities and militaries are also converted (at the same rate as smelting) and added to your total vibranium bar count. Those with the most vibranium bars win the war.\
+  \n\At the conclusion of a war, ore, cities & militaries are also converted (at smelting rate) & added to your total vibranium bar count. Those with the most bars win the war.\
   \n\Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).\
   \n\
-  \nCreator and developer:\
+  \nCreator & developer:\
   \nGeneral Ronimus\
   \n\
   \nGame design:\
