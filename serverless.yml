@@ -25,6 +25,13 @@ provider:
         Fn::GetAtt:
           - vwarsTable
           - Arn	
+    - Effect: "Allow"
+      Action:
+       - sqs:*
+      Resource:
+        Fn::GetAtt:
+          - vwarsTaskQueue
+          - Arn
 
 package:
   patterns:
@@ -48,14 +55,16 @@ functions:
       - http:
           path: vwars
           method: post
-#  vwars-background:
-#    handler: vwarsBackgroundHandler.handle
-#    layers:
-#      - !Ref VwarsNodeModulesLambdaLayer
-#    events: #TODO Replace http with sqs
-#      - http:
-#          path: vwars
-#          method: post
+  vwars-task-master:
+    handler: vwarsTaskMasterHandler.handle
+    layers:
+      - !Ref VwarsNodeModulesLambdaLayer
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - vwarsTaskQueue
+              - Arn
 
 resources:
   Resources:
@@ -74,6 +83,11 @@ resources:
           - AttributeName: SK
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+    vwarsTaskQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: vwars-task-queue-${self:provider.stage}.fifo
+        FifoQueue: true
 
 custom:
   vwarsTableName: "vwars-${self:provider.stage}"
@@ -93,3 +107,11 @@ custom:
         sources:
           - table: "vwars-local"
             sources: [./testResources/offlineSeedData/vwars_seed.json]
+#  serverless-offline-sqs:
+#    autoCreate: true                 # create queue if not exists
+#    apiVersion: '2012-11-05'
+#    endpoint: http://0.0.0.0:9324
+#    region: eu-west-1
+#    accessKeyId: root
+#    secretAccessKey: root
+#    skipCacheInvalidation: false
