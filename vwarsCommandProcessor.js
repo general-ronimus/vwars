@@ -370,13 +370,13 @@ async function build(user, slashCommand) {
 	}
 
 	//Rout special scenarios logic
-	if(isRoutBar) {
+	if(isRoutBar && targetUser.shieldHealth <= 0) {
 		let shatteredOre = randomInteger(7500, 10000)
 		targetUser.bar -= 1
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
 		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
-	} else if(isRoutEquipment) {
+	} else if(isRoutEquipment && targetUser.shieldHealth <= 0) {
 		let equipmentStolen = null
 		if(routRoll === 1) {
 			if(targetUser.equipmentFuel > 0) {
@@ -430,8 +430,15 @@ async function build(user, slashCommand) {
 	} 
 	
 	//Basic attack logic
-	if(!isRoutBar && !isRoutEquipment) {
-		if(isRout) {
+	if((!isRoutBar && !isRoutEquipment) || targetUser.shieldHealth > 0) {
+
+		if(isRoutBar) {
+			response += ' routs ' + targetUser.username + '\'s forces attempting to destroy a vibranium warehouse'
+		}
+		else if(isRoutEquipment) {
+			response += ' routs ' + targetUser.username + '\'s forces attempting to capture a supply truck'
+		}
+		else if(isRout) {
 			response += ' routs ' + targetUser.username + '\'s forces'
 		} else {
 			response += ' attacks ' + targetUser.username
