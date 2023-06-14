@@ -3,11 +3,10 @@
 ## Pre-requisites
 - aws-cli
 - nvm
-- npm
-- node
-- serverless
-- jest (test dependency)
-- java (test dependency)
+- node & npm (via nvm)
+- serverless (via npm)
+- jest (via npm for test)
+- java (for test)
 
 ## Build
 vwars is a node.js project, and can be built using npm. 
