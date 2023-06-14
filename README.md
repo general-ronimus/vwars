@@ -29,7 +29,6 @@ vwars can be tested locally using serverless framework
     - `serverless dynamodb install`
     - `npm install --save-dev jest`
     - `npm install --save serverless-dynamodb-local`
-    - `serverless dynamodb start`
 2. Start serverless in offline mode to run integration tests against local dynamodb
     - `serverless offline start`
 3. Run unit/integration jest tests
