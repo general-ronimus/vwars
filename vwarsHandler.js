@@ -1,5 +1,6 @@
 const nacl = require('tweetnacl')
 const vwarsCommandProcessor = require('./vwarsCommandProcessor')
+const vwarsAdminCommandProcessor = require('./vwarsAdminCommandProcessor')
 
 const publicKey = process.env.DISCORD_PUBLIC_KEY
 const headerSignature = 'x-signature-ed25519'
@@ -33,8 +34,13 @@ async function processEvent(event) {
           }
       } else if(body.type == 2) {
           console.log('Processing vwars slash command')
-          // Send initial response, track callback
-          response = await vwarsCommandProcessor.process(body)
+          let subCommand = JSON.stringify(body.data.options[0].name).replace(/\"/g, "");
+          if("vw" === subCommand) {
+            response = await vwarsCommandProcessor.process(body)
+          } else if("vwa" === command) {
+            response = await vwarsAdminCommandProcessor.process(body)
+          }
+          
       }
   }
   return response;

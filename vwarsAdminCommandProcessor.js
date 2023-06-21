@@ -3,9 +3,8 @@
  * 
  */
 
-const crypto = require('crypto');
 const db = require('./vwarsDbService.js')
-
+const warService = require('./warService.js')
 let currentTime = null
 
 module.exports ={
@@ -19,17 +18,17 @@ async function process(slashCommandBody) {
 	//TODO: If no guild exists, go ahead and create guild with no active war
 
 	if('create' === slashCommand.subCommand) {
-		return await create(user, slashCommand)
+		return await create(slashCommand)
 	} else if('list' === slashCommand.subCommand) {
-		return await list(user, slashCommand)
+		return await list(slashCommand)
 	} else if('delete' === slashCommand.subCommand) {
-		return await delete(user, slashCommand)
+		return await remove(slashCommand)
 	} else if('activate' === slashCommand.subCommand) {
-		return await activate(user, slashCommand)
+		return await activate(slashCommand)
 	} else if('deactivate' === slashCommand.subCommand) {
-		return await deactivate(user, slashCommand)
-	} else if('leaderboard' === slashCommand.subCommand) {
-		return await leaderboard(user, slashCommand)
+		return await deactivate(slashCommand)
+	} else if('conclude' === slashCommand.subCommand) {
+		return await conclude(slashCommand)
 	}
 	return respond('Invalid command')
 }
@@ -61,35 +60,17 @@ function parseSlashCommand(slashCommandBody) {
 
 
 /**
- * theatre create [name]
-create a new theatre of war, with name of [name]. Theatres are created in deactivated state
-theatre list
-list theatres associated with this guild, * indicates the active theatre -theatre delete [name]
-end a theatre [name], prompt admin on whether to issue medals
-🥇🥈🥉 final top three
-🎖 most overall market control
-🏅 most vibranium at any point
-theatre activate [name] [expiration]
-make theatre [name] the active theatre, optionally have the theatre auto-deactivate on [expiration]
-theatre deactivate
-deactivate the active theatre
-theatre leaderboard [name]
-display the leaderboard for theatre [name]
-theatre cycle [name] [hours]
-set market cycle length to [hours] for theatre [name]. Default is random between 1 and 24. When a market cycle concludes, winners for that specific cycle gain an equipment chest
- */
-
-/**
  * VWARS ADMIN SUBCOMMANDS
  * 
  */
  
 
 /**
- * create [name] [expiration]
  * Create a new war with name and expiration
  */
-async function create(user, slashCommand) {
+async function create(slashCommand) {
+	
+	/* Comment out as we will likely use the create function from war service
 	let name = null
 	let expiration = null
 	let energyRefreshMinutes = 10
@@ -116,9 +97,29 @@ async function create(user, slashCommand) {
 		energyRefreshMinutes: energyRefreshMinutes,
 		cycleTimeMinutes: cycleTimeMinutes
 	};
-
 	await db.putWar(initializedWar)
-	return respond("New war created!")
+	*/
+	return respond("Create command coming soon!")
+}
+
+async function list(slashCommand) {
+	return respond("List command coming soon!")
+}
+
+async function remove(slashCommand) {
+	return respond("Delete command coming soon!")
+}
+
+async function activate(slashCommand) {
+	return respond("Activate command coming soon!")
+}
+
+async function deactivate(slashCommand) {
+	return respond("Deactivate command coming soon!")
+}
+
+async function conclude(slashCommand) {
+	return respond("Conclude command coming soon!")
 }
 
 
