@@ -150,4 +150,13 @@ test('nuke', async () => {
   expect(response.statusCode).toBe(200);
 });
 
+/*
+test('stealth strike', async () => {
+  let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_stealth_strike.json")
+  let slashCommandBodyJson = JSON.parse(slashCommandBody)
+  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  console.log(response)
+  expect(response.statusCode).toBe(200);
+});
+*/
 
