@@ -10,6 +10,7 @@ const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6,
 const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
 const maxEnergy = 100
 const cloakIntervalMinutes = 480
+const stealthIntervalMinutes = 10
 const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 30
 let energyIntervalMinutes = 5
@@ -79,6 +80,8 @@ async function process(slashCommandBody) {
 		return await fuel(user, slashCommand)
 	} else if('cloak' === slashCommand.subCommand) {
 		return await cloak(user, slashCommand)
+	} else if('stealth' === slashCommand.subCommand) {
+		return await stealth(user, slashCommand)	
 	} else if('jam' === slashCommand.subCommand) {
 		return await jam(user, slashCommand)
 	} else if('shield' === slashCommand.subCommand) {
@@ -180,10 +183,10 @@ async function mine(user, slashCommand) {
 	let minedOre = 0
 	let oreFound = false
 	let equipmentFound = 0
-	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
+	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth delivery system', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
 	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
-		let roll = randomInteger(1, 1008)
+		let roll = randomInteger(1, 1009)
 		console.log('Roll: ' + roll)
 		rolls += roll + ' '
 		if(roll <= 750) {
@@ -221,6 +224,9 @@ async function mine(user, slashCommand) {
 			} else if(roll == 1008) {
 				user.equipmentJam += 1
 				equipmentMap.set('communications jammer', equipmentMap.get('communications jammer') + 1)
+			} else if(roll == 1009) {
+				user.equipmentStealth += 1
+				equipmentMap.set('stealth delivery system', equipmentMap.get('stealth delivery system') + 1)
 			}
 		}
 	}
@@ -363,7 +369,7 @@ async function build(user, slashCommand) {
 		if(isVulnerable(targetUser)) {
 			if(routRoll >= 96) {
 				isRoutBar = true
-			} else if(routRoll >= 1 && routRoll <= 7) {
+			} else if(routRoll >= 1 && routRoll <= 8) {
 				isRoutEquipment = true
 			}
 		}
@@ -419,6 +425,12 @@ async function build(user, slashCommand) {
 				targetUser.equipmentNuke -= 1
 				user.equipmentNuke += 1
 				equipmentStolen = 'nuclear warhead'
+			}
+		} else if(routRoll === 8) {
+			if(targetUser.equipmentStealth > 0) {
+				targetUser.equipmentStealth -= 1
+				user.equipmentStealth += 1
+				equipmentStolen = 'stealth delivery system'
 			}
 		}
 
@@ -526,6 +538,7 @@ async function build(user, slashCommand) {
 				'\nWarehouse: ' + warehouse +
 				'\nEquipment: fuel(' + targetUser.equipmentFuel + 
 					'), cloak(' + targetUser.equipmentCloak + 
+					'), stealth(' + targetUser.equipmentStealth + 
 					'), jam(' + targetUser.equipmentJam + 
 					'), shield(' + targetUser.equipmentShield + 
 					'), strike(' + targetUser.equipmentStrike + 
@@ -611,6 +624,14 @@ async function leaderboard(user, slashCommand) {
 			user.ore -= 4000
 			user.equipmentCloak += 1
 			itemPurchased = 'cloaking device'
+		} else {
+			return respondForUser(user, 'You do not have enough vibranium ore.')
+		}	
+	} else if('stealth' === item) {
+		if(user.ore >= 6000) {
+			user.ore -= 6000
+			user.equipmentStealth += 1
+			itemPurchased = 'stealth delivery system'
 		} else {
 			return respondForUser(user, 'You do not have enough vibranium ore.')
 		}	
@@ -714,6 +735,27 @@ async function cloak(user, slashCommand) {
 	await db.putUser(user)
 	return respondEphemeral('You are now cloaked. Your stats and non-offensive movements are hidden from players for the next 8 hours.')
 }
+
+ 
+/**
+ * STEALTH
+ * 
+ */
+async function stealth(user, slashCommand) {
+	if(user.equipmentStealth < 1) {
+		return respondEphemeral('You have no stealth delivery systems in your inventory.')
+	}
+	if(isStealthed(user.lastStealthed)) {
+		let remainingMillis = (user.lastStealthed + (stealthIntervalMinutes * 60 * 1000)) - currentTime
+		return respondEphemeral('You already have a stealth delivery system deployed. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
+	}
+	user.equipmentStealth -= 1
+	user.netStealth += 1
+	user.lastStealthed = currentTime
+	await db.putUser(user)
+	return respondEphemeral('You deploy a stealth delivery system. Your offensive movements are anonymized for the next 10 minutes.')
+}
+
 
 /**
  * JAM
@@ -966,10 +1008,12 @@ function initUser(warId, slashCommand) {
 		shieldHealth: 0,
 		lastFueled: 0,
 		lastCloaked: 0,
+		lastStealthed: 0,
 		lastJammed: 0,
 		lastShattered: 0,
 		equipmentFuel: 0,
 		equipmentCloak: 0,
+		equipmentStealth: 0,
 		equipmentJam: 0,
 		equipmentShield: 0,
 		equipmentSabotage: 0,
@@ -984,6 +1028,7 @@ function initUser(warId, slashCommand) {
 		netRout: 0,
 		netFuel : 0,
 		netCloak : 0,
+		netStealth: 0,
 		netShield : 0,
 		netSabotage : 0,
 		netStrike : 0,
@@ -1024,6 +1069,9 @@ function migrateUser(user) {
 	if(user.lastCloaked === undefined) {
 		user.lastCloaked = 0
 	}
+	if(user.lastStealthed === undefined) {
+		user.lastStealthed = 0
+	}
 	if(user.lastJammed === undefined) {
 		user.lastJammed = 0
 	}
@@ -1035,6 +1083,9 @@ function migrateUser(user) {
 	}
 	if(user.equipmentCloak === undefined) {
 		user.equipmentCloak = 0
+	}
+	if(user.equipmentStealth === undefined) {
+		user.equipmentStealth = 0
 	}
 	if(user.equipmentJam === undefined) {
 		user.equipmentJam = 0
@@ -1074,6 +1125,9 @@ function migrateUser(user) {
 	}
 	if(user.netCloak === undefined) {
 		user.netCloak = 0
+	}
+	if(user.netStealth === undefined) {
+		user.netStealth = 0
 	}
 	if(user.netJam === undefined) {
 		user.netJam = 0
@@ -1217,6 +1271,15 @@ function isCloaked(lastCloaked) {
 	return false
 }
 
+function isStealthed(lastSealthed) {
+	let stealthIntervalMillis = 1000 * 60 * stealthIntervalMinutes
+	console.log("Current time: " + currentTime + ", lastStealthed: " + lastStealthed + ", stealthIntervalMillis: " + stealthIntervalMillis)
+	if(currentTime < lastStealthed + stealthIntervalMillis) {
+		return true
+	}
+	return false
+}
+
 function isJammed(lastJammed) {
 	let jamIntervalMillis = 1000 * 60 * jamIntervalMinutes
 	console.log("Current time: " + currentTime + ", lastJammed: " + lastJammed + ", jamIntervalMillis: " + jamIntervalMillis)
@@ -1337,15 +1400,16 @@ function compare( a, b ) {
   \n\
   \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
   \n\Fuel - Gain 20 energy, 30 min cool down\
-  \n\Cloak - Hide your stats & non-offensive moves from other players\
-  \n\Jam - Prevent opponent from using attack command for 30 min\
+  \n\Cloak - Hide your stats & non-offensive moves from other players for 8h\
+  \n\Stealth - Anonymize your offensive moves from other players for 10m\
+  \n\Jam - Prevent opponent from using attack command for 30m\
   \n\Shield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\
   \n\Sabotage - Destroy 30% of an opponent\'s city\
   \n\Strike - Destroy 30% of an opponent\'s military\
   \n\Nuke - Destroy 40% of an opponent\'s city & military\
   \n\
   \nUse /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\
-  \nEnergy refresh rate is 1 per every 5 minutes.\
+  \nEnergy refresh rate is 1 per every 5 min.\
   \n\
   \n\End game: \
   \n\At the conclusion of a war, ore, cities & militaries are also converted (at smelting rate) & added to your total vibranium bar count. Those with the most bars win the war.\
