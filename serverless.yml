@@ -86,11 +86,12 @@ resources:
     vwarsTaskQueue:
       Type: "AWS::SQS::Queue"
       Properties:
-        QueueName: vwars-task-queue-${self:provider.stage}.fifo
+        QueueName: "${self:custom.vwarsTaskQueueName}"
         FifoQueue: true
 
 custom:
   vwarsTableName: "vwars-${self:provider.stage}"
+  vwarsTaskQueueName: "vwars-task-queue-${self:provider.stage}.fifo"
   dynamodb:
     stages:
       - local
@@ -107,11 +108,6 @@ custom:
         sources:
           - table: "vwars-local"
             sources: [./testResources/offlineSeedData/vwars_seed.json]
-#  serverless-offline-sqs:
-#    autoCreate: true                 # create queue if not exists
-#    apiVersion: '2012-11-05'
-#    endpoint: http://0.0.0.0:9324
-#    region: eu-west-1
-#    accessKeyId: root
-#    secretAccessKey: root
-#    skipCacheInvalidation: false
+  serverless-offline:
+    sqs:
+      port: 4576
