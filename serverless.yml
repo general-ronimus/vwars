@@ -110,4 +110,5 @@ custom:
             sources: [./testResources/offlineSeedData/vwars_seed.json]
   serverless-offline:
     sqs:
+      host: ${env:LOCALSTACK_HOST, 'localhost'}
       port: 4576

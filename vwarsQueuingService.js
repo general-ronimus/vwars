@@ -18,25 +18,20 @@ if('local' === stage) {
 	});
 }
 const sqs = new AWS.SQS({apiVersion: '2012-11-05'});
-
 let vwarsTaskQueue = ''
 if(process.env.VWARS_TASK_QUEUE) {
 	vwarsTaskQueue = process.env.VWARS_TASK_QUEUE
 }
-let vwarsTaskQueueUrl = ''
-let params = {
-	QueueName: vwarsTaskQueue,
-  };
-  vwarsTaskQueueUrl = sqs.getQueueUrl(params, (err, data) => {
-	if (err) console.log(err, err.stack);
-	else console.log(data.QueueUrl);
-  });
-console.log('Queuing service initialized with stage: ' + stage + ', queue: ' + vwarsTaskQueue + ', queue url: ' + vwarsTaskQueueUrl)
+console.log('Queuing service initialized with stage: ' + stage + ', queue: ' + vwarsTaskQueue)
 
 
 
 async function queueMessageTask(channel, message) {
 
+	let queueUrlParams = {
+		QueueName: vwarsTaskQueue,
+	  };
+	let vwarsTaskQueueUrl = await sqs.getQueueUrl(queueUrlParams).promise()
 
 	let queueMessage = {
 		task: "message",
@@ -44,12 +39,12 @@ async function queueMessageTask(channel, message) {
 		message: message
 	  };
 
-	let params = {
-		MessageBody: queueMessage,
-		QueueUrl: vwarsTaskQueueUrl
+	let sendParams = {
+		MessageBody: JSON.stringify(queueMessage),
+		QueueUrl: JSON.stringify(vwarsTaskQueueUrl)
 	  };
 
-	sqs.sendMessage(params, function(err, data) {
+	sqs.sendMessage(sendParams, function(err, data) {
 		if (err) {
 		  console.log("Error", err);
 		} else {
