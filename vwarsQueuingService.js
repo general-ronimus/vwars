@@ -1,4 +1,5 @@
 const AWS = require("aws-sdk");
+const crypto = require('crypto');
 
 module.exports ={
 	queueMessageTask
@@ -31,7 +32,9 @@ async function queueMessageTask(channel, message) {
 	let queueUrlParams = {
 		QueueName: vwarsTaskQueue,
 	  };
-	let vwarsTaskQueueUrl = await sqs.getQueueUrl(queueUrlParams).promise()
+	let retrievedQueueUrl = await sqs.getQueueUrl(queueUrlParams).promise()
+	let vwarsTaskQueueUrl = JSON.stringify(retrievedQueueUrl.QueueUrl).replace(/\"/g, "")
+	let uuid = crypto.randomUUID()
 
 	let sendParams = {
 		MessageBody: JSON.stringify(message),
@@ -45,10 +48,12 @@ async function queueMessageTask(channel, message) {
 			   StringValue: channel
 			}
 		 },
-		QueueUrl: JSON.stringify(vwarsTaskQueueUrl)
+		QueueUrl: vwarsTaskQueueUrl,
+		MessageGroupId: 'queueMessageTask',
+		MessageDeduplicationId: uuid
 	  };
 
-	console.log('Queuing message for channel: ' + channel + ', queue: ' + vwarsTaskQueue + ', queueUrl: ' + JSON.stringify(vwarsTaskQueueUrl))
+	console.log('Queuing message for channel: ' + channel + ', queue: ' + vwarsTaskQueue + ', vwarsTaskQueueUrl: ' + vwarsTaskQueueUrl)
 
 	try {
         let result = await sqs.sendMessage(sendParams).promise();

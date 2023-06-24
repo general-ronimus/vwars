@@ -22,7 +22,7 @@ let currentTime = null
 	 currentTime = Date.now()
 	 for (const record of event.Records) {
 		 console.log("Event record: " + JSON.stringify(record))
-		 let task = JSON.stringify(record.messageAttributes.task)
+		 let task = JSON.stringify(record.messageAttributes.task.stringValue).replace(/\"/g, "")
 		 if('message' === task) {
 			 await message(record)
 		 } else if('conclude' === task) {
@@ -35,25 +35,30 @@ let currentTime = null
  }
  
  async function message(record) {
-	let message = JSON.stringify(record.body)
-	let channelId = JSON.stringify(record.messageAttributes.channel)
+	let message = JSON.stringify(record.body).replace(/\"/g, "")
+	let channelId = JSON.stringify(record.messageAttributes.channel.stringValue).replace(/\"/g, "")
 	console.log('Message task received')
 
 	client.login(token);
 	let channel = await client.channels.fetch(channelId)
 	//let channel = await client.channels.fetch('1046295026742853723')
-	channel.send({content: message})
-	console.log("Sent to channel: " + channelId + " message: " + message)
+	if(channel) {
+		channel.send({content: message})
+		console.log("Sent to channel: " + channelId + " message: " + message)
+	} else {
+		console.log("Unable to access channelId: " + channelId)
+	}
+
 	return null
  }
  
  async function conclude(taskPayload) {
-	 console.log("Conclude command received: " + JSON.stringify(taskPayload))
+	 console.log("Conclude command received: " + JSON.stringify(record))
 	 return null
  }
  
  async function drone(taskPayload) {
-	 console.log("Drone command received: " + JSON.stringify(taskPayload))
+	 console.log("Drone command received: " + JSON.stringify(record))
 	 return null
  }
  

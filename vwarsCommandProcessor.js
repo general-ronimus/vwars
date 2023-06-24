@@ -352,8 +352,8 @@ async function build(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Your radio communications are jammed, you are unable to coordinate attacks at this time.', null)
 	}
 	let response = user.username
-	if(isStealthed(user)) {
-		response = "Someone "
+	if(isStealthed(user.lastStealthed)) {
+		response = 'Someone '
 	}
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
@@ -856,7 +856,7 @@ async function sabotage(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
-	if(isStealthed(user)) {
+	if(isStealthed(user.lastStealthed)) {
 		response = "Someone"
 	}
 	if(user.shieldHealth > 0) {
@@ -910,7 +910,7 @@ async function sabotage(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
-	if(isStealthed(user)) {
+	if(isStealthed(user.lastStealthed)) {
 		response = "Someone"
 	}
 	if(user.shieldHealth > 0) {
@@ -963,7 +963,7 @@ async function sabotage(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
-	if(isStealthed(user)) {
+	if(isStealthed(user.lastStealthed)) {
 		response = "Someone"
 	}
 	if(user.shieldHealth > 0) {
