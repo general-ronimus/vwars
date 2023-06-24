@@ -3,10 +3,9 @@
  * 
  */
 
- const db = require('./vwarsDbService.js')
- const warService = require('./warService.js')
- const token = process.env.DISCORD_BOT_TOKEN
- //const token = 'MTA0NjA4Nzc2NjA2MjE0OTY5Mw.GGCErS.G8e9v2BfFFGza0-rNgC3AehfGqso_KbzLhCb9k'
+//const db = require('./vwarsDbService.js')
+//const warService = require('./warService.js')
+const token = process.env.DISCORD_BOT_TOKEN
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 client.once(Events.ClientReady, c => {
@@ -20,38 +19,41 @@ let currentTime = null
 	 }
  
  async function process(event) {
-	 
 	 currentTime = Date.now()
 	 for (const record of event.Records) {
-		 console.log("Message record: " + JSON.stringify(record))
-		 let taskPayload = JSON.parse(record.body)
-		 if('message' === taskPayload.task) {
-			 await message(taskPayload)
-		 } else if('conclude' === taskPayload.task) {
-			 await conclude(taskPayload)
-		 } else if('drone' === taskPayload.task) {
-			 await drone(taskPayload)
+		 console.log("Event record: " + JSON.stringify(record))
+		 let task = JSON.stringify(record.messageAttributes.task)
+		 if('message' === task) {
+			 await message(record)
+		 } else if('conclude' === task) {
+			 await conclude(record)
+		 } else if('drone' === task) {
+			 await drone(record)
 		 }
 	 }
 	 return null
  }
  
- async function message(taskPayload) {
-	console.log("Message command received: " + JSON.stringify(taskPayload))
+ async function message(record) {
+	let message = JSON.stringify(record.body)
+	let channelId = JSON.stringify(record.messageAttributes.channel)
+	console.log('Message task received')
+
 	client.login(token);
-	let channel = await client.channels.fetch(taskPayload.channel)
+	let channel = await client.channels.fetch(channelId)
 	//let channel = await client.channels.fetch('1046295026742853723')
-	channel.send({content: taskPayload.message})
+	channel.send({content: message})
+	console.log("Sent to channel: " + channelId + " message: " + message)
 	return null
  }
  
- async function conclude(recordBody) {
-	 console.log("Conclude command received: " + JSON.stringify(recordBody))
+ async function conclude(taskPayload) {
+	 console.log("Conclude command received: " + JSON.stringify(taskPayload))
 	 return null
  }
  
- async function drone(recordBody) {
-	 console.log("Drone command received: " + JSON.stringify(recordBody))
+ async function drone(taskPayload) {
+	 console.log("Drone command received: " + JSON.stringify(taskPayload))
 	 return null
  }
  

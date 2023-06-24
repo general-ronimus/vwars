@@ -33,28 +33,22 @@ async function queueMessageTask(channel, message) {
 	  };
 	let vwarsTaskQueueUrl = await sqs.getQueueUrl(queueUrlParams).promise()
 
-	let queueMessage = {
-		task: "message",
-		channel: channel,
-		message: message
-	  };
-
 	let sendParams = {
-		MessageBody: JSON.stringify(queueMessage),
+		MessageBody: JSON.stringify(message),
+		MessageAttributes: {
+			"task": {
+				DataType: "String",
+				StringValue: "message"
+			},
+			"channel": {
+			   DataType: "String",
+			   StringValue: channel
+			}
+		 },
 		QueueUrl: JSON.stringify(vwarsTaskQueueUrl)
 	  };
 
 	console.log('Queuing message for channel: ' + channel + ', queue: ' + vwarsTaskQueue + ', queueUrl: ' + JSON.stringify(vwarsTaskQueueUrl))
-
-	/*
-	sqs.sendMessage(sendParams, function(err, data) {
-		if (err) {
-		  console.log("Error", err);
-		} else {
-		  console.log("Success", data.MessageId);
-		}
-	}) 
-	*/ 
 
 	try {
         let result = await sqs.sendMessage(sendParams).promise();

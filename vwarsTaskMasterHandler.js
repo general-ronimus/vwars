@@ -1,6 +1,4 @@
-const nacl = require('tweetnacl')
-const fs = require("fs");
-const vwarsPostProcessor = require('./vwarsTaskMaster')
+const vwarsTaskMaster = require('./vwarsTaskMaster')
 
 'use strict';
 
@@ -9,7 +7,8 @@ exports.handle = async (event) => {
 };
 
 async function processEvent(event) {
-  console.log('Received post processor sqs event: ' + JSON.stringify(event))
-  await vwarsPostProcessor.process(event)
+  const token = process.env.DISCORD_BOT_TOKEN
+  console.log('Received task master sqs event: ' + JSON.stringify(event))
+  await vwarsTaskMaster.process(event)
 }
 
