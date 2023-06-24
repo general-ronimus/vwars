@@ -5,6 +5,7 @@
 
 const db = require('./vwarsDbService.js')
 const warService = require('./warService.js')
+const queuingService = require('./vwarsQueuingService.js')
 const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
 const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
 const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
@@ -107,6 +108,7 @@ async function process(slashCommandBody) {
 function parseSlashCommand(slashCommandBody) {
 	console.log('Slash command body: ' + JSON.stringify(slashCommandBody))
 	let guildId = JSON.stringify(slashCommandBody.guild_id).replace(/\"/g, "")
+	let channelId = JSON.stringify(slashCommandBody.channel_id).replace(/\"/g, "")
 	let userId = JSON.stringify(slashCommandBody.member.user.id).replace(/\"/g, "")
 	let username = JSON.stringify(slashCommandBody.member.user.username).replace(/\"/g, "")
 	let command = JSON.stringify(slashCommandBody.data.name).replace(/\"/g, "");
@@ -119,13 +121,14 @@ function parseSlashCommand(slashCommandBody) {
 	}
 	let slashCommand = {
 		guildId: guildId,
+		channelId: channelId,
 		userId: userId,
 		username: username,
 		command: command,
 		subCommand: subCommand,
 		subCommandArgs: subCommandArgs
 	  };
-	  console.log('Command parsed; guildId: ' + guildId + ', userId: ' + userId + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
+	  console.log('Command parsed; guildId: ' + guildId + ', channelId: ' + channelId + ', userId: ' + userId + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
 	  return slashCommand
 }
 
@@ -340,15 +343,18 @@ async function build(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(user.energy < 1) {
-		return respondAndCheckForStealth(user, 'You do not have enough energy.')
+		return respondAndCheckForStealth(user, 'You do not have enough energy.', null)
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respondAndCheckForStealth(user, 'Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	if(isJammed(user.lastJammed)) {
-		return respondAndCheckForStealth(user, 'Your radio communications are jammed, you are unable to coordinate attacks at this time.')
+		return respondAndCheckForStealth(user, 'Your radio communications are jammed, you are unable to coordinate attacks at this time.', null)
 	}
 	let response = user.username
+	if(isStealthed(user)) {
+		response = "Someone "
+	}
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactivates shield and'
@@ -481,7 +487,7 @@ async function build(user, slashCommand) {
 	}
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respondAndCheckForStealth(user, response)
+	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
 
 
@@ -839,7 +845,7 @@ async function shield(user, slashCommand) {
 async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentSabotage < 1) {
-		return respondAndCheckForStealth(user, 'You have no explosives in your inventory.')
+		return respondAndCheckForStealth(user, 'You have no explosives in your inventory.', null)
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -847,9 +853,12 @@ async function sabotage(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respondAndCheckForStealth(user, 'Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
+	if(isStealthed(user)) {
+		response = "Someone"
+	}
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
@@ -878,7 +887,8 @@ async function sabotage(user, slashCommand) {
 	user.netSabotage += 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respondAndCheckForStealth(user, response)
+
+	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
 
 
@@ -889,7 +899,7 @@ async function sabotage(user, slashCommand) {
  async function strike(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentStrike < 1) {
-		return respondAndCheckForStealth(user, 'You have no missles in your inventory.')
+		return respondAndCheckForStealth(user, 'You have no missles in your inventory.', null)
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -897,9 +907,12 @@ async function sabotage(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respondAndCheckForStealth(user, 'Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
+	if(isStealthed(user)) {
+		response = "Someone"
+	}
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
@@ -928,7 +941,7 @@ async function sabotage(user, slashCommand) {
 	user.netStrike += 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respondAndCheckForStealth(user, response)
+	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
 
 
@@ -939,7 +952,7 @@ async function sabotage(user, slashCommand) {
  async function nuke(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentNuke < 1) {
-		return respondAndCheckForStealth(user, 'You have no nuclear warheads in your inventory.')
+		return respondAndCheckForStealth(user, 'You have no nuclear warheads in your inventory.', null)
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -947,9 +960,12 @@ async function sabotage(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respondAndCheckForStealth(user, 'Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
+	if(isStealthed(user)) {
+		response = "Someone"
+	}
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
@@ -981,7 +997,7 @@ async function sabotage(user, slashCommand) {
 	user.netNuke += 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respondAndCheckForStealth(user, response)
+	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
 
 
@@ -1225,8 +1241,11 @@ function respondAndCheckForCloak(user, message) {
 	}
 }
 
-function respondAndCheckForStealth(user, message) {
+async function respondAndCheckForStealth(user, message, channelId) {
 	if(isStealthed(user.lastStealthed)) {
+		if(null != channelId) {
+			await queuingService.queueMessageTask(channelId, message)
+		}
 		return respondEphemeral(message)
 	} else {
 		return respond(message)
