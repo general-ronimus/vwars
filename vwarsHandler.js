@@ -33,9 +33,9 @@ async function processEvent(event) {
               body: JSON.stringify({type: 1})
           }
       } else if(body.type == 2) {
-          console.log('Processing vwars slash command')
-          let subCommand = JSON.stringify(body.data.options[0].name).replace(/\"/g, "");
-          if("vw" === subCommand) {
+          let command = JSON.stringify(body.data.name).replace(/\"/g, "");
+          console.log('Processing vwars slash command: ' + command)
+          if("vw" === command) {
             response = await vwarsCommandProcessor.process(body)
           } else if("vwa" === command) {
             response = await vwarsAdminCommandProcessor.process(body)

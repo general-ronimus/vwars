@@ -151,7 +151,7 @@ async function mine(user, slashCommand) {
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < spend) {
-		return respondForUser(user, 'You do not have enough energy.')
+		return respondAndCheckForCloak(user, 'You do not have enough energy.')
 	}
 
 	/**
@@ -168,14 +168,14 @@ async function mine(user, slashCommand) {
 		let cityDamage = Math.round(user.city * .10)
 		user.city -= cityDamage
 		await db.putUser(user)
-		return respondForUser(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
+		return respondAndCheckForCloak(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
 	}
 	let miracleRoll = randomInteger(1, Math.round(5000 / spend))
 	if(miracleRoll === 1) {
 		user.energy -= spend
 		user.bar += 1
 		await db.putUser(user)
-		return respondForUser(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
+		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
 	}
 
 
@@ -268,7 +268,7 @@ async function mine(user, slashCommand) {
 		miningResponse = miningResponse.substring(0, lastCommaIndex) + ' and' + miningResponse.substring(lastCommaIndex + 1)
 	}
 	miningResponse += '!'
-	return respondForUser(user, miningResponse)
+	return respondAndCheckForCloak(user, miningResponse)
 }
 
 
@@ -285,10 +285,10 @@ async function build(user, slashCommand) {
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < 1) {
-		return respondForUser(user, 'You do not have enough energy.')
+		return respondAndCheckForCloak(user, 'You do not have enough energy.')
 	}
 	if(user.ore < spend) {
-		return respondForUser(user, 'You do not have enough vibranium ore.')
+		return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 	}
 
 	user.energy -= 1
@@ -296,7 +296,7 @@ async function build(user, slashCommand) {
 	user.city += spend
 	await db.putUser(user)
 	let response = 'Your city is now size ' + user.city + ', you have ' + user.ore + ' vibranium ore and ' + user.energy + ' energy remaining.'
-	return respondForUser(user, response)	
+	return respondAndCheckForCloak(user, response)	
 }
 
 
@@ -313,10 +313,10 @@ async function build(user, slashCommand) {
 		spend = parseInt(slashCommand.subCommandArgs[0])
 	}
 	if(user.energy < 1) {
-		return respondForUser(user, 'You do not have enough energy.')
+		return respondAndCheckForCloak(user, 'You do not have enough energy.')
 	}
 	if(user.ore < spend) {
-		return respondForUser(user, 'You do not have enough vibranium ore.')
+		return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 	}
 
 	user.energy -= 1
@@ -324,7 +324,7 @@ async function build(user, slashCommand) {
 	user.military += spend
 	await db.putUser(user)
 	let response = 'Your military is now size ' + user.military + ', you have ' + user.ore + ' vibranium ore and ' + user.energy + ' energy remaining.'
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 
@@ -340,13 +340,13 @@ async function build(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(user.energy < 1) {
-		return respond('You do not have enough energy.')
+		return respondAndCheckForStealth(user, 'You do not have enough energy.')
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respond('Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.')
 	}
 	if(isJammed(user.lastJammed)) {
-		return respond('Your radio communications are jammed, you are unable to coordinate attacks at this time.')
+		return respondAndCheckForStealth(user, 'Your radio communications are jammed, you are unable to coordinate attacks at this time.')
 	}
 	let response = user.username
 	if(user.shieldHealth > 0) {
@@ -481,7 +481,7 @@ async function build(user, slashCommand) {
 	}
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(response)
+	return respondAndCheckForStealth(user, response)
 }
 
 
@@ -509,7 +509,7 @@ async function build(user, slashCommand) {
 			return respond('Invalid target.')
 		}
 		if(isCloaked(targetUser.lastCloaked)) {
-			return respondForUser(user, 'This player is cloaked.')
+			return respondAndCheckForCloak(user, 'This player is cloaked.')
 		}
 		updateEnergy(targetUser)
 		updateShield(targetUser)
@@ -544,7 +544,7 @@ async function build(user, slashCommand) {
 					'), strike(' + targetUser.equipmentStrike + 
 					'), sabotage(' + targetUser.equipmentSabotage + 
 					'), nuke(' + targetUser.equipmentNuke + ')'
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 
@@ -578,7 +578,7 @@ async function leaderboard(user, slashCommand) {
 		responseString = responseString += '\n' + user.username + ': ' + user.bar + barText + ', ' + user.ore + ' ore'
 	 });
 	 console.log(responseString)
-	 return respondForUser(user, responseString)
+	 return respondAndCheckForCloak(user, responseString)
 }
 
 /**
@@ -587,14 +587,14 @@ async function leaderboard(user, slashCommand) {
  */
  async function smelt(user, slashCommand) {
 	if(user.ore < 10000) {
-		return respondForUser(user, 'You do not have enough vibranium ore.')
+		return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 	}
 	user.ore -= 10000
 	user.bar += 1
 
 	await db.putUser(user)
 	let response = 'You have created a vibranium bar.'
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 
@@ -617,7 +617,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentFuel += 1
 			itemPurchased = 'fuel reserve'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}
 	} else if('cloak' === item) {
 		if(user.ore >= 4000) {
@@ -625,15 +625,15 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentCloak += 1
 			itemPurchased = 'cloaking device'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('stealth' === item) {
-		if(user.ore >= 6000) {
-			user.ore -= 6000
+		if(user.ore >= 5000) {
+			user.ore -= 5000
 			user.equipmentStealth += 1
 			itemPurchased = 'stealth delivery system'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('jam' === item) {
 		if(user.ore >= 5000) {
@@ -641,7 +641,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentJam += 1
 			itemPurchased = 'communications jammer'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}
 	} else if('shield' === item) {
 		if(user.ore >= 4000) {
@@ -649,7 +649,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentShield += 1
 			itemPurchased = 'shield generator'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('sabotage' === item) {
 		if(user.ore >= 2500) {
@@ -657,7 +657,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentSabotage += 1
 			itemPurchased = 'explosive'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('strike' === item) {
 		if(user.ore >= 2500) {
@@ -665,7 +665,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentStrike += 1
 			itemPurchased = 'ballistic missle'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('nuke' === item) {
 		if(user.ore >= 6000) {
@@ -673,7 +673,7 @@ async function leaderboard(user, slashCommand) {
 			user.equipmentNuke += 1
 			itemPurchased = 'nuclear warhead'
 		} else {
-			return respondForUser(user, 'You do not have enough vibranium ore.')
+			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else {
 		return respond('Invalid option.')
@@ -681,7 +681,7 @@ async function leaderboard(user, slashCommand) {
 
 	await db.putUser(user)
 	let response = 'You have purchased an equipment chest containing one ' + itemPurchased + '.'
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 
@@ -700,11 +700,11 @@ async function leaderboard(user, slashCommand) {
 async function fuel(user, slashCommand) {
 
 	if(user.equipmentFuel < 1) {
-		return respondForUser(user, 'You have no fuel reserves in your inventory.')
+		return respondAndCheckForCloak(user, 'You have no fuel reserves in your inventory.')
 	}
 	if(isFueled(user.lastFueled)) {
 		let remainingMillis = (user.lastFueled + (fuelIntervalMinutes * 60 * 1000)) - currentTime
-		return respondForUser(user, 'Fuel reserves are still on cool down. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
+		return respondAndCheckForCloak(user, 'Fuel reserves are still on cool down. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 
 	user.energy += 20
@@ -713,7 +713,7 @@ async function fuel(user, slashCommand) {
 	user.lastFueled = currentTime
 	await db.putUser(user)
 	let response = 'You release fossil fuel reserves granting you 20 energy.'
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 
@@ -723,11 +723,11 @@ async function fuel(user, slashCommand) {
  */
 async function cloak(user, slashCommand) {
 	if(user.equipmentCloak < 1) {
-		return respondForUser(user, 'You have no cloaking devices in your inventory.')
+		return respondAndCheckForCloak(user, 'You have no cloaking devices in your inventory.')
 	}
 	if(isCloaked(user.lastCloaked)) {
 		let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
-		return respondForUser(user, 'You are already cloaked. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
+		return respondAndCheckForCloak(user, 'You are already cloaked. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 	user.equipmentCloak -= 1
 	user.netCloak += 1
@@ -764,7 +764,7 @@ async function stealth(user, slashCommand) {
 async function jam(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentJam < 1) {
-		return respondForUser(user, 'You have no communications jammers in your inventory.')
+		return respondAndCheckForCloak(user, 'You have no communications jammers in your inventory.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -775,7 +775,7 @@ async function jam(user, slashCommand) {
 		return respond('Invalid target.')
 	}
 	if(isJammed(targetUser.lastJammed)) {
-		return respondForUser(user, 'This player\'s communications are already jammed.')
+		return respondAndCheckForCloak(user, 'This player\'s communications are already jammed.')
 	}
 
 	let response = user.username + ' jams ' + targetUser.username + '\'s communications rendering them unable to attack for the next 30 minutes!'
@@ -784,7 +784,7 @@ async function jam(user, slashCommand) {
 	targetUser.lastJammed = currentTime
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 /** 
@@ -793,7 +793,7 @@ async function jam(user, slashCommand) {
  */
 async function shield(user, slashCommand) {
 	if(user.equipmentShield < 1) {
-		return respondForUser(user, 'You have no shield generators in your inventory.')
+		return respondAndCheckForCloak(user, 'You have no shield generators in your inventory.')
 	}
 	let response = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
@@ -826,7 +826,7 @@ async function shield(user, slashCommand) {
 		if(user.shieldHealth > 100) {
 			response = 'You reinforce shield increasing shield integrity to ' + user.shieldHealth + '%. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack.'
 		}
-		return respondForUser(user, response)
+		return respondAndCheckForCloak(user, response)
 	}
 
 }
@@ -839,7 +839,7 @@ async function shield(user, slashCommand) {
 async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentSabotage < 1) {
-		return respond('You have no explosives in your inventory.')
+		return respondAndCheckForStealth(user, 'You have no explosives in your inventory.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -847,7 +847,7 @@ async function sabotage(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respond('Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.')
 	}
 	let response = user.username
 	if(user.shieldHealth > 0) {
@@ -878,7 +878,7 @@ async function sabotage(user, slashCommand) {
 	user.netSabotage += 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(response)
+	return respondAndCheckForStealth(user, response)
 }
 
 
@@ -889,7 +889,7 @@ async function sabotage(user, slashCommand) {
  async function strike(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentStrike < 1) {
-		return respond('You have no missles in your inventory.')
+		return respondAndCheckForStealth(user, 'You have no missles in your inventory.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -897,7 +897,7 @@ async function sabotage(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respond('Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.')
 	}
 	let response = user.username
 	if(user.shieldHealth > 0) {
@@ -928,7 +928,7 @@ async function sabotage(user, slashCommand) {
 	user.netStrike += 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(response)
+	return respondAndCheckForStealth(user, response)
 }
 
 
@@ -939,7 +939,7 @@ async function sabotage(user, slashCommand) {
  async function nuke(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentNuke < 1) {
-		return respond('You have no nuclear warheads in your inventory.')
+		return respondAndCheckForStealth(user, 'You have no nuclear warheads in your inventory.')
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -947,7 +947,7 @@ async function sabotage(user, slashCommand) {
 		targetUser = targetUserRecord.Item
 	}
 	if(null == targetUser || user.userId == targetUser.userId) {
-		return respond('Invalid target.')
+		return respondAndCheckForStealth(user, 'Invalid target.')
 	}
 	let response = user.username
 	if(user.shieldHealth > 0) {
@@ -981,7 +981,7 @@ async function sabotage(user, slashCommand) {
 	user.netNuke += 1
 	await db.putUser(user)
 	await db.putUser(targetUser)
-	return respond(response)
+	return respondAndCheckForStealth(user, response)
 }
 
 
@@ -1217,8 +1217,16 @@ function updateShieldSimple(user) {
 	return user
 }
 
-function respondForUser(user, message) {
+function respondAndCheckForCloak(user, message) {
 	if(isCloaked(user.lastCloaked)) {
+		return respondEphemeral(message)
+	} else {
+		return respond(message)
+	}
+}
+
+function respondAndCheckForStealth(user, message) {
+	if(isStealthed(user.lastStealthed)) {
 		return respondEphemeral(message)
 	} else {
 		return respond(message)
@@ -1271,7 +1279,7 @@ function isCloaked(lastCloaked) {
 	return false
 }
 
-function isStealthed(lastSealthed) {
+function isStealthed(lastStealthed) {
 	let stealthIntervalMillis = 1000 * 60 * stealthIntervalMinutes
 	console.log("Current time: " + currentTime + ", lastStealthed: " + lastStealthed + ", stealthIntervalMillis: " + stealthIntervalMillis)
 	if(currentTime < lastStealthed + stealthIntervalMillis) {
@@ -1336,7 +1344,7 @@ async function protect(user, millisEllapsed) {
 	user = updateEnergy(user)
 	await db.putUser(user)
 	let response = 'Welcome back to the war! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play.'
-	return respondForUser(user, response)
+	return respondAndCheckForCloak(user, response)
 }
 
 
@@ -1392,14 +1400,14 @@ function compare( a, b ) {
   \nHow to play:\
   \nUse /vw mine command to mine for vibranium ore & rare equipment chests.\
   \n\
-  \nUse /vw build & /vw train to build up your city or train up your military.\
+  \nUse /vw build & /vw train to increase your city & military size.\
   \n\
   \nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "located", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
   \n\
   \nUse /vw smelt to convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\
   \n\
   \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
-  \n\Fuel - Gain 20 energy, 30 min cool down\
+  \n\Fuel - Gain 20 energy, 30m cool down\
   \n\Cloak - Hide your stats & non-offensive moves from other players for 8h\
   \n\Stealth - Anonymize your offensive moves from other players for 10m\
   \n\Jam - Prevent opponent from using attack command for 30m\
@@ -1409,10 +1417,9 @@ function compare( a, b ) {
   \n\Nuke - Destroy 40% of an opponent\'s city & military\
   \n\
   \nUse /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\
-  \nEnergy refresh rate is 1 per every 5 min.\
+  \nEnergy regens 1 per every 5m.\
   \n\
   \n\End game: \
-  \n\At the conclusion of a war, ore, cities & militaries are also converted (at smelting rate) & added to your total vibranium bar count. Those with the most bars win the war.\
   \n\Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).\
   \n\
   \nCreator & developer:\
