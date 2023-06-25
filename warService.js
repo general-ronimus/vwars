@@ -1,8 +1,9 @@
 const db = require('./vwarsDbService.js')
+const userService = require('./userService.js')
 const crypto = require('crypto');
 
 module.exports ={
-    getActiveWar, createWar, createInitialWar, createNextWar, concludeWar, initGuildUser
+    getActiveWar, createWar, createInitialWar, createNextWar, concludeWar
 }
 
 async function getActiveWar(guildId, currentTime) {
@@ -19,11 +20,9 @@ async function getActiveWar(guildId, currentTime) {
     }
     
     if(activeWar && activeWar.expiration && activeWar.expiration <= currentTime) {
-        //await concludeWar(activeWar)
         activeWar.isActive = false
         await db.putWar(activeWar)
         return null
-        //activeWar = await createNextWar(activeWar)
     }
     return activeWar
 }
@@ -141,13 +140,16 @@ async function concludeWar(activeWar) {
     let secondIssued = false
     let thirdIssued = false
 
+    /*
     users.Items.map(function(user) {
         let assets = user.ore + user.city + user.military
         user.bar += Math.floor(assets / 10000)        
     }).sort(compare).forEach(function(user) {
+        */
+    users.Items.sort(compare).forEach(function(user) {   
         let guildUser = db.getGuildUser(activeWar.guildId, user.userId)
         if(!guildUser) {
-            guildUser = initGuildUser(activeWar.guildId, user.userId, user.username)
+            guildUser = userService.initGuildUser(activeWar.guildId, user.userId, user.username)
         }
 
         guildUser.barHistoricalVibranium += user.bar
@@ -159,30 +161,37 @@ async function concludeWar(activeWar) {
         guildUser.netMilitaryDamage += user.netMilitaryDamage
         guildUser.netFuel += user.netFuel
         guildUser.netCloak += user.netCloak
+        guildUser.netStealth += user.netStealth
+        guildUser.netJam += user.netJam
         guildUser.netShield += user.netShield
         guildUser.netSabotage += user.netSabotage
         guildUser.netStrike += user.netStrike
         guildUser.netNuke += user.netNuke
 
         if(!firstIssued) {
+            /*
             let bonusBars = Math.ceil(user.bar * .30)
-            //guildUser.barHistoricalVibranium += bonusBars
+            guildUser.barHistoricalVibranium += bonusBars
             guildUser.barVibranium += bonusBars
+            */
             guildUser.medalFirst += 1
         } else if(!secondIssued) {
+            /*
             let bonusBars = Math.ceil(user.bar * .20)
-            //guildUser.barHistoricalVibranium += bonusBars
+            guildUser.barHistoricalVibranium += bonusBars
             guildUser.barVibranium += bonusBars
+            */
             guildUser.medalSecond += 1
         } else if(!thirdIssued) {
+            /*
             let bonusBars = Math.ceil(user.bar * .10)
-            //guildUser.barHistoricalVibranium += bonusBars
+            guildUser.barHistoricalVibranium += bonusBars
             guildUser.barVibranium += bonusBars
+            */
             guildUser.medalThird += 1
         }
         db.putGuildUser(guildUser)
     })
-
 }
 
 function compare( a, b ) {
@@ -195,31 +204,6 @@ function compare( a, b ) {
     return 0;
 }
   
-function initGuildUser(guildId, userId, username) {
-    console.log('Initializing new user for guildId: ' + guildId + ', userId: ' + userId + ", username: " + username)
-    let initializedUser = {
-        guildId: guildId,
-        userId: userId,
-        username: username,
-        barHistoricalVibranium: 0,
-        barVibranium: 0,
-        medalFirst: 0,
-        medalSecond: 0,
-        medalThird: 0,
-        wars: 0,
-        titles: [],
-        netMined : 0,
-        netStolen : 0,
-        netCityDamage : 0,
-        netMilitaryDamage : 0,
-        netFuel : 0,
-        netCloak : 0,
-        netShield : 0,
-        netSabotage : 0,
-        netStrike : 0,
-        netNuke : 0
-    }   
-    return initializedUser
-}
+
     
 
