@@ -352,9 +352,7 @@ async function build(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Your radio communications are jammed, you are unable to coordinate attacks at this time.', null)
 	}
 	let response = user.username
-	if(isStealthed(user.lastStealthed)) {
-		response = 'Someone'
-	}
+	
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactivates shield and'
@@ -856,9 +854,7 @@ async function sabotage(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
-	if(isStealthed(user.lastStealthed)) {
-		response = "Someone"
-	}
+	
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
@@ -910,9 +906,7 @@ async function sabotage(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
-	if(isStealthed(user.lastStealthed)) {
-		response = "Someone"
-	}
+	
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
@@ -963,9 +957,7 @@ async function sabotage(user, slashCommand) {
 		return respondAndCheckForStealth(user, 'Invalid target.', null)
 	}
 	let response = user.username
-	if(isStealthed(user.lastStealthed)) {
-		response = "Someone"
-	}
+	
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
@@ -1244,7 +1236,8 @@ function respondAndCheckForCloak(user, message) {
 async function respondAndCheckForStealth(user, message, channelId) {
 	if(isStealthed(user.lastStealthed)) {
 		if(null != channelId) {
-			await queuingService.queueMessageTask(channelId, message)
+			let anonymizedMessage = message.replace(user.username, 'Someone');
+			await queuingService.queueMessageTask(channelId, anonymizedMessage)
 		}
 		return respondEphemeral(message)
 	} else {

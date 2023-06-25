@@ -41,15 +41,19 @@ let currentTime = null
  
  async function message(record) {
 	//let message = JSON.stringify(record.body).replace(/\"/g, "")
-	let message = record.body
+	let message = record.body.replace(/\"/g, "")
 	let channelId = JSON.stringify(record.messageAttributes.channel.stringValue).replace(/\"/g, "")
 	console.log('Message task received')
 
 	let channel = await client.channels.fetch(channelId)
 	//let channel = await client.channels.fetch('1046295026742853723')
 	if(channel) {
-		channel.send({content: message})
-		console.log("Sent to channel: " + channelId + " message: " + message)
+		try {
+			let result = await channel.send({content: message});
+			console.log(`Message sent: ${result.content}`);
+		} catch (error) {
+			console.error(`Failed to send message: ${error}`);
+		}
 	} else {
 		console.log("Unable to access channelId: " + channelId)
 	}
