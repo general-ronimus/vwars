@@ -8,9 +8,13 @@
 const token = process.env.DISCORD_BOT_TOKEN
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-client.once(Events.ClientReady, c => {
-	console.log(`Ready! Logged in as ${c.user.tag}`);
+let readyPromise = new Promise((resolve, reject) => {
+	client.once(Events.ClientReady, c => {
+		console.log(`Ready! Logged in as ${c.user.tag}`);
+		resolve();
+	});
 });
+client.login(token);
 let currentTime = null
 
  
@@ -19,27 +23,28 @@ let currentTime = null
 	 }
  
  async function process(event) {
-	 currentTime = Date.now()
-	 for (const record of event.Records) {
-		 console.log("Event record: " + JSON.stringify(record))
-		 let task = JSON.stringify(record.messageAttributes.task.stringValue).replace(/\"/g, "")
-		 if('message' === task) {
-			 await message(record)
-		 } else if('conclude' === task) {
-			 await conclude(record)
-		 } else if('drone' === task) {
-			 await drone(record)
-		 }
-	 }
-	 return null
+	await readyPromise
+	currentTime = Date.now()
+		for (const record of event.Records) {
+			console.log("Event record: " + JSON.stringify(record))
+			let task = JSON.stringify(record.messageAttributes.task.stringValue).replace(/\"/g, "")
+			if('message' === task) {
+				await message(record)
+			} else if('conclude' === task) {
+				await conclude(record)
+			} else if('drone' === task) {
+				await drone(record)
+			}
+		}
+	return
  }
  
  async function message(record) {
-	let message = JSON.stringify(record.body).replace(/\"/g, "")
+	//let message = JSON.stringify(record.body).replace(/\"/g, "")
+	let message = record.body
 	let channelId = JSON.stringify(record.messageAttributes.channel.stringValue).replace(/\"/g, "")
 	console.log('Message task received')
 
-	client.login(token);
 	let channel = await client.channels.fetch(channelId)
 	//let channel = await client.channels.fetch('1046295026742853723')
 	if(channel) {
@@ -48,8 +53,7 @@ let currentTime = null
 	} else {
 		console.log("Unable to access channelId: " + channelId)
 	}
-
-	return null
+	return
  }
  
  async function conclude(taskPayload) {

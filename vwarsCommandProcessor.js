@@ -353,7 +353,7 @@ async function build(user, slashCommand) {
 	}
 	let response = user.username
 	if(isStealthed(user.lastStealthed)) {
-		response = 'Someone '
+		response = 'Someone'
 	}
 	if(user.shieldHealth > 0) {
 		user.shieldHealth = 0
