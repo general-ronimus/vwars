@@ -111,7 +111,34 @@ async function remove(slashCommand) {
 }
 
 async function activate(slashCommand) {
-	return respond("Activate command coming soon!")
+	let warId = null
+	let expiration = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		warId = slashCommand.subCommandArgs[0]
+		if(slashCommand.subCommandArgs.length > 1) {
+			if(!isNumeric(slashCommand.subCommandArgs[1]) || slashCommand.subCommandArgs[1] < 0) {
+				respond('Improperly formatted argument.')
+			}
+			expiration = parseInt(slashCommand.subCommandArgs[1])
+		}
+	}
+
+	let activeWar = warService.getActiveWar(slashCommand.guildId, currentTime)
+    if(!activeWar) {
+        let warToActivate = db.getWar(guildId, warId)
+        if(expiration) {
+            warToActivate.expiration = expiration
+        }
+        if(warToActivate.expiration > currentTime) {
+            warToActivate.isActive = true
+            await db.putWar(warToActivate)
+			let timeRemaining = timeRemainingAsCountdown(warToActivate.expiration - currentTime)
+			return respond("War " + warId + ' activated. Expiration: ' + timeRemaining)
+        } else {
+            respond('This war has an expired expiration date.')
+        }
+    }
+	respond('There is already an active war on this server.')
 }
 
 async function deactivate(slashCommand) {
@@ -165,4 +192,31 @@ function compare( a, b ) {
 	}
 	return 0;
   }
+
+  function timeRemainingAsCountdown(remainingMillis) {
+	if(remainingMillis < 1) {
+		return 0
+	}
+	let seconds = Math.floor((remainingMillis / 1000) % 60)
+	let minutes = Math.floor((remainingMillis / 1000 / 60) % 60)
+	let hours = Math.floor((remainingMillis / 1000 / 60 / 60) % 24)
+	let days = Math.floor(remainingMillis / 1000 / 60 / 60 / 24)
+
+	// 00d:00h:12m:10s
+	let timeRemaining = ''
+	if(days > 0) {
+		timeRemaining += (days).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'd:'
+	}
+	if(hours > 0) {
+		timeRemaining += (hours).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'h:'
+	}
+	if(minutes > 0) {
+		timeRemaining += (minutes).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'm:'
+	}
+	if(seconds > 0) {
+		timeRemaining += (seconds).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 's'
+	}	
+	console.log(timeRemaining); // 21 
+	return timeRemaining
+}  
   
