@@ -125,7 +125,7 @@ async function activate(slashCommand) {
 
 	let activeWar = warService.getActiveWar(slashCommand.guildId, currentTime)
     if(!activeWar) {
-        let warToActivate = db.getWar(guildId, warId)
+        let warToActivate = await db.getWar(guildId, warId)
         if(expiration) {
             warToActivate.expiration = expiration
         }
@@ -142,7 +142,23 @@ async function activate(slashCommand) {
 }
 
 async function deactivate(slashCommand) {
-	return respond("Deactivate command coming soon!")
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		warId = slashCommand.subCommandArgs[0]
+	}
+
+	let retrievedWar = await db.getWar(warId)
+	if(!retrievedWar) {
+		respond('No war found for given warId: ' + warId)
+	} else {
+		if(retrievedWar.isActive) {
+			retrievedWar.isActive = false
+			await db.putWar(retrievedWar)
+			respond('War ' + warId + ' is now deacivated.')
+		} else {
+			respond('Unable to deactivate. War ' + warId + ' is already inactive.')
+		}
+	}
 }
 
 async function conclude(slashCommand) {
