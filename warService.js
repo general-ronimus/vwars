@@ -48,6 +48,7 @@ async function createWar(requestedWar) {
 	let expiration = null
 	let energyRefreshMinutes = 5
     let isActive = false
+    let isConcluded = false
     let iteration = 1
     if(requestedWar.name) {
         name = requestedWar.name
@@ -64,6 +65,9 @@ async function createWar(requestedWar) {
     if(requestedWar.isActive) {
         isActive = requestedWar.isActive
     }
+    if(requestedWar.isConcluded) {
+        isConcluded = requestedWar.isConcluded
+    }
     if(requestedWar.iteration) {
         iteration = requestedWar.iteration
     }
@@ -75,6 +79,7 @@ async function createWar(requestedWar) {
         start: start,
 		expiration: expiration,
 		isActive: isActive,
+        isConcluded: isConcluded,
 		energyRefreshMinutes: energyRefreshMinutes,
         iteration: iteration
 	};
@@ -95,6 +100,7 @@ async function createInitialWar(guildId) {
 		name: 'War',
         iteration: '1',
 		isActive: true,
+        isConcluded: false,
         start: startDate.getMilliseconds,
         expiration: endDate.getMilliseconds 
     }
@@ -132,13 +138,15 @@ async function createNextWar(previousWar) {
 	return await createWar(requestedWar)
 }
 
-async function concludeWar(activeWar) {
-    activeWar.isConcluded = true
-    await db.putWar(activeWar)
-    let users = db.getUsers(activeWar.warId)
+async function concludeWar(warToConclude) {
+    warToConclude.isConcluded = true
+    let concludedWarRecord = await db.putWar(warToConclude)
+    let concludedWar = concludedWarRecord.Item
+    let users = db.getUsers(concludedWar.warId)
     let firstIssued = false
     let secondIssued = false
     let thirdIssued = false
+    let guildUsersUpdated = 0;
 
     /*
     users.Items.map(function(user) {
@@ -146,10 +154,11 @@ async function concludeWar(activeWar) {
         user.bar += Math.floor(assets / 10000)        
     }).sort(compare).forEach(function(user) {
         */
-    users.Items.sort(compare).forEach(function(user) {   
-        let guildUser = db.getGuildUser(activeWar.guildId, user.userId)
+    users.Items.sort(compare).forEach(async function(user) {   
+        let guildUserRecord = db.getGuildUser(concludedWar.guildId, user.userId)
+        let guildUser = guildUserRecord.Item
         if(!guildUser) {
-            guildUser = userService.initGuildUser(activeWar.guildId, user.userId, user.username)
+            guildUser = userService.initGuildUser(concludedWar.guildId, user.userId, user.username)
         }
 
         guildUser.barHistoricalVibranium += user.bar
@@ -190,8 +199,79 @@ async function concludeWar(activeWar) {
             */
             guildUser.medalThird += 1
         }
-        db.putGuildUser(guildUser)
+        await db.putGuildUser(guildUser)
+        guildUsersUpdated += 1
     })
+    return guildUsersUpdated
+}
+
+function migrateWar(war) {
+	if(war.name === undefined) {
+		war.name = 'N/A'
+	}
+    if(war.start === undefined) {
+		war.start = 0
+	}
+    if(war.expiration === undefined) {
+		war.expiration = 0
+	}
+    if(war.start === undefined) {
+		war.start = 0
+	}
+    if(war.isActive === undefined) {
+		war.isActive = false
+	}
+    if(war.isConcluded === undefined) {
+		war.isConcluded = false
+	}
+    if(war.energyRefreshMinutes === undefined) {
+		war.energyRefreshMinutes = 5
+	}
+    iflet uuid = crypto.randomUUID()
+	let name = uuid
+    let start = null
+	let expiration = null
+	let energyRefreshMinutes = 5
+    let isActive = false
+    let isConcluded = false
+    let iteration = 1
+    if(requestedWar.name) {
+        name = requestedWar.name
+    }
+    if(requestedWar.start) {
+        start = requestedWar.start
+    }
+    if(requestedWar.expiration) {
+        expiration = requestedWar.expiration
+    }
+    if(requestedWar.energyRefreshMinutes) {
+        energyRefreshMinutes = requestedWar.energyRefreshMinutes
+    }
+    if(requestedWar.isActive) {
+        isActive = requestedWar.isActive
+    }
+    if(requestedWar.isConcluded) {
+        isConcluded = requestedWar.isConcluded
+    }
+    if(requestedWar.iteration) {
+        iteration = requestedWar.iteration
+    }
+    
+	let initializedWar = {
+		guildId: requestedWar.guildId,
+		warId: uuid,
+		name: name,
+        start: start,
+		expiration: expiration,
+		isActive: isActive,
+        isConcluded: isConcluded,
+		energyRefreshMinutes: energyRefreshMinutes,
+        iteration: iteration
+	};
+(war.iteration === undefined) {
+		war.iteration = 0
+	}
+    return war
 }
 
 function compare( a, b ) {

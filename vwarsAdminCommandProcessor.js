@@ -69,41 +69,42 @@ function parseSlashCommand(slashCommandBody) {
  * Create a new war with name and expiration
  */
 async function create(slashCommand) {
-	
-	/* Comment out as we will likely use the create function from war service
-	let name = null
-	let expiration = null
-	let energyRefreshMinutes = 10
-	let cycleTimeMinutes = 240
+	let name = 'War ' + currentTime
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
 		if(slashCommand.subCommandArgs[0].length > 0) {
 			name = slashCommand.subCommandArgs[0]
 		} else {
 			return respond('Missing or improperly formatted argument.')
 		}
-		if(slashCommand.subCommandArgs[1].length > 0 && isNumeric(slashCommand.subCommandArgs[1])) {
-			expiration = slashCommand.subCommandArgs[1]
-		} else {
-			return respond('Missing or improperly formatted argument.')
-		}
 	}
-	let uuid = crypto.randomUUID
-	let initializedWar = {
-		guildId: slashCommand.guildId,
-		warId: uuid,
-		name: name,
-		expiration: expiration,
-		isActive: false,
-		energyRefreshMinutes: energyRefreshMinutes,
-		cycleTimeMinutes: cycleTimeMinutes
-	};
-	await db.putWar(initializedWar)
-	*/
-	return respond("Create command coming soon!")
+
+	let requestedWar = {
+        guildId: slashCommand.guildId,
+		name: name
+    }
+	let createdWarRecord = await warService.createWar(requestedWar)
+	let createdWar = createdWarRecord.Item
+
+	if(createdWar) {
+		return respond("Created war: " + createdWar.warId)
+	} else {
+		return respond("Unable to create war.")
+	}
 }
 
+/**
+ * LEADERBOARD
+ * 
+ */
 async function list(slashCommand) {
-	return respond("List command coming soon!")
+	let responseString = 'Wars'
+	let retrievedWars = await db.getWars(slashCommand.guildId)
+	//retrievedWars.Items.sort(compare)
+	retrievedWars.Items.forEach(function(war) {
+		responseString = responseString += '\nID: ' + war.warId + ', Name: ' + war.name + ', Active: ' + war.isActive
+	 });
+	 console.log(responseString)
+	 return respond(responseString)
 }
 
 async function remove(slashCommand) {
@@ -117,28 +118,35 @@ async function activate(slashCommand) {
 		warId = slashCommand.subCommandArgs[0]
 		if(slashCommand.subCommandArgs.length > 1) {
 			if(!isNumeric(slashCommand.subCommandArgs[1]) || slashCommand.subCommandArgs[1] < 0) {
-				respond('Improperly formatted argument.')
+				return respond('Improperly formatted argument.')
 			}
 			expiration = parseInt(slashCommand.subCommandArgs[1])
 		}
 	}
 
-	let activeWar = warService.getActiveWar(slashCommand.guildId, currentTime)
-    if(!activeWar) {
-        let warToActivate = await db.getWar(guildId, warId)
+	let activeWar = await warService.getActiveWar(slashCommand.guildId, currentTime)
+	if(activeWar) {
+		return respond('There is already an active war on this server: ' + activeWar.warId)
+	}
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let warToActivate = warRecord.Item
+	if(!warToActivate) {
+		return respond('Unable to activate non-existent war: ' + warId)
+	} else {
         if(expiration) {
             warToActivate.expiration = expiration
         }
-        if(warToActivate.expiration > currentTime) {
+
+		if(warToActivate.expiration > currentTime) {
             warToActivate.isActive = true
-            await db.putWar(warToActivate)
-			let timeRemaining = timeRemainingAsCountdown(warToActivate.expiration - currentTime)
-			return respond("War " + warId + ' activated. Expiration: ' + timeRemaining)
+            warToActivate = await db.putWar(warToActivate)
+			//let timeRemaining = timeRemainingAsCountdown(warToActivate.expiration - currentTime)
+			//return respond("War " + warId + ' activated. Expiration: ' + timeRemaining)
+			return respond("War " + warId + ' activated.')
         } else {
-            respond('This war has an expired expiration date.')
+            return respond('This war has an expired expiration date: ' + warToActivate.expiration)
         }
-    }
-	respond('There is already an active war on this server.')
+	}
 }
 
 async function deactivate(slashCommand) {
@@ -147,22 +155,41 @@ async function deactivate(slashCommand) {
 		warId = slashCommand.subCommandArgs[0]
 	}
 
-	let retrievedWar = await db.getWar(warId)
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let retrievedWar = warRecord.Item
 	if(!retrievedWar) {
-		respond('No war found for given warId: ' + warId)
+		return respond('No war found for given warId: ' + warId)
 	} else {
 		if(retrievedWar.isActive) {
 			retrievedWar.isActive = false
 			await db.putWar(retrievedWar)
-			respond('War ' + warId + ' is now deacivated.')
+			return respond('War ' + warId + ' is now deacivated.')
 		} else {
-			respond('Unable to deactivate. War ' + warId + ' is already inactive.')
+			return respond('Unable to deactivate. War ' + warId + ' is already inactive.')
 		}
 	}
 }
 
 async function conclude(slashCommand) {
-	return respond("Conclude command coming soon!")
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		warId = slashCommand.subCommandArgs[0]
+	}
+	
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let warToConclude = warRecord.Item
+	if(!warToConclude) {
+		return respond('No war found with id: ' + warId)
+	}
+	if(warToConclude.isActive) {
+		return respond('Unable to conclude an active war.')
+	}	
+	if(warToConclude.isConcluded) {
+		return respond('Unable to conclude an already concluded war.')
+	}
+	let result = await warService.concludeWar(warToConclude)
+
+	return respond('War ' + warId + ' has been concluded. ' + result + ' users\' permanent records have been updated.')
 }
 
 
