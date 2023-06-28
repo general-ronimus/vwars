@@ -3,7 +3,7 @@ const userService = require('./userService.js')
 const crypto = require('crypto');
 
 module.exports ={
-    getActiveWar, createWar, createInitialWar, createNextWar, concludeWar
+    getActiveWar, createWar, createInitialWar, createNextWar, concludeWar, migrateWar
 }
 
 async function getActiveWar(guildId, currentTime) {
@@ -227,48 +227,7 @@ function migrateWar(war) {
     if(war.energyRefreshMinutes === undefined) {
 		war.energyRefreshMinutes = 5
 	}
-    iflet uuid = crypto.randomUUID()
-	let name = uuid
-    let start = null
-	let expiration = null
-	let energyRefreshMinutes = 5
-    let isActive = false
-    let isConcluded = false
-    let iteration = 1
-    if(requestedWar.name) {
-        name = requestedWar.name
-    }
-    if(requestedWar.start) {
-        start = requestedWar.start
-    }
-    if(requestedWar.expiration) {
-        expiration = requestedWar.expiration
-    }
-    if(requestedWar.energyRefreshMinutes) {
-        energyRefreshMinutes = requestedWar.energyRefreshMinutes
-    }
-    if(requestedWar.isActive) {
-        isActive = requestedWar.isActive
-    }
-    if(requestedWar.isConcluded) {
-        isConcluded = requestedWar.isConcluded
-    }
-    if(requestedWar.iteration) {
-        iteration = requestedWar.iteration
-    }
-    
-	let initializedWar = {
-		guildId: requestedWar.guildId,
-		warId: uuid,
-		name: name,
-        start: start,
-		expiration: expiration,
-		isActive: isActive,
-        isConcluded: isConcluded,
-		energyRefreshMinutes: energyRefreshMinutes,
-        iteration: iteration
-	};
-(war.iteration === undefined) {
+    if(war.iteration === undefined) {
 		war.iteration = 0
 	}
     return war
