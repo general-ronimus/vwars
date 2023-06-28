@@ -40,10 +40,11 @@ function parseSlashCommand(slashCommandBody) {
 	let username = JSON.stringify(slashCommandBody.member.user.username).replace(/\"/g, "")
 	let command = JSON.stringify(slashCommandBody.data.name).replace(/\"/g, "");
 	let subCommand = JSON.stringify(slashCommandBody.data.options[0].name).replace(/\"/g, "");
-	let subCommandArgs = [];
+	let subCommandArgs = new Map();
+
 	if(slashCommandBody.data.options[0].hasOwnProperty('options') && slashCommandBody.data.options[0].options.length > 0) {
 		for (let i = 0; i < slashCommandBody.data.options[0].options.length; i++) {
-			subCommandArgs.push(JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
+			subCommandArgs.set(JSON.stringify(slashCommandBody.data.options[0].options[i].name).replace(/\"|@|<|>|!/g, ""),JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
 		}
 	}
 	let slashCommand = {
@@ -70,23 +71,21 @@ function parseSlashCommand(slashCommandBody) {
  */
 async function create(slashCommand) {
 	let name = 'War ' + currentTime
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		if(slashCommand.subCommandArgs[0].length > 0) {
-			name = slashCommand.subCommandArgs[0]
-		} else {
-			return respond('Missing or improperly formatted argument.')
-		}
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('name')) {
+			name = slashCommand.subCommandArgs.get('name')
+		} 
 	}
 
 	let requestedWar = {
         guildId: slashCommand.guildId,
 		name: name
     }
-	let createdWarRecord = await warService.createWar(requestedWar)
-	let createdWar = createdWarRecord.Item
+	let createdWar = await warService.createWar(requestedWar)
 
 	if(createdWar) {
-		return respond("Created war: " + createdWar.warId)
+		let createdWarResponseString = 'New war created! \nwarId: ' + createdWar.warId + '\nname: ' + createdWar.name
+		return respond(createdWarResponseString)
 	} else {
 		return respond("Unable to create war.")
 	}
@@ -113,15 +112,26 @@ async function remove(slashCommand) {
 
 async function activate(slashCommand) {
 	let warId = null
+	let start = null
 	let expiration = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		warId = slashCommand.subCommandArgs[0]
-		if(slashCommand.subCommandArgs.length > 1) {
-			if(!isNumeric(slashCommand.subCommandArgs[1]) || slashCommand.subCommandArgs[1] < 0) {
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respond('Missing or improperly formatted argument.')
+		}
+		if(slashCommand.subCommandArgs.get('start')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('start')) || slashCommand.subCommandArgs.get('start') < 0) {
 				return respond('Improperly formatted argument.')
 			}
-			expiration = parseInt(slashCommand.subCommandArgs[1])
-		}
+			start = parseInt(slashCommand.subCommandArgs.get('start'))
+		}  
+		if(slashCommand.subCommandArgs.get('expire')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('expire')) || slashCommand.subCommandArgs.get('expire') < 0) {
+				return respond('Improperly formatted argument.')
+			}
+			expiration = parseInt(slashCommand.subCommandArgs.get('expire'))
+		} 
 	}
 
 	let activeWar = await warService.getActiveWar(slashCommand.guildId, currentTime)
@@ -136,23 +146,30 @@ async function activate(slashCommand) {
         if(expiration) {
             warToActivate.expiration = expiration
         }
+		if(start) {
+			warToActivate.start = start
+		}
 
 		if(warToActivate.expiration > currentTime) {
             warToActivate.isActive = true
-            warToActivate = await db.putWar(warToActivate)
+            await db.putWar(warToActivate)
 			//let timeRemaining = timeRemainingAsCountdown(warToActivate.expiration - currentTime)
 			//return respond("War " + warId + ' activated. Expiration: ' + timeRemaining)
 			return respond("War " + warId + ' activated.')
         } else {
-            return respond('This war has an expired expiration date: ' + warToActivate.expiration)
+            return respond('This war is already expired with an expiration of: ' + warToActivate.expiration)
         }
 	}
 }
 
 async function deactivate(slashCommand) {
 	let warId = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		warId = slashCommand.subCommandArgs[0]
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respond('Missing or improperly formatted argument.')
+		}
 	}
 
 	let warRecord = await db.getWar(slashCommand.guildId, warId)
@@ -173,9 +190,13 @@ async function deactivate(slashCommand) {
 async function conclude(slashCommand) {
 	let warId = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		warId = slashCommand.subCommandArgs[0]
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respond('Missing or improperly formatted argument.')
+		}
 	}
-	
+
 	let warRecord = await db.getWar(slashCommand.guildId, warId)
 	let warToConclude = warRecord.Item
 	if(!warToConclude) {

@@ -84,7 +84,8 @@ async function createWar(requestedWar) {
         iteration: iteration
 	};
     console.log('Creating new war: ' + JSON.stringify(initializedWar))
-	return await db.putWar(initializedWar)
+	await db.putWar(initializedWar)
+    return initializedWar
 }
 
 

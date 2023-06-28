@@ -166,7 +166,8 @@ async function putGuild(guild) {
   		Item: {
 			PK : 'GUILD#' + guild.guildId,
     		SK: 'GUILD#' + guild.guildId
-  		}
+  		},
+		ReturnValues: 'ALL_OLD'
 	};
 	console.log('db put guild - guildId: ' + guild.guildId)
 	let result = await ddb.put(params).promise()
@@ -225,6 +226,7 @@ async function putGuildUser(user) {
 			netFuel : user.netFuel,
 			netCloak : user.netCloak,
 			netStealth : user.netStealth,
+			netJam : user.netJam,
 			netShield : user.netShield,
 			netSabotage : user.netSabotage,
 			netStrike : user.netStrike,
@@ -302,12 +304,15 @@ async function putWar(war) {
     		SK: 'WAR#' + war.warId,
 			name: war.name,
 			isActive: war.isActive,
+			isConcluded: war.isConcluded,
 			expiration: war.expiration,
 			energyRefreshMinutes: war.energyRefreshMinutes
-  		}
+  		},
+		ReturnValues: 'ALL_OLD'
 	};
 	console.log('db put war - guildId: ' + war.guildId + ', warId: ' + war.warId)
 	let result = await ddb.put(params).promise()
+	console.log(JSON.stringify('db put war result: ' + result.Item))
 	return result
 }
 
