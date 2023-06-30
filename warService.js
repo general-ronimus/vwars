@@ -140,10 +140,7 @@ async function createNextWar(previousWar) {
 }
 
 async function concludeWar(warToConclude) {
-    warToConclude.isConcluded = true
-    let concludedWarRecord = await db.putWar(warToConclude)
-    let concludedWar = concludedWarRecord.Item
-    let users = db.getUsers(concludedWar.warId)
+    let users = db.getUsers(warToConclude.warId)
     let firstIssued = false
     let secondIssued = false
     let thirdIssued = false
@@ -155,54 +152,59 @@ async function concludeWar(warToConclude) {
         user.bar += Math.floor(assets / 10000)        
     }).sort(compare).forEach(function(user) {
         */
-    users.Items.sort(compare).forEach(async function(user) {   
-        let guildUserRecord = db.getGuildUser(concludedWar.guildId, user.userId)
-        let guildUser = guildUserRecord.Item
-        if(!guildUser) {
-            guildUser = userService.initGuildUser(concludedWar.guildId, user.userId, user.username)
-        }
-
-        guildUser.barHistoricalVibranium += user.bar
-        guildUser.barVibranium += user.bar
-        guildUser.wars += 1
-        guildUser.netMined += user.netMined
-        guildUser.netStolen += user.netStolen
-        guildUser.netCityDamage += user.netCityDamage
-        guildUser.netMilitaryDamage += user.netMilitaryDamage
-        guildUser.netFuel += user.netFuel
-        guildUser.netCloak += user.netCloak
-        guildUser.netStealth += user.netStealth
-        guildUser.netJam += user.netJam
-        guildUser.netShield += user.netShield
-        guildUser.netSabotage += user.netSabotage
-        guildUser.netStrike += user.netStrike
-        guildUser.netNuke += user.netNuke
-
-        if(!firstIssued) {
-            /*
-            let bonusBars = Math.ceil(user.bar * .30)
-            guildUser.barHistoricalVibranium += bonusBars
-            guildUser.barVibranium += bonusBars
-            */
-            guildUser.medalFirst += 1
-        } else if(!secondIssued) {
-            /*
-            let bonusBars = Math.ceil(user.bar * .20)
-            guildUser.barHistoricalVibranium += bonusBars
-            guildUser.barVibranium += bonusBars
-            */
-            guildUser.medalSecond += 1
-        } else if(!thirdIssued) {
-            /*
-            let bonusBars = Math.ceil(user.bar * .10)
-            guildUser.barHistoricalVibranium += bonusBars
-            guildUser.barVibranium += bonusBars
-            */
-            guildUser.medalThird += 1
-        }
-        await db.putGuildUser(guildUser)
-        guildUsersUpdated += 1
-    })
+    if(( users.Items.length > 0) {
+        users.Items.sort(compare).forEach(async function(user) {   
+            let guildUserRecord = db.getGuildUser(warToConclude.guildId, user.userId)
+            let guildUser = guildUserRecord.Item
+            if(!guildUser) {
+                guildUser = userService.initGuildUser(warToConclude.guildId, user.userId, user.username)
+            }
+    
+            guildUser.barHistoricalVibranium += user.bar
+            guildUser.barVibranium += user.bar
+            guildUser.wars += 1
+            guildUser.netMined += user.netMined
+            guildUser.netStolen += user.netStolen
+            guildUser.netCityDamage += user.netCityDamage
+            guildUser.netMilitaryDamage += user.netMilitaryDamage
+            guildUser.netFuel += user.netFuel
+            guildUser.netCloak += user.netCloak
+            guildUser.netStealth += user.netStealth
+            guildUser.netJam += user.netJam
+            guildUser.netShield += user.netShield
+            guildUser.netSabotage += user.netSabotage
+            guildUser.netStrike += user.netStrike
+            guildUser.netNuke += user.netNuke
+    
+            if(!firstIssued) {
+                /*
+                let bonusBars = Math.ceil(user.bar * .30)
+                guildUser.barHistoricalVibranium += bonusBars
+                guildUser.barVibranium += bonusBars
+                */
+                guildUser.medalFirst += 1
+            } else if(!secondIssued) {
+                /*
+                let bonusBars = Math.ceil(user.bar * .20)
+                guildUser.barHistoricalVibranium += bonusBars
+                guildUser.barVibranium += bonusBars
+                */
+                guildUser.medalSecond += 1
+            } else if(!thirdIssued) {
+                /*
+                let bonusBars = Math.ceil(user.bar * .10)
+                guildUser.barHistoricalVibranium += bonusBars
+                guildUser.barVibranium += bonusBars
+                */
+                guildUser.medalThird += 1
+            }
+            await db.putGuildUser(guildUser)
+            guildUsersUpdated += 1
+        })
+    }   
+    
+    warToConclude.isConcluded = true
+    await db.putWar(warToConclude)
     return guildUsersUpdated
 }
 
