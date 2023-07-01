@@ -142,22 +142,25 @@ async function activate(slashCommand) {
 	let warToActivate = warRecord.Item
 	if(!warToActivate) {
 		return respond('Unable to activate non-existent war: ' + warId)
-	} else {
-        if(expiration) {
-            warToActivate.expiration = expiration
-        }
-		if(start) {
-			warToActivate.start = start
-		}
-
-		if(warToActivate.expiration > currentTime) {
-            warToActivate.isActive = true
-            await db.putWar(warToActivate)
-			return respond("War " + warId + ' activated. Start: ' + warToActivate.start + ', expiration: ' + warToActivate.expiration)
-        } else {
-            return respond('This war already expired at: ' + warToActivate.expiration)
-        }
+	} 
+	if(warToActivate.isConcluded) {
+		return respond('Unable to activate an already concluded war: ' + warId)
 	}
+
+	if(expiration) {
+		warToActivate.expiration = expiration
+	}
+	if(start) {
+		warToActivate.start = start
+	}
+	if(warToActivate.expiration > currentTime) {
+		warToActivate.isActive = true
+		await db.putWar(warToActivate)
+		return respond("War " + warId + ' activated. Start: ' + warToActivate.start + ', expiration: ' + warToActivate.expiration)
+	} else {
+		return respond('This war already expired at: ' + warToActivate.expiration)
+	}
+
 }
 
 async function deactivate(slashCommand) {

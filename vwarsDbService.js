@@ -305,6 +305,7 @@ async function putWar(war) {
 			name: war.name,
 			isActive: war.isActive,
 			isConcluded: war.isConcluded,
+			start: war.start,
 			expiration: war.expiration,
 			energyRefreshMinutes: war.energyRefreshMinutes
   		},

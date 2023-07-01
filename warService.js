@@ -140,11 +140,11 @@ async function createNextWar(previousWar) {
 }
 
 async function concludeWar(warToConclude) {
-    let users = db.getUsers(warToConclude.warId)
+    let users = await db.getUsers(warToConclude.warId)
     let firstIssued = false
     let secondIssued = false
     let thirdIssued = false
-    let guildUsersUpdated = 0;
+    let guildUsersUpdated = 0
 
     /*
     users.Items.map(function(user) {
@@ -152,10 +152,11 @@ async function concludeWar(warToConclude) {
         user.bar += Math.floor(assets / 10000)        
     }).sort(compare).forEach(function(user) {
         */
-    if(( users.Items.length > 0) {
+       
+    if( users.Items.length > 0) {
         users.Items.sort(compare).forEach(async function(user) {   
             let guildUserRecord = db.getGuildUser(warToConclude.guildId, user.userId)
-            let guildUser = guildUserRecord.Item
+            let guildUser = guildUserRecord.Itwem
             if(!guildUser) {
                 guildUser = userService.initGuildUser(warToConclude.guildId, user.userId, user.username)
             }
@@ -202,7 +203,6 @@ async function concludeWar(warToConclude) {
             guildUsersUpdated += 1
         })
     }   
-    
     warToConclude.isConcluded = true
     await db.putWar(warToConclude)
     return guildUsersUpdated
