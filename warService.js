@@ -154,9 +154,9 @@ async function concludeWar(warToConclude) {
         */
        
     if( users.Items.length > 0) {
-        users.Items.sort(compare).forEach(async function(user) {   
-            let guildUserRecord = db.getGuildUser(warToConclude.guildId, user.userId)
-            let guildUser = guildUserRecord.Itwem
+        for (const user of users.Items.sort(compare)) {
+            let guildUserRecord = await db.getGuildUser(warToConclude.guildId, user.userId)
+            let guildUser = guildUserRecord.Item
             if(!guildUser) {
                 guildUser = userService.initGuildUser(warToConclude.guildId, user.userId, user.username)
             }
@@ -184,6 +184,7 @@ async function concludeWar(warToConclude) {
                 guildUser.barVibranium += bonusBars
                 */
                 guildUser.medalFirst += 1
+                firstIssued = true
             } else if(!secondIssued) {
                 /*
                 let bonusBars = Math.ceil(user.bar * .20)
@@ -191,6 +192,7 @@ async function concludeWar(warToConclude) {
                 guildUser.barVibranium += bonusBars
                 */
                 guildUser.medalSecond += 1
+                secondIssued = true
             } else if(!thirdIssued) {
                 /*
                 let bonusBars = Math.ceil(user.bar * .10)
@@ -198,28 +200,32 @@ async function concludeWar(warToConclude) {
                 guildUser.barVibranium += bonusBars
                 */
                 guildUser.medalThird += 1
+                thirdIssued = true
             }
-            await db.putGuildUser(guildUser)
-            guildUsersUpdated += 1
-        })
+            let result = await db.putGuildUser(guildUser)
+            if(result) {
+                guildUsersUpdated += 1
+            }
+        }
     }   
     warToConclude.isConcluded = true
-    await db.putWar(warToConclude)
-    return guildUsersUpdated
+    let result = await db.putWar(warToConclude)
+    if(result) {
+        return guildUsersUpdated
+    } else {
+        return null
+    }
 }
 
 function migrateWar(war) {
 	if(war.name === undefined) {
-		war.name = 'N/A'
+		war.name = 'Unamed war'
 	}
     if(war.start === undefined) {
 		war.start = 0
 	}
     if(war.expiration === undefined) {
 		war.expiration = 0
-	}
-    if(war.start === undefined) {
-		war.start = 0
 	}
     if(war.isActive === undefined) {
 		war.isActive = false
@@ -229,9 +235,6 @@ function migrateWar(war) {
 	}
     if(war.energyRefreshMinutes === undefined) {
 		war.energyRefreshMinutes = 5
-	}
-    if(war.iteration === undefined) {
-		war.iteration = 0
 	}
     return war
 }
@@ -243,6 +246,13 @@ function compare( a, b ) {
     if ( a.bar > b.bar ){
         return -1;
     }
+
+    if ( a.ore < b.ore ){ 
+		return 1;
+	}
+	if ( a.ore > b.ore ){
+	  	return -1;
+	}
     return 0;
 }
   

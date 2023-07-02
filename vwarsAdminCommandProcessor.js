@@ -100,7 +100,7 @@ async function list(slashCommand) {
 	let retrievedWars = await db.getWars(slashCommand.guildId)
 	//retrievedWars.Items.sort(compare)
 	retrievedWars.Items.forEach(function(war) {
-		responseString = responseString += '\nID: ' + war.warId + ', Name: ' + war.name + ', Active: ' + war.isActive
+		responseString = responseString += '\nID: ' + war.warId + ', Name: ' + war.name + ', Active: ' + war.isActive + ', Concluded: ' + war.isConcluded
 	 });
 	 console.log(responseString)
 	 return respond(responseString)
@@ -210,7 +210,9 @@ async function conclude(slashCommand) {
 		return respond('Unable to conclude an already concluded war.')
 	}
 	let result = await warService.concludeWar(warToConclude)
-
+	if(!result) {
+		return respond('An issue has occurred while trying to conclude war ' + warId)
+	}
 	return respond('War ' + warId + ' has been concluded. ' + result + ' users\' server records have been updated.')
 }
 
