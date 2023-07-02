@@ -30,6 +30,8 @@ async function process(slashCommandBody) {
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	if('help' === slashCommand.subCommand) {
 		return await help()
+	} else if('hall' === slashCommand.subCommand) {
+		return await hall(slashCommand)
 	}
 
 	// War retrieval and housekeeping
@@ -585,6 +587,30 @@ async function leaderboard(user, slashCommand) {
 	 console.log(responseString)
 	 return respondAndCheckForCloak(user, responseString)
 }
+
+
+/**
+ * Hall
+ * 
+ */
+async function hall(slashCommand) {
+	let responseString = 'Vibranium Wars Hall of Legends'
+	let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
+	if(retrievedGuildUsers.Items.length > 0) {
+		retrievedGuildUsers.Items.sort(compareGuildUser)
+		retrievedGuildUsers.Items.forEach(function(guildUser) {
+			let barText = ' bar'
+			if(guildUser.barHistoricalVibranium > 1) {
+				barText += 's'
+			}
+			responseString = responseString += '\n' + guildUser.username + ': ' + guildUser.barHistoricalVibranium + barText + ', ' + guildUser.medalFirst + ' gold medals, ' 
+			+ guildUser.medalSecond + ' silver medals, ' + guildUser.medalThird + ' bronze medals, ' + guildUser.wars + ' wars fought'
+		 });
+	}
+	 console.log(responseString)
+	 return respond(responseString)
+}
+
 
 /**
  * SMELT
@@ -1251,6 +1277,46 @@ function compare( a, b ) {
 	}
 	return 0;
   }
+
+
+  function compareGuildUser( a, b ) {
+	if ( a.medalFirst < b.medalFirst ){ 
+		return 1;
+	}
+	if ( a.medalFirst > b.medalFirst ){
+		return -1;
+	}
+
+	if ( a.medalSecond < b.medalSecond ){ 
+		return 1;
+	}
+	if ( a.medalSecond > b.medalSecond ){
+		return -1;
+	}
+
+	if ( a.medalThird < b.medalThird ){ 
+		return 1;
+	}
+	if ( a.medalThird > b.medalThird ){
+		return -1;
+	}
+
+	if ( a.barHistoricalVibranium < b.barHistoricalVibranium ){ 
+		return 1;
+	}
+	if ( a.barHistoricalVibranium > b.barHistoricalVibranium ){
+		return -1;
+	}
+
+	if ( a.wars < b.wars ){ 
+		return 1;
+	}
+	if ( a.wars > b.wars ){
+		return -1;
+	}
+	return 0;
+  }
+
 
   const helpResponse = '```Welcome to Vibranium Wars!\
   \nObjective:\
