@@ -603,8 +603,8 @@ async function hall(slashCommand) {
 			if(guildUser.barHistoricalVibranium > 1) {
 				barText += 's'
 			}
-			responseString = responseString += '\n' + guildUser.username + ': ' + guildUser.barHistoricalVibranium + barText + ', ' + guildUser.medalFirst + ' gold medals, ' 
-			+ guildUser.medalSecond + ' silver medals, ' + guildUser.medalThird + ' bronze medals, ' + guildUser.wars + ' wars fought'
+			responseString = responseString += '\n' + guildUser.username + ': ' + guildUser.barHistoricalVibranium + barText + ', ' + guildUser.medalFirst + ' 🥇, ' 
+			+ guildUser.medalSecond + ' 🥈, ' + guildUser.medalThird + ' 🥉, ' + guildUser.wars + ' wars fought'
 		 });
 	}
 	 console.log(responseString)
