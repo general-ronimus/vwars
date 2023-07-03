@@ -345,8 +345,8 @@ async function deleteWar(guildId, warId) {
 		}
 	  };
 	console.log('db delete war - guildId: ' + guildId + ', warId: ' + warId)
-	let result = await ddb.delete(params).promise()
-	return result
+	await ddb.delete(params).promise()
+	return true
 }
 
 

@@ -107,7 +107,30 @@ async function list(slashCommand) {
 }
 
 async function remove(slashCommand) {
-	return respond("Delete command coming soon!")
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respond('Missing or improperly formatted argument.')
+		}
+	}
+
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let retrievedWar = warRecord.Item
+	if(!retrievedWar) {
+		return respond('No war found with id: ' + warId)
+	} 
+	if(retrievedWar.isActive) {
+		return respond('Unable to delete an active war: ' + warId)
+	}
+	
+	let result = await db.deleteWar(slashCommand.guildId, warId)
+	if(result) {
+		return respond('War ' + warId + ' has been deleted.')
+	} else {
+		return respond("Unable to delete war: " + warId)
+	}
 }
 
 async function activate(slashCommand) {
