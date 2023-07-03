@@ -594,20 +594,33 @@ async function leaderboard(user, slashCommand) {
  * 
  */
 async function hall(slashCommand) {
-	let responseString = 'Vibranium Wars Hall of Legends'
+	let responseString = '```Vibranium Wars Hall of Legends\n'
+	responseString += '🥇 - First place medals\n🥈 - Second place medals\n🥉 - Third place medals\n💠 - Total vibranium bars earned\n⚔️ - Wars fought\n'
 	let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
+
 	if(retrievedGuildUsers.Items.length > 0) {
-		retrievedGuildUsers.Items.sort(compareGuildUser)
-		retrievedGuildUsers.Items.forEach(function(guildUser) {
-			let barText = ' bar'
-			if(guildUser.barHistoricalVibranium > 1) {
-				barText += 's'
-			}
-			responseString = responseString += '\n' + guildUser.username + ': ' + guildUser.barHistoricalVibranium + barText + ', ' + guildUser.medalFirst + ' 🥇, ' 
-			+ guildUser.medalSecond + ' 🥈, ' + guildUser.medalThird + ' 🥉, ' + guildUser.wars + ' wars fought'
-		 });
-	}
-	 console.log(responseString)
+        let longestMedalFirst = 2
+        let longestMedalSecond = 2
+        let longestMedalThird = 2
+		let longestBars = 2
+        let longestWarsFought = 2
+
+        // Calculate the maximum length for each column
+        retrievedGuildUsers.Items.forEach(guildUser => {
+            if (guildUser.barHistoricalVibranium.toString().length > longestBars) longestBars = guildUser.barHistoricalVibranium.toString().length;
+            if (guildUser.medalFirst.toString().length > longestMedalFirst) longestMedalFirst = guildUser.medalFirst.toString().length;
+            if (guildUser.medalSecond.toString().length > longestMedalSecond) longestMedalSecond = guildUser.medalSecond.toString().length;
+            if (guildUser.medalThird.toString().length > longestMedalThird) longestMedalThird = guildUser.medalThird.toString().length;
+            if (guildUser.wars.toString().length > longestWarsFought) longestWarsFought = guildUser.wars.toString().length;
+        });
+
+        // Generate table data
+        retrievedGuildUsers.Items.sort(compareGuildUser).forEach(guildUser => {
+            responseString += `|${guildUser.username} \n|${guildUser.medalFirst.toString().padStart(longestMedalFirst)}🥇|${guildUser.medalSecond.toString().padStart(longestMedalSecond)}🥈|${guildUser.medalThird.toString().padStart(longestMedalThird)}🥉|${guildUser.barHistoricalVibranium.toString().padStart(longestBars)}💠| ${guildUser.wars.toString().padStart(longestWarsFought)}⚔️|\n`;
+        });
+    }
+
+	responseString += '```'
 	 return respond(responseString)
 }
 
