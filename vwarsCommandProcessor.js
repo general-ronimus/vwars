@@ -535,22 +535,23 @@ async function build(user, slashCommand) {
 			warehouse = 'Location in ' + timeRemainingAsCountdown(remainingMillis)
 		}	
 	}
-	let response = 'Statistics for ' + targetUser.username +
-				'\nVibranium bars: ' + targetUser.bar + 
-				'\nVibranium ore: ' + targetUser.ore + 
-				'\nCity size: ' + targetUser.city + 
-				'\nMilitary size: ' + targetUser.military +
-				'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
-				'\nShield integrity: ' + shieldIntegrity +
-				'\nWarehouse: ' + warehouse +
-				'\nEquipment: fuel(' + targetUser.equipmentFuel + 
-					'), cloak(' + targetUser.equipmentCloak + 
-					'), stealth(' + targetUser.equipmentStealth + 
-					'), jam(' + targetUser.equipmentJam + 
-					'), shield(' + targetUser.equipmentShield + 
-					'), strike(' + targetUser.equipmentStrike + 
-					'), sabotage(' + targetUser.equipmentSabotage + 
-					'), nuke(' + targetUser.equipmentNuke + ')'
+
+	let response = '```Situational Report\n'
+	response += 'Player: ' + targetUser.username + 
+		'\n💠: ' + targetUser.bar +
+		'\n🪨: ' + targetUser.ore +
+		'\nCity: ' + targetUser.city +
+		'\nMilitary: ' + targetUser.military +
+		'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
+		'\nShield integrity: ' + shieldIntegrity +
+		'\nWarehouse: ' + warehouse +
+		'\nEquipment' +
+		'\n| fuel|  cloak|  stealth| shield|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(5) + '|'+ targetUser.equipmentCloak.toString().padStart(7) + '|'+ targetUser.equipmentStealth.toString().padStart(9) + '|'+ targetUser.equipmentShield.toString().padStart(7) + '|' +
+		'\n|  jam| strike| sabotage|   nuke|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(5) + '|'+ targetUser.equipmentStrike.toString().padStart(7) + '|'+ targetUser.equipmentSabotage.toString().padStart(9) + '|'+ targetUser.equipmentNuke.toString().padStart(7) + '|' +
+		'```'
+		
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -560,31 +561,40 @@ async function build(user, slashCommand) {
  * 
  */
 async function leaderboard(user, slashCommand) {
-	let responseString = 'Leaderboard'
+	let responseString = '```Leaderboard'
 	responseString += '\nWar: ' + activeWar.name
 	let timeRemaining = 'n/a'
 	if(activeWar.expiration) {
 		timeRemaining = timeRemainingAsCountdown(activeWar.expiration - currentTime)
 	}
 	responseString += '\nTime remaining: ' + timeRemaining
+	responseString += '\n💠 - Vibranium bars\n🪨 - Vibranium ore'
 
 	let retrievedUsers = await db.getUsers(activeWar.warId)
-	//retrieve, cloak, sort and form leaderboard response
-	retrievedUsers.Items.forEach(function(user) {
-		if(isCloaked(user.lastCloaked)) {
-			user.bar = '??'
-			user.ore = '??'
-		}
-	})
-	retrievedUsers.Items.sort(compare)
-	retrievedUsers.Items.forEach(function(user) {
-		let barText = ' bar'
-		if(user.bar > 1) {
-			barText += 's'
-		}
-		responseString = responseString += '\n' + user.username + ': ' + user.bar + barText + ', ' + user.ore + ' ore'
-	 });
-	 console.log(responseString)
+	if(retrievedUsers.Items.length > 0) {
+		// Obfuscate cloaked players
+		retrievedUsers.Items.forEach(function(user) {
+			if(isCloaked(user.lastCloaked)) {
+				user.bar = '??'
+				user.ore = '??'
+			}
+		})
+
+		// Calculate the maximum length for each column
+		let longestBars = 1
+        let longestOre = 1
+        retrievedUsers.Items.forEach(user => {
+            if (user.bar.toString().length > longestBars) longestBars = user.bar.toString().length;
+            if (user.ore.toString().length > longestOre) longestOre = user.ore.toString().length;
+        });
+
+        // Generate table data
+        retrievedUsers.Items.sort(compare).forEach(user => {
+            responseString += `\n|${user.bar.toString().padStart(longestBars)}💠|${user.ore.toString().padStart(longestOre)}🪨|${user.username}`;
+        });
+    }
+
+	 responseString += '```'
 	 return respondAndCheckForCloak(user, responseString)
 }
 
