@@ -551,7 +551,7 @@ async function build(user, slashCommand) {
 		'\n|  jam| strike| sabotage|   nuke|' +
 		'\n|' + targetUser.equipmentJam.toString().padStart(5) + '|'+ targetUser.equipmentStrike.toString().padStart(7) + '|'+ targetUser.equipmentSabotage.toString().padStart(9) + '|'+ targetUser.equipmentNuke.toString().padStart(7) + '|' +
 		'```'
-		
+
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -604,34 +604,46 @@ async function leaderboard(user, slashCommand) {
  * 
  */
 async function hall(slashCommand) {
-	let responseString = '```Vibranium Wars Hall of Legends\n'
-	responseString += '🥇 - First place medals\n🥈 - Second place medals\n🥉 - Third place medals\n💠 - Total vibranium bars earned\n⚔️ - Wars fought\n'
-	let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
 
-	if(retrievedGuildUsers.Items.length > 0) {
-        let longestMedalFirst = 2
-        let longestMedalSecond = 2
-        let longestMedalThird = 2
-		let longestBars = 2
-        let longestWarsFought = 2
+	let responseString = '```Hall of Legends'
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 
-        // Calculate the maximum length for each column
-        retrievedGuildUsers.Items.forEach(guildUser => {
-            if (guildUser.barHistoricalVibranium.toString().length > longestBars) longestBars = guildUser.barHistoricalVibranium.toString().length;
-            if (guildUser.medalFirst.toString().length > longestMedalFirst) longestMedalFirst = guildUser.medalFirst.toString().length;
-            if (guildUser.medalSecond.toString().length > longestMedalSecond) longestMedalSecond = guildUser.medalSecond.toString().length;
-            if (guildUser.medalThird.toString().length > longestMedalThird) longestMedalThird = guildUser.medalThird.toString().length;
-            if (guildUser.wars.toString().length > longestWarsFought) longestWarsFought = guildUser.wars.toString().length;
-        });
-
-        // Generate table data
-        retrievedGuildUsers.Items.sort(compareGuildUser).forEach(guildUser => {
-            responseString += `|${guildUser.username} \n|${guildUser.medalFirst.toString().padStart(longestMedalFirst)}🥇|${guildUser.medalSecond.toString().padStart(longestMedalSecond)}🥈|${guildUser.medalThird.toString().padStart(longestMedalThird)}🥉|${guildUser.barHistoricalVibranium.toString().padStart(longestBars)}💠| ${guildUser.wars.toString().padStart(longestWarsFought)}⚔️|\n`;
-        });
-    }
-
+		let targetUserId = slashCommand.subCommandArgs[0]
+		let targetUserRecord = await db.getGuildUser(slashCommand.guildId, targetUserId)
+		let guildUser = targetUserRecord.Item
+		if(null == guildUser) {
+			return respond('Invalid user.')
+		}
+		let responseString = '\nPlayer: ' + guildUser.username
+	} else {
+		responseString += '\n🥇 - First place medals\n🥈 - Second place medals\n🥉 - Third place medals\n💠 - Total vibranium bars earned\n⚔️ - Wars fought\n'
+		let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
+	
+		if(retrievedGuildUsers.Items.length > 0) {
+			let longestMedalFirst = 2
+			let longestMedalSecond = 2
+			let longestMedalThird = 2
+			let longestBars = 2
+			let longestWarsFought = 2
+	
+			// Calculate the maximum length for each column
+			retrievedGuildUsers.Items.forEach(guildUser => {
+				if (guildUser.barHistoricalVibranium.toString().length > longestBars) longestBars = guildUser.barHistoricalVibranium.toString().length;
+				if (guildUser.medalFirst.toString().length > longestMedalFirst) longestMedalFirst = guildUser.medalFirst.toString().length;
+				if (guildUser.medalSecond.toString().length > longestMedalSecond) longestMedalSecond = guildUser.medalSecond.toString().length;
+				if (guildUser.medalThird.toString().length > longestMedalThird) longestMedalThird = guildUser.medalThird.toString().length;
+				if (guildUser.wars.toString().length > longestWarsFought) longestWarsFought = guildUser.wars.toString().length;
+			});
+	
+			// Generate table data
+			retrievedGuildUsers.Items.sort(compareGuildUser).forEach(guildUser => {
+				responseString += `|${guildUser.username} \n|${guildUser.medalFirst.toString().padStart(longestMedalFirst)}🥇|${guildUser.medalSecond.toString().padStart(longestMedalSecond)}🥈|${guildUser.medalThird.toString().padStart(longestMedalThird)}🥉|${guildUser.barHistoricalVibranium.toString().padStart(longestBars)}💠| ${guildUser.wars.toString().padStart(longestWarsFought)}⚔️|\n`;
+			});
+		}
+	}
 	responseString += '```'
-	 return respond(responseString)
+	return respond(responseString)
+	
 }
 
 

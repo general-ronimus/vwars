@@ -124,10 +124,25 @@ async function remove(slashCommand) {
 	if(retrievedWar.isActive) {
 		return respond('Unable to delete an active war: ' + warId)
 	}
-	
+
+    let usersDeleted = 0
+	let users = await db.getUsers(warId)
+    if( users.Items.length > 0) {
+        for (const user of users.Items) {
+			let result = db.deleteUser(warId, user.userId)
+			if(result) {
+				usersDeleted += 1
+			}
+		}
+	}
+
 	let result = await db.deleteWar(slashCommand.guildId, warId)
+	let account = 'accounts have'
+	if(usersDeleted === 1) {
+		account = 'account has'
+	}
 	if(result) {
-		return respond('War ' + warId + ' has been deleted.')
+		return respond('War ' + warId + ' and ' + usersDeleted + ' ' + account + ' been deleted.')
 	} else {
 		return respond("Unable to delete war: " + warId)
 	}
