@@ -615,9 +615,9 @@ async function hall(slashCommand) {
 			return respond('Invalid user.')
 		}
 		responseString += '\nPlayer: ' + guildUser.username
-		responseString += '\n|'
-		responseString += '\nAccolades\n| ' + guildUser.medalFirst + '🥇| ' + guildUser.medalSecond + '🥈| ' + guildUser.medalThird + '🥉| ' + guildUser.barHistoricalVibranium + '🎖|'
-		responseString += '\n💠(total earned): ' + guildUser.barVibranium
+		let medalColumnLength = 4
+		responseString += '\nAccolades\n| ' + (guildUser.medalFirst || 0).toString().padStart(medalColumnLength) + '🥇| ' + (guildUser.medalSecond || 0).toString().padStart(medalColumnLength) + '🥈| ' + (guildUser.medalThird || 0).toString().padStart(medalColumnLength) + '🥉| ' + (guildUser.medalStar || 0).toString().padStart(medalColumnLength) + '🎖|'
+		responseString += '\n💠(total earned): ' + guildUser.barHistoricalVibranium
 		responseString += '\nWars fought: ' + guildUser.wars
 
 		responseString += '\n\nStatistics'
@@ -632,6 +632,7 @@ async function hall(slashCommand) {
 		responseString += '\nNukes launched: ' + guildUser.netNuke
 
 		responseString += '\n\nCapital city'
+		responseString += '\nPopulation: ' + guildUser.population
 		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/10'
 		responseString += '\nComms array: ' + guildUser.structCommsArray + '/10'
 		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/10'
@@ -641,15 +642,17 @@ async function hall(slashCommand) {
 		responseString += '\nEMP tower: ' + guildUser.structEMPTower + '/10'
 
 		responseString += '\n\nResources'
-		let resourceLength = 10
-		let countLength = 7
-		let resourceNames = ['uranium', 'beryllium', 'gold', 'silver', 'tungsten', 'titanium', 'cobalt', 'copper', 'lead', 'iron', 'aluminum'];
+		let resourceColumnLength = 10
+		let countColumnLength = 7
+		responseString += '\n|' + 'Material'.padStart(resourceColumnLength) + '|' + 'Ore'.padStart(countColumnLength) + '|' + 'Bars'.padStart(countColumnLength) + '|'
+		responseString += '\n|' + '-'.repeat(resourceColumnLength) + '|' + '-'.repeat(countColumnLength) + '|' + '-'.repeat(countColumnLength) + '|'
+		//Future full set of materials let resourceNames = ['vibranium','uranium', 'beryllium', 'gold', 'silver', 'tungsten', 'titanium', 'cobalt', 'copper', 'lead', 'iron', 'aluminum'];
+		let resourceNames = ['vibranium','uranium','gold', 'lead', 'iron', 'aluminum'];
 		for(let resource of resourceNames) {
     		let oreField = 'ore' + resource.charAt(0).toUpperCase() + resource.slice(1);
     		let barField = 'bar' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		responseString += '\n|' + resource.padStart(resourceLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countLength) + '|' + (guildUser[barField] || 0).toString().padStart(countLength) + '|';
+    		responseString += '\n|' + resource.padStart(resourceColumnLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countColumnLength) + '|' + (guildUser[barField] || 0).toString().padStart(countColumnLength) + '|';
 		}
-		//responseString += '\n|vibranium'.padStart(resourceLength) + '|' + guildUser.oreVibranium.toString().padStart(countLength) + '|' + guildUser.barVibranium.toString().padStart(countLength) + '|'
 
 	} else {
 		responseString += '\n🥇 - First place medals\n🥈 - Second place medals\n🥉 - Third place medals\n💠 - Total vibranium bars earned\n⚔️ - Wars fought\n'
