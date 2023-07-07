@@ -614,7 +614,43 @@ async function hall(slashCommand) {
 		if(null == guildUser) {
 			return respond('Invalid user.')
 		}
-		let responseString = '\nPlayer: ' + guildUser.username
+		responseString += '\nPlayer: ' + guildUser.username
+		responseString += '\n|'
+		responseString += '\nAccolades\n| ' + guildUser.medalFirst + '🥇| ' + guildUser.medalSecond + '🥈| ' + guildUser.medalThird + '🥉| ' + guildUser.barHistoricalVibranium + '🎖|'
+		responseString += '\n💠(total earned): ' + guildUser.barVibranium
+		responseString += '\nWars fought: ' + guildUser.wars
+
+		responseString += '\n\nStatistics'
+		responseString += '\nBuildings burned: ' + guildUser.netCityDamage
+		responseString += '\nTroops destroyed: ' + guildUser.netMilitaryDamage
+		responseString += '\nOre mined: ' + guildUser.netMined
+		responseString += '\nOre stolen: ' + guildUser.netStolen
+		responseString += '\nBarrels of fuel used: ' + guildUser.netFuel
+		responseString += '\nShields activated: ' + guildUser.netShield
+		responseString += '\nMissiles launched: ' + guildUser.netStrike
+		responseString += '\nExplosives detonated: ' + guildUser.netSabotage
+		responseString += '\nNukes launched: ' + guildUser.netNuke
+
+		responseString += '\n\nCapital city'
+		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/10'
+		responseString += '\nComms array: ' + guildUser.structCommsArray + '/10'
+		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/10'
+		responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/10'
+		responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/10'
+		responseString += '\nIntelligence agency: ' + guildUser.structIntelligenceAgency + '/10'
+		responseString += '\nEMP tower: ' + guildUser.structEMPTower + '/10'
+
+		responseString += '\n\nResources'
+		let resourceLength = 10
+		let countLength = 7
+		let resourceNames = ['uranium', 'beryllium', 'gold', 'silver', 'tungsten', 'titanium', 'cobalt', 'copper', 'lead', 'iron', 'aluminum'];
+		for(let resource of resourceNames) {
+    		let oreField = 'ore' + resource.charAt(0).toUpperCase() + resource.slice(1);
+    		let barField = 'bar' + resource.charAt(0).toUpperCase() + resource.slice(1);
+    		responseString += '\n|' + resource.padStart(resourceLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countLength) + '|' + (guildUser[barField] || 0).toString().padStart(countLength) + '|';
+		}
+		//responseString += '\n|vibranium'.padStart(resourceLength) + '|' + guildUser.oreVibranium.toString().padStart(countLength) + '|' + guildUser.barVibranium.toString().padStart(countLength) + '|'
+
 	} else {
 		responseString += '\n🥇 - First place medals\n🥈 - Second place medals\n🥉 - Third place medals\n💠 - Total vibranium bars earned\n⚔️ - Wars fought\n'
 		let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)

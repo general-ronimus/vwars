@@ -159,6 +159,8 @@ async function concludeWar(warToConclude) {
             let guildUser = guildUserRecord.Item
             if(!guildUser) {
                 guildUser = userService.initGuildUser(warToConclude.guildId, user.userId, user.username)
+            } else {
+                guildUser = userService.migrateGuildUser(guildUser)
             }
     
             guildUser.barHistoricalVibranium += user.bar
