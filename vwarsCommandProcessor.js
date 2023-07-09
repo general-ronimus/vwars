@@ -706,7 +706,10 @@ async function hall(slashCommand) {
 	console.log("User " + user.username + " purchase item: " + item)
 
 	if('fuel' === item) {
-		if(user.ore >= 2000) {
+		if(user.equipmentFuel >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 2500) {
 			user.ore -= 2000
 			user.equipmentFuel += 1
 			itemPurchased = 'fuel reserve'
@@ -714,54 +717,75 @@ async function hall(slashCommand) {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}
 	} else if('cloak' === item) {
-		if(user.ore >= 4000) {
-			user.ore -= 4000
+		if(user.equipmentCloak >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 3500) {
+			user.ore -= 3500
 			user.equipmentCloak += 1
 			itemPurchased = 'cloaking device'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('stealth' === item) {
-		if(user.ore >= 5000) {
-			user.ore -= 5000
+		if(user.equipmentStealth >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 3500) {
+			user.ore -= 3500
 			user.equipmentStealth += 1
 			itemPurchased = 'stealth delivery system'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('jam' === item) {
-		if(user.ore >= 5000) {
-			user.ore -= 5000
+		if(user.equipmentJam >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 4000) {
+			user.ore -= 4000
 			user.equipmentJam += 1
 			itemPurchased = 'communications jammer'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}
 	} else if('shield' === item) {
-		if(user.ore >= 4000) {
-			user.ore -= 4000
+		if(user.equipmentShield >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 5000) {
+			user.ore -= 5000
 			user.equipmentShield += 1
 			itemPurchased = 'shield generator'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('sabotage' === item) {
-		if(user.ore >= 2500) {
-			user.ore -= 2500
+		if(user.equipmentSabotage >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 2000) {
+			user.ore -= 2000
 			user.equipmentSabotage += 1
 			itemPurchased = 'explosive'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('strike' === item) {
-		if(user.ore >= 2500) {
-			user.ore -= 2500
+		if(user.equipmentStrike >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
+		if(user.ore >= 2000) {
+			user.ore -= 2000
 			user.equipmentStrike += 1
 			itemPurchased = 'ballistic missle'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
 	} else if('nuke' === item) {
+		if(user.equipmentNuke >= 5) {
+			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+		}
 		if(user.ore >= 6000) {
 			user.ore -= 6000
 			user.equipmentNuke += 1
