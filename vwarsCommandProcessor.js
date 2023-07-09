@@ -12,9 +12,9 @@ const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6,
 const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
 const maxEnergy = 100
 const cloakIntervalMinutes = 480
-const stealthIntervalMinutes = 10
+const stealthIntervalMinutes = 20
 const fuelIntervalMinutes = 30
-const jamIntervalMinutes = 30
+const jamIntervalMinutes = 20
 let energyIntervalMinutes = 5
 let idleIntervalMinutes = 2880
 let currentTime = null
@@ -871,7 +871,7 @@ async function stealth(user, slashCommand) {
 	user.netStealth += 1
 	user.lastStealthed = currentTime
 	await db.putUser(user)
-	return respondEphemeral('You deploy a stealth delivery system. Your offensive movements are anonymized for the next 10 minutes.')
+	return respondEphemeral('You deploy a stealth delivery system. Your offensive movements are anonymized for the next 20 minutes.')
 }
 
 
@@ -896,7 +896,7 @@ async function jam(user, slashCommand) {
 		return respondAndCheckForCloak(user, 'This player\'s communications are already jammed.')
 	}
 
-	let response = user.username + ' jams ' + targetUser.username + '\'s communications rendering them unable to attack for the next 30 minutes!'
+	let response = user.username + ' jams ' + targetUser.username + '\'s communications rendering them unable to attack for the next 20 minutes!'
 	user.equipmentJam -= 1
 	user.netJam += 1
 	targetUser.lastJammed = currentTime
