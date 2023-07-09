@@ -547,9 +547,9 @@ async function build(user, slashCommand) {
 		'\nWarehouse: ' + warehouse +
 		'\nEquipment' +
 		'\n| fuel|  cloak|  stealth| shield|' +
-		'\n|' + targetUser.equipmentFuel.toString().padStart(5) + '|'+ targetUser.equipmentCloak.toString().padStart(7) + '|'+ targetUser.equipmentStealth.toString().padStart(9) + '|'+ targetUser.equipmentShield.toString().padStart(7) + '|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|'+ targetUser.equipmentStealth.toString().padStart(7) + '/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
 		'\n|  jam| strike| sabotage|   nuke|' +
-		'\n|' + targetUser.equipmentJam.toString().padStart(5) + '|'+ targetUser.equipmentStrike.toString().padStart(7) + '|'+ targetUser.equipmentSabotage.toString().padStart(9) + '|'+ targetUser.equipmentNuke.toString().padStart(7) + '|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(7) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
 		'```'
 
 	return respondAndCheckForCloak(user, response)
@@ -654,29 +654,18 @@ async function hall(slashCommand) {
     		responseString += '\n|' + resource.padStart(resourceColumnLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countColumnLength) + '|' + (guildUser[barField] || 0).toString().padStart(countColumnLength) + '|';
 		}
 
-	} else {
-		responseString += '\n🥇 - First place medals\n🥈 - Second place medals\n🥉 - Third place medals\n💠 - Total vibranium bars earned\n⚔️ - Wars fought\n'
+	} else {		
+		responseString += '\n1 - 🥇\n2 - 🥈\n3 - 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
 		let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
-	
+		let playerColumnWidth = 15
+		let medalColumnWidth = 2
+		let barColumnWidth = 5
+		let warColumnWidth = 3
 		if(retrievedGuildUsers.Items.length > 0) {
-			let longestMedalFirst = 2
-			let longestMedalSecond = 2
-			let longestMedalThird = 2
-			let longestBars = 2
-			let longestWarsFought = 2
-	
-			// Calculate the maximum length for each column
-			retrievedGuildUsers.Items.forEach(guildUser => {
-				if (guildUser.barHistoricalVibranium.toString().length > longestBars) longestBars = guildUser.barHistoricalVibranium.toString().length;
-				if (guildUser.medalFirst.toString().length > longestMedalFirst) longestMedalFirst = guildUser.medalFirst.toString().length;
-				if (guildUser.medalSecond.toString().length > longestMedalSecond) longestMedalSecond = guildUser.medalSecond.toString().length;
-				if (guildUser.medalThird.toString().length > longestMedalThird) longestMedalThird = guildUser.medalThird.toString().length;
-				if (guildUser.wars.toString().length > longestWarsFought) longestWarsFought = guildUser.wars.toString().length;
-			});
-	
-			// Generate table data
+			responseString += '\n|Player         | 1| 2| 3|  Bar|War|'
+			responseString += '\n|----------------------------------|'
 			retrievedGuildUsers.Items.sort(compareGuildUser).forEach(guildUser => {
-				responseString += `|${guildUser.username} \n|${guildUser.medalFirst.toString().padStart(longestMedalFirst)}🥇|${guildUser.medalSecond.toString().padStart(longestMedalSecond)}🥈|${guildUser.medalThird.toString().padStart(longestMedalThird)}🥉|${guildUser.barHistoricalVibranium.toString().padStart(longestBars)}💠| ${guildUser.wars.toString().padStart(longestWarsFought)}⚔️|\n`;
+				responseString += `\n|${(guildUser.username.substring(0, playerColumnWidth).padStart(playerColumnWidth) || 0)}|${(guildUser.medalFirst.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.medalSecond.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.medalThird.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.barHistoricalVibranium.toString().padStart(barColumnWidth) || 0)}|${(guildUser.wars.toString().padStart(warColumnWidth) || 0)}|`;
 			});
 		}
 	}
