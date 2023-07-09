@@ -36,7 +36,7 @@ function migrateUser(user) {
 		'ore', 'bar', 'city', 'military', 'energy', 'energyUpdatedAt', 'shieldUpdatedAt', 'shieldHealth',
 		'lastFueled', 'lastCloaked', 'lastStealthed', 'lastJammed', 'lastShattered', 'equipmentFuel',
 		'equipmentCloak', 'equipmentStealth', 'equipmentJam', 'equipmentShield', 'equipmentSabotage',
-		'equipmentStrike', 'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack',
+		'equipmentStrike', 'equipmentNuke','netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack',
 		'netRout', 'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke',
 		'structFuelDepot', 'structCommsArray', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 
 		'structIntelligenceAgency', 'structEMPTower'
@@ -58,9 +58,9 @@ function migrateUser(user) {
 function migrateGuildUser(user) {
 	
 	let attributes = [
-		'barHistoricalVibranium', 'barVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'wars', 
+		'barHistoricalVibranium', 'barVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
 		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 'netFuel', 
-		'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 'structFuelDepot', 
+		'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 'population', 'structFuelDepot', 
 		'structCommsArray', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structIntelligenceAgency', 
 		'structEMPTower', 'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
 		'barSilver', 'oreTungsten', 'barTungsten', 'oreTitanium', 'barTitanium', 'oreCobalt', 'barCobalt', 'oreCopper', 

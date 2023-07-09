@@ -232,6 +232,7 @@ async function putGuildUser(user) {
 			netSabotage : user.netSabotage,
 			netStrike : user.netStrike,
 			netNuke : user.netNuke,
+			population : user.population,
 			structFuelDepot : user.structFuelDepot,
 			structCommsArray : user.structCommsArray,
 			structMunitionsDepot : user.structMunitionsDepot,

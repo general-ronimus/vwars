@@ -154,7 +154,8 @@ async function concludeWar(warToConclude) {
         */
        
     if( users.Items.length > 0) {
-        for (const user of users.Items.sort(compare)) {
+        for (let user of users.Items.sort(compare)) {
+            user = userService.migrateUser(user)
             let guildUserRecord = await db.getGuildUser(warToConclude.guildId, user.userId)
             let guildUser = guildUserRecord.Item
             if(!guildUser) {
