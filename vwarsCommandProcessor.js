@@ -168,10 +168,10 @@ async function mine(user, slashCommand) {
 	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
 	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
 	 */
-	let chaosRoll = randomInteger(1, Math.round(5000 * spend))
+	let chaosRoll = randomInteger(1, Math.round(50 * spend))
 	if(chaosRoll === 1) {
 		user.energy -= spend
-		let cityDamage = Math.round(user.city * .10)
+		let cityDamage = Math.round(user.city * .10 * (spend / 100))
 		user.city -= cityDamage
 		await db.putUser(user)
 		return respondAndCheckForCloak(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
@@ -192,45 +192,45 @@ async function mine(user, slashCommand) {
 	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth delivery system', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
 	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
-		let roll = randomInteger(1, 1009)
+		let roll = randomInteger(1, 1209)
 		console.log('Roll: ' + roll)
 		rolls += roll + ' '
-		if(roll <= 750) {
+		if(roll <= 900) {
 			oreFound = true
 			minedOre += smallPrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 900) {
+		} else if(roll <= 1080) {
 			oreFound = true
 			minedOre += mediumPrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 1000) {
+		} else if(roll <= 1200) {
 			oreFound = true
 			minedOre += largePrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 1001) {
+		} else if(roll <= 1201) {
 			oreFound = true
 			minedOre += 4000
 		} else {
 			equipmentFound += 1
-			if(roll <= 1002) {
+			if(roll <= 1202) {
 				user.equipmentFuel += 1
 				equipmentMap.set('fuel reserve', equipmentMap.get('fuel reserve') + 1)
-			} else if(roll <= 1003) {
+			} else if(roll <= 1203) {
 				user.equipmentCloak += 1
 				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') + 1)
-			} else if(roll <= 1004) {
+			} else if(roll <= 1204) {
 				user.equipmentShield += 1
 				equipmentMap.set('shield generator', equipmentMap.get('shield generator') + 1)
-			} else if(roll <= 1005) {
+			} else if(roll <= 1205) {
 				user.equipmentStrike += 1
 				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
-			} else if(roll <= 1006) {
+			} else if(roll <= 1206) {
 				user.equipmentSabotage += 1
 				equipmentMap.set('explosive', equipmentMap.get('explosive') + 1)
-			} else if(roll == 1007) {
+			} else if(roll == 1207) {
 				user.equipmentNuke += 1
 				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
-			} else if(roll == 1008) {
+			} else if(roll == 1208) {
 				user.equipmentJam += 1
 				equipmentMap.set('communications jammer', equipmentMap.get('communications jammer') + 1)
-			} else if(roll == 1009) {
+			} else if(roll == 1209) {
 				user.equipmentStealth += 1
 				equipmentMap.set('stealth delivery system', equipmentMap.get('stealth delivery system') + 1)
 			}
