@@ -12,6 +12,8 @@ if(process.env.STAGE) {
 let vwarsTable = 'vwars-local'
 if(process.env.VWARS_TABLE) {
 	vwarsTable = process.env.VWARS_TABLE
+	vwarsTable = 'vwars-prod-restored'
+
 }
 const dbLocalHost = process.env.DB_LOCAL_HOST
 const dbLocalPort = process.env.DB_LOCAL_PORT
@@ -81,6 +83,18 @@ async function putUser(user) {
 			equipmentSabotage: user.equipmentSabotage,
 			equipmentStrike: user.equipmentStrike,
 			equipmentNuke: user.equipmentNuke,
+			structFuelDepot : user.structFuelDepot,
+			structResearchFacility : user.structResearchFacility,
+			structReinforcedHangar : user.structReinforcedHangar,
+			structCommsArray : user.structCommsArray,
+			structNavalBase : user.structNavalBase,
+			structMunitionsDepot : user.structMunitionsDepot,
+			structSupercapacitors : user.structSupercapacitors,
+			structNuclearSilo : user.structNuclearSilo,
+			structAEWCHangar: user.structAEWCHangar,
+			structEMPTower : user.structEMPTower,
+			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
+			structCommandCenter : user.structCommandCenter,
 			netMined : user.netMined,
 			netStolen : user.netStolen,
 			netCityDamage : user.netCityDamage,
@@ -234,12 +248,17 @@ async function putGuildUser(user) {
 			netNuke : user.netNuke,
 			population : user.population,
 			structFuelDepot : user.structFuelDepot,
+			structResearchFacility : user.structResearchFacility,
+			structReinforcedHangar : user.structReinforcedHangar,
 			structCommsArray : user.structCommsArray,
+			structNavalBase : user.structNavalBase,
 			structMunitionsDepot : user.structMunitionsDepot,
 			structSupercapacitors : user.structSupercapacitors,
 			structNuclearSilo : user.structNuclearSilo,
-			structIntelligenceAgency : user.structIntelligenceAgency,
+			structAEWCHangar: user.structAEWCHangar,
 			structEMPTower : user.structEMPTower,
+			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
+			structCommandCenter : user.structCommandCenter,
 			oreUranium : user.oreUranium,
 			barUranium : user.barUranium,
 			oreBeryllium : user.oreBeryllium,

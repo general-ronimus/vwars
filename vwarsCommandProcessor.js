@@ -189,7 +189,7 @@ async function mine(user, slashCommand) {
 	let minedOre = 0
 	let oreFound = false
 	let equipmentFound = 0
-	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth delivery system', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
+	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
 	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
 		let roll = randomInteger(1, 1209)
@@ -232,7 +232,7 @@ async function mine(user, slashCommand) {
 				equipmentMap.set('communications jammer', equipmentMap.get('communications jammer') + 1)
 			} else if(roll == 1209) {
 				user.equipmentStealth += 1
-				equipmentMap.set('stealth delivery system', equipmentMap.get('stealth delivery system') + 1)
+				equipmentMap.set('stealth UAV', equipmentMap.get('stealth UAV') + 1)
 			}
 		}
 	}
@@ -374,7 +374,7 @@ async function build(user, slashCommand) {
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
-			if(routRoll >= 96) {
+			if(routRoll >= 11 && routRoll <= 18 ) {
 				isRoutBar = true
 			} else if(routRoll >= 1 && routRoll <= 8) {
 				isRoutEquipment = true
@@ -384,7 +384,7 @@ async function build(user, slashCommand) {
 
 	//Rout special scenarios logic
 	if(isRoutBar && targetUser.shieldHealth <= 0) {
-		let shatteredOre = randomInteger(7500, 10000)
+		let shatteredOre = randomInteger(8500, 12000)
 		targetUser.bar -= 1
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
@@ -437,7 +437,7 @@ async function build(user, slashCommand) {
 			if(targetUser.equipmentStealth > 0) {
 				targetUser.equipmentStealth -= 1
 				user.equipmentStealth += 1
-				equipmentStolen = 'stealth delivery system'
+				equipmentStolen = 'stealth UAV'
 			}
 		}
 
@@ -527,7 +527,7 @@ async function build(user, slashCommand) {
 	}
 	let warehouse = 'Unknown'
 	if(isVulnerable(targetUser)) {
-		warehouse = 'Located'
+		warehouse = 'Location known'
 	} else {
 		let invulnerableIntervalMinutes = getInvulnerableIntervalMinutes(targetUser)
 		if(invulnerableIntervalMinutes != null) {
@@ -626,20 +626,24 @@ async function hall(slashCommand) {
 		responseString += '\nOre mined: ' + guildUser.netMined
 		responseString += '\nOre stolen: ' + guildUser.netStolen
 		responseString += '\nBarrels of fuel used: ' + guildUser.netFuel
-		responseString += '\nShields activated: ' + guildUser.netShield
-		responseString += '\nMissiles launched: ' + guildUser.netStrike
+		responseString += '\nCloaking devices activated: ' + guildUser.netCloak
+		responseString += '\nStealth missions completed: ' + guildUser.netStealth
+		responseString += '\nRadio communications jammed: ' + guildUser.netJam
+		responseString += '\nShield generators engaged: ' + guildUser.netShield
+		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
 		responseString += '\nExplosives detonated: ' + guildUser.netSabotage
 		responseString += '\nNukes launched: ' + guildUser.netNuke
 
 		responseString += '\n\nCapital city'
 		responseString += '\nPopulation: ' + guildUser.population
-		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/10'
-		responseString += '\nComms array: ' + guildUser.structCommsArray + '/10'
-		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/10'
-		responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/10'
-		responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/10'
-		responseString += '\nIntelligence agency: ' + guildUser.structIntelligenceAgency + '/10'
-		responseString += '\nEMP tower: ' + guildUser.structEMPTower + '/10'
+		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/5'
+		responseString += '\nReinforced hangar: ' + guildUser.structReinforcedHangar + '/5'
+		responseString += '\nResearch facility: ' + guildUser.structResearchFacility + '/5'
+		responseString += '\nComms array: ' + guildUser.structCommsArray + '/5'
+		responseString += '\nNaval base: ' + guildUser.structNavalBase + '/5'
+		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/5'
+		responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/5'
+		responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/5     '
 
 		responseString += '\n\nResources'
 		let resourceColumnLength = 10
@@ -655,7 +659,7 @@ async function hall(slashCommand) {
 		}
 
 	} else {		
-		responseString += '\n1 - 🥇\n2 - 🥈\n3 - 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
+		responseString += '\n1 - First place medals 🥇\n2 - Second place medals 🥈\n3 - Third place medals 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
 		let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
 		let playerColumnWidth = 15
 		let medalColumnWidth = 2
@@ -734,7 +738,7 @@ async function hall(slashCommand) {
 		if(user.ore >= 3500) {
 			user.ore -= 3500
 			user.equipmentStealth += 1
-			itemPurchased = 'stealth delivery system'
+			itemPurchased = 'stealth UAV'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
@@ -861,17 +865,17 @@ async function cloak(user, slashCommand) {
  */
 async function stealth(user, slashCommand) {
 	if(user.equipmentStealth < 1) {
-		return respondEphemeral('You have no stealth delivery systems in your inventory.')
+		return respondEphemeral('You have no stealth UAVs in your inventory.')
 	}
 	if(isStealthed(user.lastStealthed)) {
 		let remainingMillis = (user.lastStealthed + (stealthIntervalMinutes * 60 * 1000)) - currentTime
-		return respondEphemeral('You already have a stealth delivery system deployed. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
+		return respondEphemeral('You already have a stealth UAV deployed. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 	user.equipmentStealth -= 1
 	user.netStealth += 1
 	user.lastStealthed = currentTime
 	await db.putUser(user)
-	return respondEphemeral('You deploy a stealth delivery system. Your offensive movements are anonymized for the next 20 minutes.')
+	return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized for the next 20 minutes.')
 }
 
 
@@ -1283,15 +1287,15 @@ function isVulnerable(user) {
 }
 
 function getInvulnerableIntervalMinutes(user) {
-	let maxInvulnerableIntervalMinutes = 5760
-	let minInvulnerableIntervalMinutes = 720
-	let invulnerableIntervalMinutes = 28800 / user.bar
+	if(user.bar <= 5) {
+		return null
+	}
+	let minInvulnerableIntervalMinutes = 480
+
+	// Starting with a max cooldown of 5 days (120 hours), for every bar a user owns reduce the cooldown by 4 hours
+	let invulnerableIntervalMinutes = 60 * (120 - 4 * user.bar)
 	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
-		//User has more than 40 bars, adhere to hard max of 2 shattered bars daily
 		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
-	} else if(invulnerableIntervalMinutes > maxInvulnerableIntervalMinutes) {
-		//User has less than 5 bars, return as invulnerale
-		invulnerableIntervalMinutes = null
 	}
 	return invulnerableIntervalMinutes
 }
@@ -1414,15 +1418,15 @@ function compare( a, b ) {
   \n\
   \nUse /vw build & /vw train to increase your city & military size.\
   \n\
-  \nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "located", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
+  \nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "Location known", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
   \n\
   \nUse /vw smelt to convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\
   \n\
   \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
   \n\Fuel - Gain 20 energy, 30m cool down\
   \n\Cloak - Hide your stats & non-offensive moves from other players for 8h\
-  \n\Stealth - Anonymize your offensive moves from other players for 10m\
-  \n\Jam - Prevent opponent from using attack command for 30m\
+  \n\Stealth - Anonymize your offensive moves from other players for 20m\
+  \n\Jam - Prevent opponent from using attack command for 20m\
   \n\Shield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\
   \n\Sabotage - Destroy 30% of an opponent\'s city\
   \n\Strike - Destroy 30% of an opponent\'s military\

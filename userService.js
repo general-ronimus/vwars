@@ -38,8 +38,9 @@ function migrateUser(user) {
 		'equipmentCloak', 'equipmentStealth', 'equipmentJam', 'equipmentShield', 'equipmentSabotage',
 		'equipmentStrike', 'equipmentNuke','netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack',
 		'netRout', 'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke',
-		'structFuelDepot', 'structCommsArray', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 
-		'structIntelligenceAgency', 'structEMPTower'
+		'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 'structNavalBase', 
+		'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
+		'structArmoredVehicleDepot', 'structCommandCenter'
 	];
 	
 	attributes.forEach(attribute => {
@@ -60,9 +61,11 @@ function migrateGuildUser(user) {
 	let attributes = [
 		'barHistoricalVibranium', 'barVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
 		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 'netFuel', 
-		'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 'population', 'structFuelDepot', 
-		'structCommsArray', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structIntelligenceAgency', 
-		'structEMPTower', 'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
+		'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 
+		'population', 'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 
+		'structNavalBase', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
+		'structArmoredVehicleDepot', 'structCommandCenter', 
+		'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
 		'barSilver', 'oreTungsten', 'barTungsten', 'oreTitanium', 'barTitanium', 'oreCobalt', 'barCobalt', 'oreCopper', 
 		'barCopper', 'oreLead', 'barLead', 'oreIron', 'barIron', 'oreAluminum', 'barAluminum'
 	];
