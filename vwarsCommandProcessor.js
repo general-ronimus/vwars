@@ -21,11 +21,11 @@ let currentTime = null
 let activeWar = null
 
 module.exports ={
-        process
+        processCommand
     }
 
 
-async function process(slashCommandBody) {
+async function processCommand(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	if('help' === slashCommand.subCommand) {
@@ -520,6 +520,7 @@ async function build(user, slashCommand) {
 		}
 		updateEnergy(targetUser)
 		updateShield(targetUser)
+		userService.migrateUser(targetUser)
 	}
 	let shieldIntegrity = 'None active'
 	if(targetUser.shieldHealth > 0) {

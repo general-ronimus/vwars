@@ -1,5 +1,4 @@
-const vwarsTaskMaster = require('./vwarsTaskMaster')
-
+const vwarsTaskMaster = require('./vwarsTaskMaster.js')
 'use strict';
 
 exports.handle = async (event) => {
@@ -7,8 +6,7 @@ exports.handle = async (event) => {
 };
 
 async function processEvent(event) {
-  const token = process.env.DISCORD_BOT_TOKEN
   console.log('Received task master sqs event: ' + JSON.stringify(event))
-  await vwarsTaskMaster.process(event)
+  await vwarsTaskMaster.processTask(event)
 }
 

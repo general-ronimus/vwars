@@ -1,10 +1,8 @@
 /**
- * VWARS DISCORD SLASH COMMAND PROCESSOR
+ * VWARS TASK MASTER, A POST PROCESSING PROGRAM
  * 
  */
 
-//const db = require('./vwarsDbService.js')
-//const warService = require('./warService.js')
 const token = process.env.DISCORD_BOT_TOKEN
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -14,15 +12,14 @@ let readyPromise = new Promise((resolve, reject) => {
 		resolve();
 	});
 });
-client.login(token);
+	client.login(token);
 let currentTime = null
-
  
  module.exports ={
-		 process
-	 }
+	processTask
+	}
  
- async function process(event) {
+ async function processTask(event) {
 	await readyPromise
 	currentTime = Date.now()
 		for (const record of event.Records) {
@@ -40,13 +37,11 @@ let currentTime = null
  }
  
  async function message(record) {
-	//let message = JSON.stringify(record.body).replace(/\"/g, "")
 	let message = record.body.replace(/\"/g, "")
 	let channelId = JSON.stringify(record.messageAttributes.channel.stringValue).replace(/\"/g, "")
 	console.log('Message task received')
 
 	let channel = await client.channels.fetch(channelId)
-	//let channel = await client.channels.fetch('1046295026742853723')
 	if(channel) {
 		try {
 			let result = await channel.send({content: message});
