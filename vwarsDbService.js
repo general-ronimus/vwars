@@ -12,8 +12,6 @@ if(process.env.STAGE) {
 let vwarsTable = 'vwars-local'
 if(process.env.VWARS_TABLE) {
 	vwarsTable = process.env.VWARS_TABLE
-	vwarsTable = 'vwars-prod-restored'
-
 }
 const dbLocalHost = process.env.DB_LOCAL_HOST
 const dbLocalPort = process.env.DB_LOCAL_PORT
@@ -358,7 +356,8 @@ async function putWar(war) {
 			isConcluded: war.isConcluded,
 			start: war.start,
 			expiration: war.expiration,
-			energyRefreshMinutes: war.energyRefreshMinutes
+			energyRefreshMinutes: war.energyRefreshMinutes,
+			speed: war.speed
   		},
 		ReturnValues: 'ALL_OLD'
 	};

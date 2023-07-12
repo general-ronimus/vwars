@@ -50,6 +50,7 @@ async function createWar(requestedWar) {
     let isActive = false
     let isConcluded = false
     let iteration = 1
+    let speed = 1
     if(requestedWar.name) {
         name = requestedWar.name
     }
@@ -71,6 +72,9 @@ async function createWar(requestedWar) {
     if(requestedWar.iteration) {
         iteration = requestedWar.iteration
     }
+    if(requestedWar.speed) {
+        speed = requestedWar.speed
+    }
     
 	let initializedWar = {
 		guildId: requestedWar.guildId,
@@ -81,7 +85,8 @@ async function createWar(requestedWar) {
 		isActive: isActive,
         isConcluded: isConcluded,
 		energyRefreshMinutes: energyRefreshMinutes,
-        iteration: iteration
+        iteration: iteration,
+        speed: speed
 	};
     console.log('Creating new war: ' + JSON.stringify(initializedWar))
 	await db.putWar(initializedWar)
@@ -238,6 +243,9 @@ function migrateWar(war) {
 	}
     if(war.energyRefreshMinutes === undefined) {
 		war.energyRefreshMinutes = 5
+	}
+    if(war.speed === undefined) {
+		war.speed = 1
 	}
     return war
 }

@@ -17,6 +17,7 @@ const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 20
 let energyIntervalMinutes = 5
 let idleIntervalMinutes = 2880
+let speed = 1
 let currentTime = null
 let activeWar = null
 
@@ -37,14 +38,17 @@ async function processCommand(slashCommandBody) {
 	// War retrieval and housekeeping
 	activeWar = await warService.getActiveWar(slashCommand.guildId, currentTime)
 	if(!activeWar) {
-		return respondEphemeral('There is no active war for this server.')
+		return respondEphemeral('Only help & hall commands are available during peace time. There is currently no scheduled upcoming war.')
 	} else if(activeWar.start && activeWar.start > currentTime) {
 		let timeRemaining = timeRemainingAsCountdown(activeWar.start - currentTime)
-		return respondEphemeral('War: ' + activeWar.name + ' begins in ' + timeRemaining)
+		return respondEphemeral('Only help & hall commands are available during peace time. The next war: ' + activeWar.name + ' begins in ' + timeRemaining)
 	}
 	console.log('Active war retrieved. warId: ' + activeWar.warId + ', guildId: ' + slashCommand.guildId)
 	if(activeWar.energyRefreshMinutes) {
 		energyIntervalMinutes = activeWar.energyRefreshMinutes
+	}
+	if(activeWar.speed) {
+		speed = activeWar.speed
 	}
 
 	// User retrieval and housekeeping
@@ -63,7 +67,7 @@ async function processCommand(slashCommandBody) {
 	}
 
 	//Check for and protect idle users
-	let idleIntervalMillis = 1000 * 60 * idleIntervalMinutes
+	let idleIntervalMillis = convertToSpeedAdjustedMillis(idleIntervalMinutes)
 	console.log('millisElapsed: ' + millisElapsed)
 	if(millisElapsed > idleIntervalMillis) {
 		return await protect(user, millisElapsed)
@@ -532,9 +536,9 @@ async function build(user, slashCommand) {
 	} else {
 		let invulnerableIntervalMinutes = getInvulnerableIntervalMinutes(targetUser)
 		if(invulnerableIntervalMinutes != null) {
-			let remainingMillis = (targetUser.lastShattered + (invulnerableIntervalMinutes * 60 * 1000)) - currentTime
+			let remainingMillis = (targetUser.lastShattered + (convertToSpeedAdjustedMillis(invulnerableIntervalMinutes))) - currentTime
 			warehouse = 'Location in ' + timeRemainingAsCountdown(remainingMillis)
-		}	
+		}
 	}
 
 	let response = '```Situational Report\n'
@@ -826,7 +830,7 @@ async function fuel(user, slashCommand) {
 		return respondAndCheckForCloak(user, 'You have no fuel reserves in your inventory.')
 	}
 	if(isFueled(user.lastFueled)) {
-		let remainingMillis = (user.lastFueled + (fuelIntervalMinutes * 60 * 1000)) - currentTime
+		let remainingMillis = (user.lastFueled + (convertToSpeedAdjustedMillis(fuelIntervalMinutes))) - currentTime
 		return respondAndCheckForCloak(user, 'Fuel reserves are still on cool down. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 
@@ -869,7 +873,7 @@ async function stealth(user, slashCommand) {
 		return respondEphemeral('You have no stealth UAVs in your inventory.')
 	}
 	if(isStealthed(user.lastStealthed)) {
-		let remainingMillis = (user.lastStealthed + (stealthIntervalMinutes * 60 * 1000)) - currentTime
+		let remainingMillis = (user.lastStealthed + (convertToSpeedAdjustedMillis(stealthIntervalMinutes))) - currentTime
 		return respondEphemeral('You already have a stealth UAV deployed. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
 	}
 	user.equipmentStealth -= 1
@@ -1122,7 +1126,7 @@ async function sabotage(user, slashCommand) {
 
 
 function updateEnergy(user) {
-	let energyIntervalMillis = 1000 * 60 * energyIntervalMinutes
+	let energyIntervalMillis = convertToSpeedAdjustedMillis(energyIntervalMinutes)
 	if(currentTime > user.energyUpdatedAt + energyIntervalMillis) {
 		let timePassed = currentTime - user.energyUpdatedAt
 		let energyGain = Math.floor(timePassed / energyIntervalMillis)
@@ -1239,7 +1243,7 @@ function isNumeric(value) {
 }
 
 function isFueled(lastFueled) {
-	let fuelIntervalMillis = 1000 * 60 * fuelIntervalMinutes
+	let fuelIntervalMillis = convertToSpeedAdjustedMillis(fuelIntervalMinutes)
 	console.log("Current time: " + currentTime + ", lastFueled: " + lastFueled + ", fuelIntervalMillis: " + fuelIntervalMillis)
 	if(currentTime < lastFueled + fuelIntervalMillis) {
 		return true
@@ -1248,7 +1252,7 @@ function isFueled(lastFueled) {
 }
 
 function isCloaked(lastCloaked) {
-	let cloakIntervalMillis = 1000 * 60 * cloakIntervalMinutes
+	let cloakIntervalMillis = convertToSpeedAdjustedMillis(cloakIntervalMinutes)
 	console.log("Current time: " + currentTime + ", lastCloaked: " + lastCloaked + ", cloakIntervalMillis: " + cloakIntervalMillis)
 	if(currentTime < lastCloaked + cloakIntervalMillis) {
 		return true
@@ -1257,7 +1261,7 @@ function isCloaked(lastCloaked) {
 }
 
 function isStealthed(lastStealthed) {
-	let stealthIntervalMillis = 1000 * 60 * stealthIntervalMinutes
+	let stealthIntervalMillis = convertToSpeedAdjustedMillis(stealthIntervalMinutes)
 	console.log("Current time: " + currentTime + ", lastStealthed: " + lastStealthed + ", stealthIntervalMillis: " + stealthIntervalMillis)
 	if(currentTime < lastStealthed + stealthIntervalMillis) {
 		return true
@@ -1266,7 +1270,7 @@ function isStealthed(lastStealthed) {
 }
 
 function isJammed(lastJammed) {
-	let jamIntervalMillis = 1000 * 60 * jamIntervalMinutes
+	let jamIntervalMillis = convertToSpeedAdjustedMillis(jamIntervalMinutes)
 	console.log("Current time: " + currentTime + ", lastJammed: " + lastJammed + ", jamIntervalMillis: " + jamIntervalMillis)
 	if(currentTime < lastJammed + jamIntervalMillis) {
 		return true
@@ -1279,7 +1283,7 @@ function isVulnerable(user) {
 	if(invulnerableIntervalMinutes === null) {
 		return false
 	}
-	let invulnerableIntervalMillis = 1000 * 60 * invulnerableIntervalMinutes
+	let invulnerableIntervalMillis = convertToSpeedAdjustedMillis(invulnerableIntervalMinutes)
 	console.log("Current time: " + currentTime + ", lastShattered: " + user.lastShattered + ", invulnerableIntervalMillis: " + invulnerableIntervalMillis)
 	if(currentTime > user.lastShattered + invulnerableIntervalMillis) {
 		return true
@@ -1350,6 +1354,15 @@ function timeRemainingAsCountdown(remainingMillis) {
 	}	
 	console.log(timeRemaining); // 21 
 	return timeRemaining
+}
+
+
+function convertToSpeedAdjustedMillis(minutes) {
+	let millis = (1000 * 60 * minutes)
+	if(speed > 0 && millis > speed) {
+		millis = Math.floor(millis / speed)
+	}
+	return millis
 }
 
 
