@@ -31,8 +31,6 @@ async function processCommand(slashCommandBody) {
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	if('help' === slashCommand.subCommand) {
 		return await help()
-	} else if('hall' === slashCommand.subCommand) {
-		return await hall(slashCommand)
 	}
 
 	// War retrieval and housekeeping
