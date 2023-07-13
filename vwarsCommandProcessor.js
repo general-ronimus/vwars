@@ -358,6 +358,9 @@ async function build(user, slashCommand) {
 	if(isJammed(user.lastJammed)) {
 		return respondAndCheckForStealth(user, 'Your radio communications are jammed, you are unable to coordinate attacks at this time.', null)
 	}
+	if(user.military == 0) {
+		return respondAndCheckForStealth(user, 'You have no military to attack with.', null)
+	}
 	let response = user.username
 	
 	if(user.shieldHealth > 0) {
