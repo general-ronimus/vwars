@@ -3,35 +3,34 @@
  * 
  */
 
-const crypto = require('crypto');
 const db = require('./vwarsDbService.js')
-
+const warService = require('./warService.js')
 let currentTime = null
 
 module.exports ={
-        process
+	processCommand
     }
 
 
-async function process(slashCommandBody) {
+async function processCommand(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	//TODO: If no guild exists, go ahead and create guild with no active war
 
 	if('create' === slashCommand.subCommand) {
-		return await create(user, slashCommand)
+		return await create(slashCommand)
 	} else if('list' === slashCommand.subCommand) {
-		return await list(user, slashCommand)
+		return await list(slashCommand)
 	} else if('delete' === slashCommand.subCommand) {
-		return await delete(user, slashCommand)
+		return await remove(slashCommand)
 	} else if('activate' === slashCommand.subCommand) {
-		return await activate(user, slashCommand)
+		return await activate(slashCommand)
 	} else if('deactivate' === slashCommand.subCommand) {
-		return await deactivate(user, slashCommand)
-	} else if('leaderboard' === slashCommand.subCommand) {
-		return await leaderboard(user, slashCommand)
+		return await deactivate(slashCommand)
+	} else if('conclude' === slashCommand.subCommand) {
+		return await conclude(slashCommand)
 	}
-	return respond('Invalid command')
+	return respondEphemeral('Invalid command')
 }
 
 function parseSlashCommand(slashCommandBody) {
@@ -41,10 +40,11 @@ function parseSlashCommand(slashCommandBody) {
 	let username = JSON.stringify(slashCommandBody.member.user.username).replace(/\"/g, "")
 	let command = JSON.stringify(slashCommandBody.data.name).replace(/\"/g, "");
 	let subCommand = JSON.stringify(slashCommandBody.data.options[0].name).replace(/\"/g, "");
-	let subCommandArgs = [];
+	let subCommandArgs = new Map();
+
 	if(slashCommandBody.data.options[0].hasOwnProperty('options') && slashCommandBody.data.options[0].options.length > 0) {
 		for (let i = 0; i < slashCommandBody.data.options[0].options.length; i++) {
-			subCommandArgs.push(JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
+			subCommandArgs.set(JSON.stringify(slashCommandBody.data.options[0].options[i].name).replace(/\"|@|<|>|!/g, ""),JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
 		}
 	}
 	let slashCommand = {
@@ -61,64 +61,208 @@ function parseSlashCommand(slashCommandBody) {
 
 
 /**
- * theatre create [name]
-create a new theatre of war, with name of [name]. Theatres are created in deactivated state
-theatre list
-list theatres associated with this guild, * indicates the active theatre -theatre delete [name]
-end a theatre [name], prompt admin on whether to issue medals
-🥇🥈🥉 final top three
-🎖 most overall market control
-🏅 most vibranium at any point
-theatre activate [name] [expiration]
-make theatre [name] the active theatre, optionally have the theatre auto-deactivate on [expiration]
-theatre deactivate
-deactivate the active theatre
-theatre leaderboard [name]
-display the leaderboard for theatre [name]
-theatre cycle [name] [hours]
-set market cycle length to [hours] for theatre [name]. Default is random between 1 and 24. When a market cycle concludes, winners for that specific cycle gain an equipment chest
- */
-
-/**
  * VWARS ADMIN SUBCOMMANDS
  * 
  */
  
 
 /**
- * create [name] [expiration]
  * Create a new war with name and expiration
  */
-async function create(user, slashCommand) {
-	let name = null
-	let expiration = null
-	let energyRefreshMinutes = 10
-	let cycleTimeMinutes = 240
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		if(slashCommand.subCommandArgs[0].length > 0) {
-			name = slashCommand.subCommandArgs[0]
+async function create(slashCommand) {
+	let name = 'War ' + currentTime
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('name')) {
+			name = slashCommand.subCommandArgs.get('name')
+		} 
+	}
+
+	let requestedWar = {
+        guildId: slashCommand.guildId,
+		name: name
+    }
+	let createdWar = await warService.createWar(requestedWar)
+
+	if(createdWar) {
+		let createdWarResponseString = 'New war created! \nwarId: ' + createdWar.warId + '\nname: ' + createdWar.name
+		return respondEphemeral(createdWarResponseString)
+	} else {
+		return respondEphemeral("Unable to create war.")
+	}
+}
+
+/**
+ * LEADERBOARD
+ * 
+ */
+async function list(slashCommand) {
+	let responseString = 'Wars'
+	let retrievedWars = await db.getWars(slashCommand.guildId)
+	//retrievedWars.Items.sort(compare)
+	retrievedWars.Items.forEach(function(war) {
+		responseString = responseString += '\nID: ' + war.warId + ', Name: ' + war.name + ', Active: ' + war.isActive + ', Concluded: ' + war.isConcluded
+	 });
+	 console.log(responseString)
+	 return respondEphemeral(responseString)
+}
+
+async function remove(slashCommand) {
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
 		} else {
-			return respond('Missing or improperly formatted argument.')
-		}
-		if(slashCommand.subCommandArgs[1].length > 0 && isNumeric(slashCommand.subCommandArgs[1])) {
-			expiration = slashCommand.subCommandArgs[1]
-		} else {
-			return respond('Missing or improperly formatted argument.')
+			return respondEphemeral('Missing or improperly formatted argument.')
 		}
 	}
-	let uuid = crypto.randomUUID
-	let initializedWar = {
-		guildId: slashCommand.guildId,
-		warId: uuid,
-		name: name,
-		expiration: expiration,
-		isActive: false,
-		energyRefreshMinutes: energyRefreshMinutes,
-		cycleTimeMinutes: cycleTimeMinutes
-	};
 
-	await db.putWar(initializedWar)
-	return respond("New war created!")
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let retrievedWar = warRecord.Item
+	if(!retrievedWar) {
+		return respondEphemeral('No war found with id: ' + warId)
+	} 
+	if(retrievedWar.isActive) {
+		return respondEphemeral('Unable to delete an active war: ' + warId)
+	}
+
+    let usersDeleted = 0
+	let users = await db.getUsers(warId)
+    if( users.Items.length > 0) {
+        for (const user of users.Items) {
+			let result = db.deleteUser(warId, user.userId)
+			if(result) {
+				usersDeleted += 1
+			}
+		}
+	}
+
+	let result = await db.deleteWar(slashCommand.guildId, warId)
+	let account = 'accounts have'
+	if(usersDeleted === 1) {
+		account = 'account has'
+	}
+	if(result) {
+		return respondEphemeral('War ' + warId + ' and ' + usersDeleted + ' ' + account + ' been deleted.')
+	} else {
+		return respondEphemeral("Unable to delete war: " + warId)
+	}
+}
+
+async function activate(slashCommand) {
+	let warId = null
+	let start = currentTime
+	let defaultWarLengthMillis = 1000 * 60 * 40320
+	let expiration = start + defaultWarLengthMillis
+	let speed = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respondEphemeral('Missing or improperly formatted argument.')
+		}
+		if(slashCommand.subCommandArgs.get('start')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('start')) || slashCommand.subCommandArgs.get('start') < 0) {
+				return respondEphemeral('Improperly formatted argument.')
+			}
+			start = parseInt(slashCommand.subCommandArgs.get('start'))
+		}  
+		if(slashCommand.subCommandArgs.get('expire')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('expire')) || slashCommand.subCommandArgs.get('expire') < 0) {
+				return respondEphemeral('Improperly formatted argument.')
+			}
+			expiration = parseInt(slashCommand.subCommandArgs.get('expire'))
+		} 
+		if(slashCommand.subCommandArgs.get('speed')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('speed')) || slashCommand.subCommandArgs.get('speed') < 0) {
+				return respondEphemeral('Improperly formatted argument.')
+			}
+			speed = parseInt(slashCommand.subCommandArgs.get('speed'))
+		} 
+	}
+
+	let activeWar = await warService.getActiveWar(slashCommand.guildId, currentTime)
+	if(activeWar) {
+		return respondEphemeral('There is already an active war on this server: ' + activeWar.warId)
+	}
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let warToActivate = warRecord.Item
+	if(!warToActivate) {
+		return respondEphemeral('Unable to activate non-existent war: ' + warId)
+	} 
+	if(warToActivate.isConcluded) {
+		return respondEphemeral('Unable to activate an already concluded war: ' + warId)
+	}
+
+	if(expiration) {
+		warToActivate.expiration = expiration
+	}
+	if(start) {
+		warToActivate.start = start
+	}
+	if(speed) {
+		warToActivate.speed = speed
+	}
+	if(warToActivate.expiration > currentTime) {
+		warToActivate.isActive = true
+		await db.putWar(warToActivate)
+		return respondEphemeral("War " + warId + ' activated. Start: ' + warToActivate.start + ', expiration: ' + warToActivate.expiration)
+	} else {
+		return respondEphemeral('This war already expired at: ' + warToActivate.expiration)
+	}
+
+}
+
+async function deactivate(slashCommand) {
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respondEphemeral('Missing or improperly formatted argument.')
+		}
+	}
+
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let retrievedWar = warRecord.Item
+	if(!retrievedWar) {
+		return respondEphemeral('No war found for given id: ' + warId)
+	} else {
+		if(retrievedWar.isActive) {
+			retrievedWar.isActive = false
+			await db.putWar(retrievedWar)
+			return respondEphemeral('War ' + warId + ' is now deacivated.')
+		} else {
+			return respondEphemeral('Unable to deactivate. War ' + warId + ' is already inactive.')
+		}
+	}
+}
+
+async function conclude(slashCommand) {
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respondEphemeral('Missing or improperly formatted argument.')
+		}
+	}
+
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let warToConclude = warRecord.Item
+	if(!warToConclude) {
+		return respondEphemeral('No war found with id: ' + warId)
+	}
+	if(warToConclude.isActive) {
+		return respondEphemeral('Unable to conclude an active war.')
+	}	
+	if(warToConclude.isConcluded) {
+		return respondEphemeral('Unable to conclude an already concluded war.')
+	}
+	let result = await warService.concludeWar(warToConclude)
+	if(!result) {
+		return respondEphemeral('An issue has occurred while trying to conclude war ' + warId)
+	}
+	return respondEphemeral('War ' + warId + ' has been concluded. ' + result + ' users\' server records have been updated.')
 }
 
 
@@ -164,4 +308,31 @@ function compare( a, b ) {
 	}
 	return 0;
   }
+
+  function timeRemainingAsCountdown(remainingMillis) {
+	if(remainingMillis < 1) {
+		return 0
+	}
+	let seconds = Math.floor((remainingMillis / 1000) % 60)
+	let minutes = Math.floor((remainingMillis / 1000 / 60) % 60)
+	let hours = Math.floor((remainingMillis / 1000 / 60 / 60) % 24)
+	let days = Math.floor(remainingMillis / 1000 / 60 / 60 / 24)
+
+	// 00d:00h:12m:10s
+	let timeRemaining = ''
+	if(days > 0) {
+		timeRemaining += (days).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'd:'
+	}
+	if(hours > 0) {
+		timeRemaining += (hours).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'h:'
+	}
+	if(minutes > 0) {
+		timeRemaining += (minutes).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 'm:'
+	}
+	if(seconds > 0) {
+		timeRemaining += (seconds).toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false}) + 's'
+	}	
+	console.log(timeRemaining); // 21 
+	return timeRemaining
+}  
   

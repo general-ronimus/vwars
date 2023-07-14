@@ -1,4 +1,5 @@
 const AWS = require("aws-sdk");
+const { migrateGuildUser } = require("./userService");
 
 module.exports ={
         getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getGuildUser, putGuildUser, getGuildUsers, deleteGuildUser, getWar, putWar, getWars, deleteWar
@@ -69,15 +70,29 @@ async function putUser(user) {
 			shieldHealth: user.shieldHealth,
 			lastFueled: user.lastFueled,
 			lastCloaked: user.lastCloaked,
+			lastStealthed: user.lastStealthed,
 			lastJammed: user.lastJammed,
 			lastShattered: user.lastShattered,
 			equipmentFuel: user.equipmentFuel,
 			equipmentCloak: user.equipmentCloak,
+			equipmentStealth: user.equipmentStealth,
 			equipmentJam: user.equipmentJam,
 			equipmentShield: user.equipmentShield,
 			equipmentSabotage: user.equipmentSabotage,
 			equipmentStrike: user.equipmentStrike,
 			equipmentNuke: user.equipmentNuke,
+			structFuelDepot : user.structFuelDepot,
+			structResearchFacility : user.structResearchFacility,
+			structReinforcedHangar : user.structReinforcedHangar,
+			structCommsArray : user.structCommsArray,
+			structNavalBase : user.structNavalBase,
+			structMunitionsDepot : user.structMunitionsDepot,
+			structSupercapacitors : user.structSupercapacitors,
+			structNuclearSilo : user.structNuclearSilo,
+			structAEWCHangar: user.structAEWCHangar,
+			structEMPTower : user.structEMPTower,
+			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
+			structCommandCenter : user.structCommandCenter,
 			netMined : user.netMined,
 			netStolen : user.netStolen,
 			netCityDamage : user.netCityDamage,
@@ -87,6 +102,7 @@ async function putUser(user) {
 			netRout: user.netRout,
 			netFuel : user.netFuel,
 			netCloak : user.netCloak,
+			netStealth : user.netStealth,
 			netJam: user.netJam,
 			netShield : user.netShield,
 			netSabotage : user.netSabotage,
@@ -96,8 +112,8 @@ async function putUser(user) {
 		ReturnValues: 'ALL_OLD'
 	};
 	console.log('db put user - warId: ' + user.warId + ',userId: ' + user.userId)
-	let result = await ddb.put(params).promise()
-	return result
+	await ddb.put(params).promise()
+	return true
 }
 
 async function getUsers(warId) {
@@ -163,11 +179,12 @@ async function putGuild(guild) {
   		Item: {
 			PK : 'GUILD#' + guild.guildId,
     		SK: 'GUILD#' + guild.guildId
-  		}
+  		},
+		ReturnValues: 'ALL_OLD'
 	};
 	console.log('db put guild - guildId: ' + guild.guildId)
-	let result = await ddb.put(params).promise()
-	return result
+	await ddb.put(params).promise()
+	return true
 }
 
 async function deleteGuild(guildId) {
@@ -216,21 +233,59 @@ async function putGuildUser(user) {
 			titles : user.titles,
 			wars: user.wars,
 			netMined : user.netMined,
-			netStolen : user.netMined,
+			netStolen : user.netStolen,
 			netCityDamage : user.netCityDamage,
-			netMilitaryDamage : user.newMilitaryDamage,
+			netMilitaryDamage : user.netMilitaryDamage,
 			netFuel : user.netFuel,
 			netCloak : user.netCloak,
+			netStealth : user.netStealth,
+			netJam : user.netJam,
 			netShield : user.netShield,
 			netSabotage : user.netSabotage,
 			netStrike : user.netStrike,
-			netNuke : user.netNuke
+			netNuke : user.netNuke,
+			population : user.population,
+			structFuelDepot : user.structFuelDepot,
+			structResearchFacility : user.structResearchFacility,
+			structReinforcedHangar : user.structReinforcedHangar,
+			structCommsArray : user.structCommsArray,
+			structNavalBase : user.structNavalBase,
+			structMunitionsDepot : user.structMunitionsDepot,
+			structSupercapacitors : user.structSupercapacitors,
+			structNuclearSilo : user.structNuclearSilo,
+			structAEWCHangar: user.structAEWCHangar,
+			structEMPTower : user.structEMPTower,
+			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
+			structCommandCenter : user.structCommandCenter,
+			oreUranium : user.oreUranium,
+			barUranium : user.barUranium,
+			oreBeryllium : user.oreBeryllium,
+			barBeryllium : user.barBeryllium,
+			oreGold : user.oreGold,
+			barGold : user.barGold,
+			oreSilver : user.oreSilver,
+			barSilver : user.barSilver,
+			oreTungsten : user.oreTungsten,			
+			barTungsten : user.barTungsten,
+			oreTitanium : user.oreTitanium,
+			barTitanium : user.barTitanium,
+			oreCobalt : user.oreCobalt,
+			barCobalt : user.barCobalt,
+			oreCopper : user.oreCopper,
+			barCopper : user.barCopper,
+			oreLead : user.oreLead,
+			barLead : user.barLead,
+			oreIron : user.oreIron,
+			barIron : user.barIron,
+			oreAluminum : user.oreAluminum,		
+			barAluminum : user.barAluminum
+			
   		},
 		ReturnValues: 'ALL_OLD'
 	};
 	console.log('db put guild user - guildId: ' + user.guildId + ',userId: ' + user.userId)
-	let result = await ddb.put(params).promise()
-	return result
+	await ddb.put(params).promise()
+	return true
 }
 
 async function getGuildUsers(guildId) {
@@ -298,13 +353,17 @@ async function putWar(war) {
     		SK: 'WAR#' + war.warId,
 			name: war.name,
 			isActive: war.isActive,
+			isConcluded: war.isConcluded,
+			start: war.start,
 			expiration: war.expiration,
-			energyRefreshMinutes: war.energyRefreshMinutes
-  		}
+			energyRefreshMinutes: war.energyRefreshMinutes,
+			speed: war.speed
+  		},
+		ReturnValues: 'ALL_OLD'
 	};
 	console.log('db put war - guildId: ' + war.guildId + ', warId: ' + war.warId)
-	let result = await ddb.put(params).promise()
-	return result
+	await ddb.put(params).promise()
+	return true
 }
 
 async function getWars(guildId) {
@@ -335,9 +394,11 @@ async function deleteWar(guildId, warId) {
 		}
 	  };
 	console.log('db delete war - guildId: ' + guildId + ', warId: ' + warId)
-	let result = await ddb.delete(params).promise()
-	return result
+	await ddb.delete(params).promise()
+	return true
 }
+
+
 
 
 

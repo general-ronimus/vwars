@@ -10,7 +10,7 @@ provider:
   name: aws
   stage: "${opt:stage, 'local'}"
   region: us-west-2
-  runtime: nodejs14.x
+  runtime: nodejs16.x
   environment: ${file(resources/env.${self:provider.stage}.json)}
   iamRoleStatements:
     - Effect: "Allow"
@@ -21,10 +21,14 @@ provider:
        - dynamodb:PutItem
        - dynamodb:UpdateItem
        - dynamodb:DeleteItem
+      Resource: "*"
+    - Effect: "Allow"
+      Action:
+       - sqs:*
       Resource:
         Fn::GetAtt:
-          - vwarsTable
-          - Arn	
+          - vwarsTaskQueue
+          - Arn
 
 package:
   patterns:
@@ -48,14 +52,16 @@ functions:
       - http:
           path: vwars
           method: post
-#  vwars-background:
-#    handler: vwarsBackgroundHandler.handle
-#    layers:
-#      - !Ref VwarsNodeModulesLambdaLayer
-#    events: #TODO Replace http with sqs
-#      - http:
-#          path: vwars
-#          method: post
+  vwars-task-master:
+    handler: vwarsTaskMasterHandler.handle
+    layers:
+      - !Ref VwarsNodeModulesLambdaLayer
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - vwarsTaskQueue
+              - Arn
 
 resources:
   Resources:
@@ -74,9 +80,15 @@ resources:
           - AttributeName: SK
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+    vwarsTaskQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: "${self:custom.vwarsTaskQueueName}"
+        FifoQueue: true
 
 custom:
   vwarsTableName: "vwars-${self:provider.stage}"
+  vwarsTaskQueueName: "vwars-task-queue-${self:provider.stage}.fifo"
   dynamodb:
     stages:
       - local
@@ -93,3 +105,7 @@ custom:
         sources:
           - table: "vwars-local"
             sources: [./testResources/offlineSeedData/vwars_seed.json]
+  serverless-offline:
+    sqs:
+      host: ${env:LOCALSTACK_HOST, 'localhost'}
+      port: 4576

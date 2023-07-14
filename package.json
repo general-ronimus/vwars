@@ -11,13 +11,14 @@
   "dependencies": {
     "@aws-sdk/lib-dynamodb": "^3.45.0",
     "aws-sdk": "^2.1048.0",
+    "discord.js": "^14.7.1",
     "tweetnacl": "^1.0.3",
     "tweetnacl-util": "^0.15.1"
   },
   "devDependencies": {
     "jest": "^29.3.1",
     "serverless-dynamodb-local": "^0.2.40",
-    "serverless-offline": "^11.3.0"
+    "serverless-offline": "^12.0.4"
   },
   "description": ""
 }

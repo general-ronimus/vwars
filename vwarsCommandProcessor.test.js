@@ -151,3 +151,12 @@ test('nuke', async () => {
 });
 
 
+test('hall', async () => {
+  let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_hall.json")
+  let slashCommandBodyJson = JSON.parse(slashCommandBody)
+  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  console.log(response)
+  expect(response.statusCode).toBe(200);
+});
+
+

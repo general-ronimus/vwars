@@ -1,8 +1,9 @@
 const db = require('./vwarsDbService.js')
+const userService = require('./userService.js')
 const crypto = require('crypto');
 
 module.exports ={
-    getActiveWar, createWar, createInitialWar, createNextWar, concludeWar, initGuildUser
+    getActiveWar, createWar, createInitialWar, createNextWar, concludeWar, migrateWar
 }
 
 async function getActiveWar(guildId, currentTime) {
@@ -19,11 +20,9 @@ async function getActiveWar(guildId, currentTime) {
     }
     
     if(activeWar && activeWar.expiration && activeWar.expiration <= currentTime) {
-        //await concludeWar(activeWar)
         activeWar.isActive = false
         await db.putWar(activeWar)
         return null
-        //activeWar = await createNextWar(activeWar)
     }
     return activeWar
 }
@@ -49,7 +48,9 @@ async function createWar(requestedWar) {
 	let expiration = null
 	let energyRefreshMinutes = 5
     let isActive = false
+    let isConcluded = false
     let iteration = 1
+    let speed = 1
     if(requestedWar.name) {
         name = requestedWar.name
     }
@@ -65,8 +66,14 @@ async function createWar(requestedWar) {
     if(requestedWar.isActive) {
         isActive = requestedWar.isActive
     }
+    if(requestedWar.isConcluded) {
+        isConcluded = requestedWar.isConcluded
+    }
     if(requestedWar.iteration) {
         iteration = requestedWar.iteration
+    }
+    if(requestedWar.speed) {
+        speed = requestedWar.speed
     }
     
 	let initializedWar = {
@@ -76,11 +83,14 @@ async function createWar(requestedWar) {
         start: start,
 		expiration: expiration,
 		isActive: isActive,
+        isConcluded: isConcluded,
 		energyRefreshMinutes: energyRefreshMinutes,
-        iteration: iteration
+        iteration: iteration,
+        speed: speed
 	};
     console.log('Creating new war: ' + JSON.stringify(initializedWar))
-	return await db.putWar(initializedWar)
+	await db.putWar(initializedWar)
+    return initializedWar
 }
 
 
@@ -96,6 +106,7 @@ async function createInitialWar(guildId) {
 		name: 'War',
         iteration: '1',
 		isActive: true,
+        isConcluded: false,
         start: startDate.getMilliseconds,
         expiration: endDate.getMilliseconds 
     }
@@ -133,56 +144,110 @@ async function createNextWar(previousWar) {
 	return await createWar(requestedWar)
 }
 
-async function concludeWar(activeWar) {
-    activeWar.isConcluded = true
-    await db.putWar(activeWar)
-    let users = db.getUsers(activeWar.warId)
+async function concludeWar(warToConclude) {
+    let users = await db.getUsers(warToConclude.warId)
     let firstIssued = false
     let secondIssued = false
     let thirdIssued = false
+    let guildUsersUpdated = 0
 
+    /*
     users.Items.map(function(user) {
         let assets = user.ore + user.city + user.military
         user.bar += Math.floor(assets / 10000)        
     }).sort(compare).forEach(function(user) {
-        let guildUser = db.getGuildUser(activeWar.guildId, user.userId)
-        if(!guildUser) {
-            guildUser = initGuildUser(activeWar.guildId, user.userId, user.username)
+        */
+       
+    if( users.Items.length > 0) {
+        for (let user of users.Items.sort(compare)) {
+            user = userService.migrateUser(user)
+            let guildUserRecord = await db.getGuildUser(warToConclude.guildId, user.userId)
+            let guildUser = guildUserRecord.Item
+            if(!guildUser) {
+                guildUser = userService.initGuildUser(warToConclude.guildId, user.userId, user.username)
+            } else {
+                guildUser = userService.migrateGuildUser(guildUser)
+            }
+    
+            guildUser.barHistoricalVibranium += user.bar
+            guildUser.barVibranium += user.bar
+            guildUser.wars += 1
+            guildUser.netMined += user.netMined
+            guildUser.netStolen += user.netStolen
+            guildUser.netCityDamage += user.netCityDamage
+            guildUser.netMilitaryDamage += user.netMilitaryDamage
+            guildUser.netFuel += user.netFuel
+            guildUser.netCloak += user.netCloak
+            guildUser.netStealth += user.netStealth
+            guildUser.netJam += user.netJam
+            guildUser.netShield += user.netShield
+            guildUser.netSabotage += user.netSabotage
+            guildUser.netStrike += user.netStrike
+            guildUser.netNuke += user.netNuke
+    
+            if(!firstIssued) {
+                /*
+                let bonusBars = Math.ceil(user.bar * .30)
+                guildUser.barHistoricalVibranium += bonusBars
+                guildUser.barVibranium += bonusBars
+                */
+                guildUser.medalFirst += 1
+                firstIssued = true
+            } else if(!secondIssued) {
+                /*
+                let bonusBars = Math.ceil(user.bar * .20)
+                guildUser.barHistoricalVibranium += bonusBars
+                guildUser.barVibranium += bonusBars
+                */
+                guildUser.medalSecond += 1
+                secondIssued = true
+            } else if(!thirdIssued) {
+                /*
+                let bonusBars = Math.ceil(user.bar * .10)
+                guildUser.barHistoricalVibranium += bonusBars
+                guildUser.barVibranium += bonusBars
+                */
+                guildUser.medalThird += 1
+                thirdIssued = true
+            }
+            let result = await db.putGuildUser(guildUser)
+            if(result) {
+                guildUsersUpdated += 1
+            }
         }
+    }   
+    warToConclude.isConcluded = true
+    let result = await db.putWar(warToConclude)
+    if(result) {
+        return guildUsersUpdated
+    } else {
+        return null
+    }
+}
 
-        guildUser.barHistoricalVibranium += user.bar
-        guildUser.barVibranium += user.bar
-        guildUser.wars += 1
-        guildUser.netMined += user.netMined
-        guildUser.netStolen += user.netStolen
-        guildUser.netCityDamage += user.netCityDamage
-        guildUser.netMilitaryDamage += user.netMilitaryDamage
-        guildUser.netFuel += user.netFuel
-        guildUser.netCloak += user.netCloak
-        guildUser.netShield += user.netShield
-        guildUser.netSabotage += user.netSabotage
-        guildUser.netStrike += user.netStrike
-        guildUser.netNuke += user.netNuke
-
-        if(!firstIssued) {
-            let bonusBars = Math.ceil(user.bar * .30)
-            //guildUser.barHistoricalVibranium += bonusBars
-            guildUser.barVibranium += bonusBars
-            guildUser.medalFirst += 1
-        } else if(!secondIssued) {
-            let bonusBars = Math.ceil(user.bar * .20)
-            //guildUser.barHistoricalVibranium += bonusBars
-            guildUser.barVibranium += bonusBars
-            guildUser.medalSecond += 1
-        } else if(!thirdIssued) {
-            let bonusBars = Math.ceil(user.bar * .10)
-            //guildUser.barHistoricalVibranium += bonusBars
-            guildUser.barVibranium += bonusBars
-            guildUser.medalThird += 1
-        }
-        db.putGuildUser(guildUser)
-    })
-
+function migrateWar(war) {
+	if(war.name === undefined) {
+		war.name = 'Unamed war'
+	}
+    if(war.start === undefined) {
+		war.start = 0
+	}
+    if(war.expiration === undefined) {
+		war.expiration = 0
+	}
+    if(war.isActive === undefined) {
+		war.isActive = false
+	}
+    if(war.isConcluded === undefined) {
+		war.isConcluded = false
+	}
+    if(war.energyRefreshMinutes === undefined) {
+		war.energyRefreshMinutes = 5
+	}
+    if(war.speed === undefined) {
+		war.speed = 1
+	}
+    return war
 }
 
 function compare( a, b ) {
@@ -192,34 +257,16 @@ function compare( a, b ) {
     if ( a.bar > b.bar ){
         return -1;
     }
+
+    if ( a.ore < b.ore ){ 
+		return 1;
+	}
+	if ( a.ore > b.ore ){
+	  	return -1;
+	}
     return 0;
 }
   
-function initGuildUser(guildId, userId, username) {
-    console.log('Initializing new user for guildId: ' + guildId + ', userId: ' + userId + ", username: " + username)
-    let initializedUser = {
-        guildId: guildId,
-        userId: userId,
-        username: username,
-        barHistoricalVibranium: 0,
-        barVibranium: 0,
-        medalFirst: 0,
-        medalSecond: 0,
-        medalThird: 0,
-        wars: 0,
-        titles: [],
-        netMined : 0,
-        netStolen : 0,
-        netCityDamage : 0,
-        netMilitaryDamage : 0,
-        netFuel : 0,
-        netCloak : 0,
-        netShield : 0,
-        netSabotage : 0,
-        netStrike : 0,
-        netNuke : 0
-    }   
-    return initializedUser
-}
+
     
 
