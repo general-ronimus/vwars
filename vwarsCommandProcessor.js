@@ -94,7 +94,7 @@ async function processCommand(slashCommandBody) {
 		return await jam(user, slashCommand)
 	} else if('shield' === slashCommand.subCommand) {
 		return await shield(user, slashCommand)
-	} else if('sabotage' === slashCommand.subCommand) {
+	} else if('shell' === slashCommand.subCommand) {
 		return await sabotage(user, slashCommand)
 	} else if('strike' === slashCommand.subCommand) {
 		return await strike(user, slashCommand)
@@ -193,7 +193,7 @@ async function mine(user, slashCommand) {
 	let minedOre = 0
 	let oreFound = false
 	let equipmentFound = 0
-	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
+	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['crate of artillery rounds', 0], ['nuclear warhead', 0]]);
 	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
 		let roll = randomInteger(1, 1209)
@@ -227,7 +227,7 @@ async function mine(user, slashCommand) {
 				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
 			} else if(roll <= 1206) {
 				user.equipmentSabotage += 1
-				equipmentMap.set('explosive', equipmentMap.get('explosive') + 1)
+				equipmentMap.set('crate of artillery rounds', equipmentMap.get('crate of artillery rounds') + 1)
 			} else if(roll == 1207) {
 				user.equipmentNuke += 1
 				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
@@ -265,7 +265,11 @@ async function mine(user, slashCommand) {
 				if(value == 1) {
 					miningResponse += ' ' + value + ' ' + key
 				} else if(value > 1) {
-					miningResponse += ' ' + value + ' ' + key + 's'
+					if(key === 'crate of artillery rounds') {
+						miningResponse += ' ' + value + ' ' + 'crates of artillery rounds'
+					} else {
+						miningResponse += ' ' + value + ' ' + key + 's'
+					}
 				}
 				if(equipmentIter < equipmentFound) {
 					miningResponse += ','
@@ -426,7 +430,7 @@ async function build(user, slashCommand) {
 			if(targetUser.equipmentSabotage > 0) {
 				targetUser.equipmentSabotage -= 1
 				user.equipmentSabotage += 1
-				equipmentStolen = 'explosive'
+				equipmentStolen = 'crate of artillery rounds'
 			}
 		} else if(routRoll === 6) {
 			if(targetUser.equipmentStrike > 0) {
@@ -639,7 +643,7 @@ async function hall(slashCommand) {
 		responseString += '\nRadio communications jammed: ' + guildUser.netJam
 		responseString += '\nShield generators engaged: ' + guildUser.netShield
 		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
-		responseString += '\nExplosives detonated: ' + guildUser.netSabotage
+		responseString += '\nArtillery barrages ordered: ' + guildUser.netSabotage
 		responseString += '\nNukes launched: ' + guildUser.netNuke
 
 		responseString += '\n\nCapital city'
@@ -779,7 +783,7 @@ async function hall(slashCommand) {
 		if(user.ore >= 2000) {
 			user.ore -= 2000
 			user.equipmentSabotage += 1
-			itemPurchased = 'explosive'
+			itemPurchased = 'crate of artillery rounds'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
@@ -852,6 +856,19 @@ async function fuel(user, slashCommand) {
  * 
  */
 async function cloak(user, slashCommand) {
+	let checkOnly = false
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		checkOnly = JSON.parse(slashCommand.subCommandArgs[0])
+	}
+	if(checkOnly == true) {
+		let response = 'Cloak time remaining: No active cloak'
+		if(isCloaked(user.lastCloaked)) {
+			let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
+			response = 'Cloak time remaining: ' + timeRemainingAsCountdown(remainingMillis)
+		}
+		response += '\nInventory: ' + user.equipmentCloak
+		return respondEphemeral(response)
+	}
 	if(user.equipmentCloak < 1) {
 		return respondAndCheckForCloak(user, 'You have no cloaking devices in your inventory.')
 	}
@@ -872,6 +889,20 @@ async function cloak(user, slashCommand) {
  * 
  */
 async function stealth(user, slashCommand) {
+	let checkOnly = false
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		checkOnly = JSON.parse(slashCommand.subCommandArgs[0])
+	}
+	if(checkOnly == true) {
+		let response = 'Stealth time remaining: No deployed stealth UAVs'
+		if(isStealthed(user.lastStealthed)) {
+			let remainingMillis = (user.lastStealthed + (stealthIntervalMinutes * 60 * 1000)) - currentTime
+			response = 'Stealth time remaining: ' + timeRemainingAsCountdown(remainingMillis)
+		}
+		response += '\nInventory: ' + user.equipmentStealth
+		return respondEphemeral(response)
+	}
+
 	if(user.equipmentStealth < 1) {
 		return respondEphemeral('You have no stealth UAVs in your inventory.')
 	}
@@ -963,13 +994,13 @@ async function shield(user, slashCommand) {
 
 
 /**
- * SABOTAGE
+ * SABOTAGE, presented as SHELL to the end user
  * 
  */
 async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentSabotage < 1) {
-		return respondAndCheckForStealth(user, 'You have no explosives in your inventory.', null)
+		return respondAndCheckForStealth(user, 'You have no artillery rounds in your inventory.', null)
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -987,7 +1018,7 @@ async function sabotage(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' sabotages ' + targetUser.username
+	response += ' orders an artillery barrage on ' + targetUser.username
 	targetUser = updateShield(targetUser) 
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
@@ -1295,7 +1326,7 @@ function isVulnerable(user) {
 }
 
 function getInvulnerableIntervalMinutes(user) {
-	if(user.bar <= 5) {
+	if(user.bar < 5) {
 		return null
 	}
 	let minInvulnerableIntervalMinutes = 480
@@ -1445,7 +1476,7 @@ function compare( a, b ) {
   \n\Stealth - Anonymize your offensive moves from other players for 20m\
   \n\Jam - Prevent opponent from using attack command for 20m\
   \n\Shield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\
-  \n\Sabotage - Destroy 30% of an opponent\'s city\
+  \n\Shell - Destroy 30% of an opponent\'s city\
   \n\Strike - Destroy 30% of an opponent\'s military\
   \n\Nuke - Destroy 40% of an opponent\'s city & military\
   \n\

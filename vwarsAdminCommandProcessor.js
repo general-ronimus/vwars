@@ -153,7 +153,7 @@ async function activate(slashCommand) {
 	let start = currentTime
 	let defaultWarLengthMillis = 1000 * 60 * 40320
 	let expiration = start + defaultWarLengthMillis
-	let speed = null
+	let energy = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
 		if(slashCommand.subCommandArgs.get('id')) {
 			warId = slashCommand.subCommandArgs.get('id')
@@ -172,11 +172,11 @@ async function activate(slashCommand) {
 			}
 			expiration = parseInt(slashCommand.subCommandArgs.get('expire'))
 		} 
-		if(slashCommand.subCommandArgs.get('speed')) {
-			if(!isNumeric(slashCommand.subCommandArgs.get('speed')) || slashCommand.subCommandArgs.get('speed') < 0) {
+		if(slashCommand.subCommandArgs.get('energy')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('energy')) || slashCommand.subCommandArgs.get('energyRefresh') < 0) {
 				return respondEphemeral('Improperly formatted argument.')
 			}
-			speed = parseInt(slashCommand.subCommandArgs.get('speed'))
+			energy = parseInt(slashCommand.subCommandArgs.get('energy'))
 		} 
 	}
 
@@ -199,8 +199,8 @@ async function activate(slashCommand) {
 	if(start) {
 		warToActivate.start = start
 	}
-	if(speed) {
-		warToActivate.speed = speed
+	if(energy) {
+		warToActivate.energyRefreshMinutes = energy
 	}
 	if(warToActivate.expiration > currentTime) {
 		warToActivate.isActive = true
