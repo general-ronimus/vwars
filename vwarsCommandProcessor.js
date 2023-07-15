@@ -558,10 +558,10 @@ async function build(user, slashCommand) {
 		'\nShield integrity: ' + shieldIntegrity +
 		'\nWarehouse: ' + warehouse +
 		'\nEquipment' +
-		'\n| fuel|  cloak|  stealth| shield|' +
-		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|'+ targetUser.equipmentStealth.toString().padStart(7) + '/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
-		'\n|  jam| strike| sabotage|   nuke|' +
-		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(7) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'\n| fuel|  cloak| stealth| shield|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|'+ targetUser.equipmentStealth.toString().padStart(6) + '/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
+		'\n|  jam| strike|   shell|   nuke|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
 		'```'
 
 	return respondAndCheckForCloak(user, response)
