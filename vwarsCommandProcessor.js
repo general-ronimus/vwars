@@ -7,6 +7,8 @@ const db = require('./vwarsDbService.js')
 const userService = require('./userService.js')
 const warService = require('./warService.js')
 const queuingService = require('./vwarsQueuingService.js')
+const { MessageEmbed } = require('discord.js');
+const { EmbedBuilder } = require('@discordjs/builders');
 const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
 const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
 const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
@@ -508,7 +510,8 @@ async function build(user, slashCommand) {
  * 
  */
  async function help() {
-	 return respondEphemeral(helpResponse)
+	 //return respondEphemeral(helpResponse)
+	 return respondWithHelp()
 }
 
 
@@ -1456,6 +1459,34 @@ function compare( a, b ) {
 	return 0;
   }
 
+
+  function respondWithHelp() {
+
+	  const helpEmbed = new EmbedBuilder()
+		  //.setColor(Color.Blue)
+		  .setTitle('Welcome to Vibranium Wars!')
+		  .setDescription('Objective: Acquire more vibranium bars than your opponents.')
+		  .addFields(
+			  { name: 'How to play:', value: 'Use /vw mine command to mine for vibranium ore & rare equipment chests.\nUse /vw build & /vw train to increase your city & military size.\nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "Location known", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.' },
+			  { name: 'Use /vw smelt', value: 'Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.' },
+			  { name: 'Equipment chests:', value: 'Unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.' },
+			  { name: 'Commands:', value: 'Fuel - Gain 20 energy, 30m cool down\nCloak - Hide your stats & non-offensive moves from other players for 8h\nStealth - Anonymize your offensive moves from other players for 20m\nJam - Prevent opponent from using attack command for 20m\nShield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\nShell - Destroy 30% of an opponent\'s city\nStrike - Destroy 30% of an opponent\'s military\nNuke - Destroy 40% of an opponent\'s city & military' },
+			  { name: 'Additional Info:', value: 'Use /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\nEnergy regens 1 per every 5m.' },
+			  { name: 'End game:', value: 'Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).' }
+		  )
+		  .setTimestamp()
+		  .setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayBoyPK', iconURL: 'https://i.imgur.com/AfFp7pu.png' });
+		  
+	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
+  
+	  const response = {
+		  statusCode: 200,
+		  body: JSON.stringify(responseBody),
+	  };
+  
+	  return response;
+  }
+  
 
   const helpResponse = '```Welcome to Vibranium Wars!\
   \nObjective:\
