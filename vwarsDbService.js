@@ -357,7 +357,8 @@ async function putWar(war) {
 			start: war.start,
 			expiration: war.expiration,
 			energyRefreshMinutes: war.energyRefreshMinutes,
-			speed: war.speed
+			speed: war.speed,
+			isPreRelease: war.isPreRelease
   		},
 		ReturnValues: 'ALL_OLD'
 	};

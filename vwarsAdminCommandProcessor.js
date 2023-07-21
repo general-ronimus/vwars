@@ -154,6 +154,7 @@ async function activate(slashCommand) {
 	let defaultWarLengthMillis = 1000 * 60 * 40320
 	let expiration = start + defaultWarLengthMillis
 	let energy = null
+	let prerelease = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
 		if(slashCommand.subCommandArgs.get('id')) {
 			warId = slashCommand.subCommandArgs.get('id')
@@ -173,10 +174,13 @@ async function activate(slashCommand) {
 			expiration = parseInt(slashCommand.subCommandArgs.get('expire'))
 		} 
 		if(slashCommand.subCommandArgs.get('energy')) {
-			if(!isNumeric(slashCommand.subCommandArgs.get('energy')) || slashCommand.subCommandArgs.get('energyRefresh') < 0) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('energy')) || slashCommand.subCommandArgs.get('energy') < 0) {
 				return respondEphemeral('Improperly formatted argument.')
 			}
 			energy = parseInt(slashCommand.subCommandArgs.get('energy'))
+		}
+		if(slashCommand.subCommandArgs.get('prerelease')) {
+			prerelease = JSON.parse(slashCommand.subCommandArgs.get('prerelease'))
 		} 
 	}
 
@@ -202,10 +206,17 @@ async function activate(slashCommand) {
 	if(energy) {
 		warToActivate.energyRefreshMinutes = energy
 	}
+	if(prerelease) {
+		warToActivate.isPreRelease = prerelease
+	}
 	if(warToActivate.expiration > currentTime) {
 		warToActivate.isActive = true
 		await db.putWar(warToActivate)
-		return respondEphemeral("War " + warId + ' activated. Start: ' + warToActivate.start + ', expiration: ' + warToActivate.expiration)
+		return respondEphemeral("War " + warId + ' activated.' +
+		 '\start: ' + warToActivate.start + 
+		 '\nexpiration: ' + warToActivate.expiration +
+		 '\nenergy: ' + warToActivate.energyRefreshMinutes +
+		 '\nprerelease: ' + warToActivate.isPreRelease)
 	} else {
 		return respondEphemeral('This war already expired at: ' + warToActivate.expiration)
 	}

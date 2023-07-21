@@ -54,6 +54,7 @@ async function processCommand(slashCommandBody) {
 	}
 
 	// User retrieval and housekeeping
+	let firstTime = false
 	let userRecord = await db.getUser(activeWar.warId, slashCommand.userId)
 	let user = userRecord.Item
 	console.log('Retrieved user: ' + JSON.stringify(user))
@@ -63,6 +64,7 @@ async function processCommand(slashCommandBody) {
 		await db.putUser(user)
 		console.log('User record created for userId ' + user.userId)
 		millisElapsed = currentTime - activeWar.start
+		firstTime = true
 	} else {
 		user = userService.migrateUser(user)
 		millisElapsed = currentTime - user.energyUpdatedAt
@@ -72,10 +74,17 @@ async function processCommand(slashCommandBody) {
 	let idleIntervalMillis = convertToSpeedAdjustedMillis(idleIntervalMinutes)
 	console.log('millisElapsed: ' + millisElapsed)
 	if(millisElapsed > idleIntervalMillis) {
-		return await protect(user, millisElapsed)
+		return await welcomeBack(user, millisElapsed)
 	} else {
 		user = updateEnergy(user)
 		user = updateShield(user)
+	}
+	if(firstTime) {
+		if(activeWar.isPreRelease) {
+			return await welcomePreRelease(user)
+		} else {
+			return welcome()
+		}
 	}
 
 	if('mine' === slashCommand.subCommand) {
@@ -562,7 +571,7 @@ async function build(user, slashCommand) {
 		'\nWarehouse: ' + warehouse +
 		'\nEquipment' +
 		'\n| fuel|  cloak| stealth| shield|' +
-		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|'+ targetUser.equipmentStealth.toString().padStart(6) + '/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|     ?/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
 		'\n|  jam| strike|   shell|   nuke|' +
 		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
 		'```'
@@ -1342,7 +1351,28 @@ function getInvulnerableIntervalMinutes(user) {
 	return invulnerableIntervalMinutes
 }
 
-async function protect(user, millisEllapsed) {
+
+async function welcome() {
+	return respondEphemeral('Welcome to Vibranium Wars! Use /vw help to review how to play & have fun!')
+}
+
+
+async function welcomePreRelease(user) {
+	user = updateShield(user)
+	if(user.shieldHealth < 100) {
+		user.shieldHealth = 100
+		user.shieldUpdatedAt = currentTime
+	}
+	user.lastCloaked = currentTime
+	user.ore = 20000
+	user = updateEnergy(user)
+	await db.putUser(user)
+	let response = 'Welcome to Vibranium Wars (pre-release)! For testing purposes, you are entering this war cloaked, shielded and supplied with 20,000 ore to spend how you see fit. Use /vw help to review how to play & have fun!'
+	return respondAndCheckForCloak(user, response)
+}
+
+
+async function welcomeBack(user, millisEllapsed) {
 	let dayElapsed = Math.floor(millisEllapsed / 86400000)
 	if(dayElapsed > 10) {
 		dayElapsed = 10
@@ -1361,7 +1391,7 @@ async function protect(user, millisEllapsed) {
 	user.city += addedCity
 	user = updateEnergy(user)
 	await db.putUser(user)
-	let response = 'Welcome back to the war! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play.'
+	let response = 'Welcome back to Vibranium Wars! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play & have fun!'
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -1466,6 +1496,7 @@ function compare( a, b ) {
 		  //.setColor(Color.Blue)
 		  .setTitle('Welcome to Vibranium Wars!')
 		  .setDescription('Objective: Acquire more vibranium bars than your opponents.')
+		  .setImage('https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png')
 		  .addFields(
 			  { name: 'How to play:', value: 'Use /vw mine command to mine for vibranium ore & rare equipment chests.\nUse /vw build & /vw train to increase your city & military size.\nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "Location known", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.' },
 			  { name: 'Use /vw smelt', value: 'Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.' },
@@ -1475,7 +1506,7 @@ function compare( a, b ) {
 			  { name: 'End game:', value: 'Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).' }
 		  )
 		  .setTimestamp()
-		  .setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayBoyPK', iconURL: 'https://i.imgur.com/AfFp7pu.png' });
+		  .setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayBoyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
 		  
 	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
   
