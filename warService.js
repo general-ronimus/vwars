@@ -174,6 +174,8 @@ async function concludeWar(warToConclude) {
                 guildUser = userService.migrateGuildUser(guildUser)
             }
     
+            let remainingCityMilitary = user.city + user.military
+            guildUser.population += remainingCityMilitary
             guildUser.barHistoricalVibranium += user.bar
             guildUser.barVibranium += user.bar
             guildUser.wars += 1
@@ -181,6 +183,10 @@ async function concludeWar(warToConclude) {
             guildUser.netStolen += user.netStolen
             guildUser.netCityDamage += user.netCityDamage
             guildUser.netMilitaryDamage += user.netMilitaryDamage
+            guildUser.netAttack += user.netAttack
+            guildUser.netRout += user.netRout
+            guildUser.netShatter += user.netShatter
+            guildUser.netEquipmentSteal += user.netEquipmentSteal
             guildUser.netFuel += user.netFuel
             guildUser.netCloak += user.netCloak
             guildUser.netStealth += user.netStealth

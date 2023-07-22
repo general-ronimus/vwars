@@ -83,7 +83,7 @@ async function processCommand(slashCommandBody) {
 		if(activeWar.isPreRelease) {
 			return await welcomePreRelease(user)
 		} else {
-			return welcome()
+			return await welcome(user, slashCommand)
 		}
 	}
 
@@ -393,6 +393,7 @@ async function build(user, slashCommand) {
 	let routRoll = 0
 	if(winPercentage >= 0.08) {
 		isRout = true
+		user.netRout += 1
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
@@ -410,6 +411,7 @@ async function build(user, slashCommand) {
 		targetUser.bar -= 1
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
+		user.netShatter += 1
 		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
 	} else if(isRoutEquipment && targetUser.shieldHealth <= 0) {
 		let equipmentStolen = null
@@ -464,6 +466,7 @@ async function build(user, slashCommand) {
 		}
 
 		if(equipmentStolen != null) {
+			user.netEquipmentSteal += 1
 			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
 		} else {
 			isRoutEquipment = false
@@ -1352,8 +1355,27 @@ function getInvulnerableIntervalMinutes(user) {
 }
 
 
-async function welcome() {
-	return respondEphemeral('Welcome to Vibranium Wars! Use /vw help to review how to play & have fun!')
+async function welcome(user, slashCommand) {
+	let response = 'Welcome to Vibranium Wars!'
+	let guildUserRecord = await db.getGuildUser(slashCommand.guildId, slashCommand.userId)
+	let guildUser = guildUserRecord.Item
+	if(guildUser) {
+		let settlers = guildUser.population / 20
+		let maxSettlers = 10000
+		if(settlers < maxSettlers) {
+			settlers = guildUser.population / 20
+		} else {
+			settlers = maxSettlers
+		}
+		user.city += settlers / 2
+		user.military += settlers / 2
+		guildUser.population -= settlers
+		await db.putGuildUser(guildUser)
+		await db.putUser(user)
+		response += ' ' + settlers + ' troops have been conscripted from your capital city and deployed to your starting military and city.'
+	}
+	response += ' Use /vw help to review how to play & have fun!'
+	return respondEphemeral(response)
 }
 
 
