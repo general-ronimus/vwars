@@ -32,7 +32,7 @@ async function processCommand(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	if('help' === slashCommand.subCommand) {
-		return await help()
+		return await help(slashCommand)
 	} else if('hall' === slashCommand.subCommand) {
 		return await hall(slashCommand)
 	}
@@ -73,18 +73,17 @@ async function processCommand(slashCommandBody) {
 	//Check for and protect idle users
 	let idleIntervalMillis = convertToSpeedAdjustedMillis(idleIntervalMinutes)
 	console.log('millisElapsed: ' + millisElapsed)
-	if(millisElapsed > idleIntervalMillis) {
-		return await welcomeBack(user, millisElapsed)
-	} else {
-		user = updateEnergy(user)
-		user = updateShield(user)
-	}
 	if(firstTime) {
 		if(activeWar.isPreRelease) {
 			return await welcomePreRelease(user)
 		} else {
 			return await welcome(user, slashCommand)
 		}
+	} else if(millisElapsed > idleIntervalMillis) {
+		return await welcomeBack(user, millisElapsed)
+	} else {
+		user = updateEnergy(user)
+		user = updateShield(user)
 	}
 
 	if('mine' === slashCommand.subCommand) {
@@ -521,9 +520,15 @@ async function build(user, slashCommand) {
  * HELP
  * 
  */
- async function help() {
-	 //return respondEphemeral(helpResponse)
-	 return respondWithHelp()
+ async function help(slashCommand) {
+	let page = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		page = slashCommand.subCommandArgs[0]
+	}
+	if('release notes' === page) {
+		return respondWithHelpReleaseNotes()
+	}
+	return respondWithHelp()
 }
 
 
@@ -652,6 +657,9 @@ async function hall(slashCommand) {
 		responseString += '\nTroops destroyed: ' + guildUser.netMilitaryDamage
 		responseString += '\nOre mined: ' + guildUser.netMined
 		responseString += '\nOre stolen: ' + guildUser.netStolen
+		responseString += '\nForces routed: ' + guildUser.netRout
+		responseString += '\nVibranium warehouses raided: ' + guildUser.netShatter
+		responseString += '\nEquipment stolen: ' + guildUser.netEquipmentSteal
 		responseString += '\nBarrels of fuel used: ' + guildUser.netFuel
 		responseString += '\nCloaking devices activated: ' + guildUser.netCloak
 		responseString += '\nStealth missions completed: ' + guildUser.netStealth
@@ -760,14 +768,14 @@ async function hall(slashCommand) {
 		}	
 	} else if('stealth' === item) {
 		if(user.equipmentStealth >= 5) {
-			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+			return respondEphemeral('Your inventory for this equipment is full.')
 		}
 		if(user.ore >= 3500) {
 			user.ore -= 3500
 			user.equipmentStealth += 1
 			itemPurchased = 'stealth UAV'
 		} else {
-			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
+			return respondEphemeral('You do not have enough vibranium ore.')
 		}	
 	} else if('jam' === item) {
 		if(user.equipmentJam >= 5) {
@@ -830,6 +838,9 @@ async function hall(slashCommand) {
 
 	await db.putUser(user)
 	let response = 'You have purchased an equipment chest containing one ' + itemPurchased + '.'
+	if('stealth' === item) {
+		respondEphemeral(response)
+	}
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -1370,6 +1381,7 @@ async function welcome(user, slashCommand) {
 		user.city += settlers / 2
 		user.military += settlers / 2
 		guildUser.population -= settlers
+		user = updateEnergy(user)
 		await db.putGuildUser(guildUser)
 		await db.putUser(user)
 		response += ' ' + settlers + ' troops have been conscripted from your capital city and deployed to your starting military and city.'
@@ -1514,22 +1526,45 @@ function compare( a, b ) {
 
   function respondWithHelp() {
 
-	  const helpEmbed = new EmbedBuilder()
-		  //.setColor(Color.Blue)
-		  .setTitle('Welcome to Vibranium Wars!')
-		  .setDescription('Objective: Acquire more vibranium bars than your opponents.')
-		  .setImage('https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png')
-		  .addFields(
-			  { name: 'How to play:', value: 'Use /vw mine command to mine for vibranium ore & rare equipment chests.\nUse /vw build & /vw train to increase your city & military size.\nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "Location known", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.' },
-			  { name: 'Use /vw smelt', value: 'Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.' },
-			  { name: 'Equipment chests:', value: 'Unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.' },
-			  { name: 'Commands:', value: 'Fuel - Gain 20 energy, 30m cool down\nCloak - Hide your stats & non-offensive moves from other players for 8h\nStealth - Anonymize your offensive moves from other players for 20m\nJam - Prevent opponent from using attack command for 20m\nShield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\nShell - Destroy 30% of an opponent\'s city\nStrike - Destroy 30% of an opponent\'s military\nNuke - Destroy 40% of an opponent\'s city & military' },
-			  { name: 'Additional Info:', value: 'Use /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\nEnergy regens 1 per every 5m.' },
-			  { name: 'End game:', value: 'Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).' }
+	const helpEmbed = new EmbedBuilder()
+		.setTitle('Welcome to Vibranium Wars!')
+		.setDescription('**Objective:** Acquire more vibranium bars than your opponents.')
+		.setImage('https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png')
+		.addFields(
+			{ name: 'How to play', value: 'Type `/vw` followed by the desired command and command options (when applicable). Here is an example of using `mine` command with required option `energy` of 10: \n`/vw mine 10`\n\n' },
+			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 5m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack & steal a portion of another player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
+			{ name: 'Informational Commands', value: '*No cost*\n`/vw stats` - Receive a war report on yourself or another player \n`/vw leaderboard` -  Check current war standings & time remaining\n`/vw hall` - Check overall server standings or player profiles\n\n' },
+			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves from other players for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n\n' },
+			{ name: 'Conclusion', value: 'At the conclusion of a war, the Hall of Legends is updated to include the results of the war including issued medals, issued titles, vibranium bars earned, player statistics and player population all viewable using the `/vw hall` command.\n\n' },
 		  )
-		  .setTimestamp()
-		  .setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayBoyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
-		  
+		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
+			
+	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
+  
+	  const response = {
+		  statusCode: 200,
+		  body: JSON.stringify(responseBody),
+	  };
+  
+	  return response;
+  }
+
+  function respondWithHelpReleaseNotes() {
+
+	const helpEmbed = new EmbedBuilder()
+		.setTitle('Release Notes')
+		.setDescription('**Version:** v3.0')
+		.addFields(
+			{ name: 'Permanent player records', value: 'User standings and stats now persist at the server level. At the conclusion of each war, medals, stats & vibranium bars earned get saved to a player\'s permanent server record.\n\n' },
+			{ name: 'New command: hall', value: 'Introduced new hall command for displaying a server\'s standings and player permanent records.\n\n' },
+			{ name: 'New command: stealth', value: 'Introduced new stealth equipment & command for anonymizing your offensive movements.\n\n' },
+			{ name: 'Improved help, stats & leaderboard', value: 'Aesthetic uplift to help, stats and leaderboard commands.\n\n' },
+			{ name: 'Scaffolding for Structures', value: 'Structures (upon their full release) are permanent assets players can invest in during "peace" time (no active war) to give them a strategic advantage in future wars. v3.0 introduces structures as part of players\' hall profiles. The ability to build and utilize them will come in a later release. Example structure:'
+			+ '\nNuclear Silo - 0/5\nFor each level invested, increase inventory cap by 1 & damage output by 2%. Nukes now deal an additional damage over time effect called *radiation*.' },
+			{ name: 'Other updates and bug fixes', value: '* Bug fix to mining collapse rate\n* Rebalancing to equipment and shatter, most notably the introduction of inventory caps starting at 5 but expandable via structures\n* Add check-only option to check cloak and stealth timer and inventory' },
+		  )
+		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
+			
 	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
   
 	  const response = {
@@ -1540,40 +1575,3 @@ function compare( a, b ) {
 	  return response;
   }
   
-
-  const helpResponse = '```Welcome to Vibranium Wars!\
-  \nObjective:\
-  \nAcquire more vibranium bars than your opponents.\
-  \n\
-  \nHow to play:\
-  \nUse /vw mine command to mine for vibranium ore & rare equipment chests.\
-  \n\
-  \nUse /vw build & /vw train to increase your city & military size.\
-  \n\
-  \nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "Location known", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
-  \n\
-  \nUse /vw smelt to convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\
-  \n\
-  \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
-  \n\Fuel - Gain 20 energy, 30m cool down\
-  \n\Cloak - Hide your stats & non-offensive moves from other players for 8h\
-  \n\Stealth - Anonymize your offensive moves from other players for 20m\
-  \n\Jam - Prevent opponent from using attack command for 20m\
-  \n\Shield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\
-  \n\Shell - Destroy 30% of an opponent\'s city\
-  \n\Strike - Destroy 30% of an opponent\'s military\
-  \n\Nuke - Destroy 40% of an opponent\'s city & military\
-  \n\
-  \nUse /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\
-  \nEnergy regens 1 per every 5m.\
-  \n\
-  \n\End game: \
-  \n\Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).\
-  \n\
-  \nCreator & developer:\
-  \nGeneral Ronimus\
-  \n\
-  \nGame design:\
-  \nPlayBoyPK\
-  \n```\
-  '
