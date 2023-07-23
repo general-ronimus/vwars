@@ -15,7 +15,7 @@ beforeEach(() => {
 test('mine', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_mine.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -23,7 +23,7 @@ test('mine', async () => {
 test('build', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_build.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -31,7 +31,7 @@ test('build', async () => {
 test('train', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_train.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -39,7 +39,7 @@ test('train', async () => {
 test('stats', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_stats.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -47,7 +47,7 @@ test('stats', async () => {
 test('leaderboard', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_leaderboard.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -55,49 +55,49 @@ test('leaderboard', async () => {
 test('buy fuel', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_fuel.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 test('buy cloak', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_cloak.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 test('buy shield', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_shield.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 test('buy sabotage', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_sabotage.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 test('buy strike', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_strike.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 test('buy nuke', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_nuke.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 test('buy but cant afford', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_buy_cantAfford.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -105,7 +105,7 @@ test('buy but cant afford', async () => {
 test('fuel', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_fuel.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -113,7 +113,7 @@ test('fuel', async () => {
 test('cloak', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_cloak.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -121,7 +121,7 @@ test('cloak', async () => {
 test('shield', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_shield.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -129,7 +129,7 @@ test('shield', async () => {
 test('strike', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_strike.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -137,7 +137,7 @@ test('strike', async () => {
 test('sabotage', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_sabotage.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
@@ -145,16 +145,23 @@ test('sabotage', async () => {
 test('nuke', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_nuke.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });
 
-
 test('hall', async () => {
   let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_hall.json")
   let slashCommandBodyJson = JSON.parse(slashCommandBody)
-  let response = await vwarsCommandProcessor.process(slashCommandBodyJson)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
+  console.log(response)
+  expect(response.statusCode).toBe(200);
+});
+
+test('help', async () => {
+  let slashCommandBody = fs.readFileSync("testResources/sampleSlashCommandBody_help.json")
+  let slashCommandBodyJson = JSON.parse(slashCommandBody)
+  let response = await vwarsCommandProcessor.processCommand(slashCommandBodyJson)
   console.log(response)
   expect(response.statusCode).toBe(200);
 });

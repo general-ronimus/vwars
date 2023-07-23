@@ -51,6 +51,7 @@ async function createWar(requestedWar) {
     let isConcluded = false
     let iteration = 1
     let speed = 1
+    let isPreRelease = false
     if(requestedWar.name) {
         name = requestedWar.name
     }
@@ -75,6 +76,9 @@ async function createWar(requestedWar) {
     if(requestedWar.speed) {
         speed = requestedWar.speed
     }
+    if(requestedWar.isPreRelease) {
+        isPreRelease = requestedWar.isPreRelease
+    }
     
 	let initializedWar = {
 		guildId: requestedWar.guildId,
@@ -86,7 +90,8 @@ async function createWar(requestedWar) {
         isConcluded: isConcluded,
 		energyRefreshMinutes: energyRefreshMinutes,
         iteration: iteration,
-        speed: speed
+        speed: speed,
+        isPreRelease: isPreRelease
 	};
     console.log('Creating new war: ' + JSON.stringify(initializedWar))
 	await db.putWar(initializedWar)
@@ -169,6 +174,8 @@ async function concludeWar(warToConclude) {
                 guildUser = userService.migrateGuildUser(guildUser)
             }
     
+            let remainingCityMilitary = user.city + user.military
+            guildUser.population += remainingCityMilitary
             guildUser.barHistoricalVibranium += user.bar
             guildUser.barVibranium += user.bar
             guildUser.wars += 1
@@ -176,6 +183,10 @@ async function concludeWar(warToConclude) {
             guildUser.netStolen += user.netStolen
             guildUser.netCityDamage += user.netCityDamage
             guildUser.netMilitaryDamage += user.netMilitaryDamage
+            guildUser.netAttack += user.netAttack
+            guildUser.netRout += user.netRout
+            guildUser.netShatter += user.netShatter
+            guildUser.netEquipmentSteal += user.netEquipmentSteal
             guildUser.netFuel += user.netFuel
             guildUser.netCloak += user.netCloak
             guildUser.netStealth += user.netStealth
@@ -247,6 +258,10 @@ function migrateWar(war) {
     if(war.speed === undefined) {
 		war.speed = 1
 	}
+    if(war.isPreRelease === undefined) {
+		war.isPreRelease = false
+	}
+    
     return war
 }
 

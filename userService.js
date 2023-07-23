@@ -36,8 +36,8 @@ function migrateUser(user) {
 		'ore', 'bar', 'city', 'military', 'energy', 'energyUpdatedAt', 'shieldUpdatedAt', 'shieldHealth',
 		'lastFueled', 'lastCloaked', 'lastStealthed', 'lastJammed', 'lastShattered', 'equipmentFuel',
 		'equipmentCloak', 'equipmentStealth', 'equipmentJam', 'equipmentShield', 'equipmentSabotage',
-		'equipmentStrike', 'equipmentNuke','netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack',
-		'netRout', 'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke',
+		'equipmentStrike', 'equipmentNuke','netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 
+		'netShatter', 'netEquipmentSteal', 'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke',
 		'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 'structNavalBase', 
 		'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
 		'structArmoredVehicleDepot', 'structCommandCenter'
@@ -60,8 +60,8 @@ function migrateGuildUser(user) {
 	
 	let attributes = [
 		'barHistoricalVibranium', 'barVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
-		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 'netFuel', 
-		'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 
+		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 'netShatter', 'netEquipmentSteal', 
+		'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 
 		'population', 'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 
 		'structNavalBase', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
 		'structArmoredVehicleDepot', 'structCommandCenter', 

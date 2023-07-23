@@ -7,6 +7,8 @@ const db = require('./vwarsDbService.js')
 const userService = require('./userService.js')
 const warService = require('./warService.js')
 const queuingService = require('./vwarsQueuingService.js')
+const { MessageEmbed } = require('discord.js');
+const { EmbedBuilder } = require('@discordjs/builders');
 const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
 const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
 const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
@@ -30,7 +32,7 @@ async function processCommand(slashCommandBody) {
 	currentTime = Date.now()
 	let slashCommand = parseSlashCommand(slashCommandBody)
 	if('help' === slashCommand.subCommand) {
-		return await help()
+		return await help(slashCommand)
 	} else if('hall' === slashCommand.subCommand) {
 		return await hall(slashCommand)
 	}
@@ -52,6 +54,7 @@ async function processCommand(slashCommandBody) {
 	}
 
 	// User retrieval and housekeeping
+	let firstTime = false
 	let userRecord = await db.getUser(activeWar.warId, slashCommand.userId)
 	let user = userRecord.Item
 	console.log('Retrieved user: ' + JSON.stringify(user))
@@ -61,6 +64,7 @@ async function processCommand(slashCommandBody) {
 		await db.putUser(user)
 		console.log('User record created for userId ' + user.userId)
 		millisElapsed = currentTime - activeWar.start
+		firstTime = true
 	} else {
 		user = userService.migrateUser(user)
 		millisElapsed = currentTime - user.energyUpdatedAt
@@ -69,8 +73,14 @@ async function processCommand(slashCommandBody) {
 	//Check for and protect idle users
 	let idleIntervalMillis = convertToSpeedAdjustedMillis(idleIntervalMinutes)
 	console.log('millisElapsed: ' + millisElapsed)
-	if(millisElapsed > idleIntervalMillis) {
-		return await protect(user, millisElapsed)
+	if(firstTime) {
+		if(activeWar.isPreRelease) {
+			return await welcomePreRelease(user)
+		} else {
+			return await welcome(user, slashCommand)
+		}
+	} else if(millisElapsed > idleIntervalMillis) {
+		return await welcomeBack(user, millisElapsed)
 	} else {
 		user = updateEnergy(user)
 		user = updateShield(user)
@@ -94,7 +104,7 @@ async function processCommand(slashCommandBody) {
 		return await jam(user, slashCommand)
 	} else if('shield' === slashCommand.subCommand) {
 		return await shield(user, slashCommand)
-	} else if('sabotage' === slashCommand.subCommand) {
+	} else if('shell' === slashCommand.subCommand) {
 		return await sabotage(user, slashCommand)
 	} else if('strike' === slashCommand.subCommand) {
 		return await strike(user, slashCommand)
@@ -193,7 +203,7 @@ async function mine(user, slashCommand) {
 	let minedOre = 0
 	let oreFound = false
 	let equipmentFound = 0
-	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['explosive', 0], ['nuclear warhead', 0]]);
+	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['crate of artillery rounds', 0], ['nuclear warhead', 0]]);
 	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
 		let roll = randomInteger(1, 1209)
@@ -227,7 +237,7 @@ async function mine(user, slashCommand) {
 				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
 			} else if(roll <= 1206) {
 				user.equipmentSabotage += 1
-				equipmentMap.set('explosive', equipmentMap.get('explosive') + 1)
+				equipmentMap.set('crate of artillery rounds', equipmentMap.get('crate of artillery rounds') + 1)
 			} else if(roll == 1207) {
 				user.equipmentNuke += 1
 				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
@@ -265,7 +275,11 @@ async function mine(user, slashCommand) {
 				if(value == 1) {
 					miningResponse += ' ' + value + ' ' + key
 				} else if(value > 1) {
-					miningResponse += ' ' + value + ' ' + key + 's'
+					if(key === 'crate of artillery rounds') {
+						miningResponse += ' ' + value + ' ' + 'crates of artillery rounds'
+					} else {
+						miningResponse += ' ' + value + ' ' + key + 's'
+					}
 				}
 				if(equipmentIter < equipmentFound) {
 					miningResponse += ','
@@ -378,6 +392,7 @@ async function build(user, slashCommand) {
 	let routRoll = 0
 	if(winPercentage >= 0.08) {
 		isRout = true
+		user.netRout += 1
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
@@ -395,6 +410,7 @@ async function build(user, slashCommand) {
 		targetUser.bar -= 1
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
+		user.netShatter += 1
 		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
 	} else if(isRoutEquipment && targetUser.shieldHealth <= 0) {
 		let equipmentStolen = null
@@ -426,7 +442,7 @@ async function build(user, slashCommand) {
 			if(targetUser.equipmentSabotage > 0) {
 				targetUser.equipmentSabotage -= 1
 				user.equipmentSabotage += 1
-				equipmentStolen = 'explosive'
+				equipmentStolen = 'crate of artillery rounds'
 			}
 		} else if(routRoll === 6) {
 			if(targetUser.equipmentStrike > 0) {
@@ -449,6 +465,7 @@ async function build(user, slashCommand) {
 		}
 
 		if(equipmentStolen != null) {
+			user.netEquipmentSteal += 1
 			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
 		} else {
 			isRoutEquipment = false
@@ -503,8 +520,15 @@ async function build(user, slashCommand) {
  * HELP
  * 
  */
- async function help() {
-	 return respondEphemeral(helpResponse)
+ async function help(slashCommand) {
+	let page = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		page = slashCommand.subCommandArgs[0]
+	}
+	if('release notes' === page) {
+		return respondWithHelpReleaseNotes()
+	}
+	return respondWithHelp()
 }
 
 
@@ -554,10 +578,10 @@ async function build(user, slashCommand) {
 		'\nShield integrity: ' + shieldIntegrity +
 		'\nWarehouse: ' + warehouse +
 		'\nEquipment' +
-		'\n| fuel|  cloak|  stealth| shield|' +
-		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|'+ targetUser.equipmentStealth.toString().padStart(7) + '/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
-		'\n|  jam| strike| sabotage|   nuke|' +
-		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(7) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'\n| fuel|  cloak| stealth| shield|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|     ?/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
+		'\n|  jam| strike|   shell|   nuke|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
 		'```'
 
 	return respondAndCheckForCloak(user, response)
@@ -633,13 +657,16 @@ async function hall(slashCommand) {
 		responseString += '\nTroops destroyed: ' + guildUser.netMilitaryDamage
 		responseString += '\nOre mined: ' + guildUser.netMined
 		responseString += '\nOre stolen: ' + guildUser.netStolen
+		responseString += '\nForces routed: ' + guildUser.netRout
+		responseString += '\nVibranium warehouses raided: ' + guildUser.netShatter
+		responseString += '\nEquipment stolen: ' + guildUser.netEquipmentSteal
 		responseString += '\nBarrels of fuel used: ' + guildUser.netFuel
 		responseString += '\nCloaking devices activated: ' + guildUser.netCloak
 		responseString += '\nStealth missions completed: ' + guildUser.netStealth
 		responseString += '\nRadio communications jammed: ' + guildUser.netJam
 		responseString += '\nShield generators engaged: ' + guildUser.netShield
 		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
-		responseString += '\nExplosives detonated: ' + guildUser.netSabotage
+		responseString += '\nArtillery barrages ordered: ' + guildUser.netSabotage
 		responseString += '\nNukes launched: ' + guildUser.netNuke
 
 		responseString += '\n\nCapital city'
@@ -741,14 +768,14 @@ async function hall(slashCommand) {
 		}	
 	} else if('stealth' === item) {
 		if(user.equipmentStealth >= 5) {
-			return respondAndCheckForCloak(user, 'Your inventory for this equipment is full.')
+			return respondEphemeral('Your inventory for this equipment is full.')
 		}
 		if(user.ore >= 3500) {
 			user.ore -= 3500
 			user.equipmentStealth += 1
 			itemPurchased = 'stealth UAV'
 		} else {
-			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
+			return respondEphemeral('You do not have enough vibranium ore.')
 		}	
 	} else if('jam' === item) {
 		if(user.equipmentJam >= 5) {
@@ -779,7 +806,7 @@ async function hall(slashCommand) {
 		if(user.ore >= 2000) {
 			user.ore -= 2000
 			user.equipmentSabotage += 1
-			itemPurchased = 'explosive'
+			itemPurchased = 'crate of artillery rounds'
 		} else {
 			return respondAndCheckForCloak(user, 'You do not have enough vibranium ore.')
 		}	
@@ -811,6 +838,9 @@ async function hall(slashCommand) {
 
 	await db.putUser(user)
 	let response = 'You have purchased an equipment chest containing one ' + itemPurchased + '.'
+	if('stealth' === item) {
+		respondEphemeral(response)
+	}
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -852,6 +882,19 @@ async function fuel(user, slashCommand) {
  * 
  */
 async function cloak(user, slashCommand) {
+	let checkOnly = false
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		checkOnly = JSON.parse(slashCommand.subCommandArgs[0])
+	}
+	if(checkOnly == true) {
+		let response = 'Cloak time remaining: No active cloak'
+		if(isCloaked(user.lastCloaked)) {
+			let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
+			response = 'Cloak time remaining: ' + timeRemainingAsCountdown(remainingMillis)
+		}
+		response += '\nInventory: ' + user.equipmentCloak
+		return respondEphemeral(response)
+	}
 	if(user.equipmentCloak < 1) {
 		return respondAndCheckForCloak(user, 'You have no cloaking devices in your inventory.')
 	}
@@ -872,6 +915,20 @@ async function cloak(user, slashCommand) {
  * 
  */
 async function stealth(user, slashCommand) {
+	let checkOnly = false
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
+		checkOnly = JSON.parse(slashCommand.subCommandArgs[0])
+	}
+	if(checkOnly == true) {
+		let response = 'Stealth time remaining: No deployed stealth UAVs'
+		if(isStealthed(user.lastStealthed)) {
+			let remainingMillis = (user.lastStealthed + (stealthIntervalMinutes * 60 * 1000)) - currentTime
+			response = 'Stealth time remaining: ' + timeRemainingAsCountdown(remainingMillis)
+		}
+		response += '\nInventory: ' + user.equipmentStealth
+		return respondEphemeral(response)
+	}
+
 	if(user.equipmentStealth < 1) {
 		return respondEphemeral('You have no stealth UAVs in your inventory.')
 	}
@@ -963,13 +1020,13 @@ async function shield(user, slashCommand) {
 
 
 /**
- * SABOTAGE
+ * SABOTAGE, presented as SHELL to the end user
  * 
  */
 async function sabotage(user, slashCommand) {
 	let targetUser = null
 	if(user.equipmentSabotage < 1) {
-		return respondAndCheckForStealth(user, 'You have no explosives in your inventory.', null)
+		return respondAndCheckForStealth(user, 'You have no artillery rounds in your inventory.', null)
 	}
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
 		let targetUserId = slashCommand.subCommandArgs[0]
@@ -987,7 +1044,7 @@ async function sabotage(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' sabotages ' + targetUser.username
+	response += ' orders an artillery barrage on ' + targetUser.username
 	targetUser = updateShield(targetUser) 
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
@@ -1295,7 +1352,7 @@ function isVulnerable(user) {
 }
 
 function getInvulnerableIntervalMinutes(user) {
-	if(user.bar <= 5) {
+	if(user.bar < 5) {
 		return null
 	}
 	let minInvulnerableIntervalMinutes = 480
@@ -1308,7 +1365,48 @@ function getInvulnerableIntervalMinutes(user) {
 	return invulnerableIntervalMinutes
 }
 
-async function protect(user, millisEllapsed) {
+
+async function welcome(user, slashCommand) {
+	let response = 'Welcome to Vibranium Wars!'
+	let guildUserRecord = await db.getGuildUser(slashCommand.guildId, slashCommand.userId)
+	let guildUser = guildUserRecord.Item
+	if(guildUser) {
+		let settlers = guildUser.population / 20
+		let maxSettlers = 10000
+		if(settlers < maxSettlers) {
+			settlers = guildUser.population / 20
+		} else {
+			settlers = maxSettlers
+		}
+		user.city += settlers / 2
+		user.military += settlers / 2
+		guildUser.population -= settlers
+		user = updateEnergy(user)
+		await db.putGuildUser(guildUser)
+		await db.putUser(user)
+		response += ' ' + settlers + ' troops have been conscripted from your capital city and deployed to your starting military and city.'
+	}
+	response += ' Use /vw help to review how to play & have fun!'
+	return respondEphemeral(response)
+}
+
+
+async function welcomePreRelease(user) {
+	user = updateShield(user)
+	if(user.shieldHealth < 100) {
+		user.shieldHealth = 100
+		user.shieldUpdatedAt = currentTime
+	}
+	user.lastCloaked = currentTime
+	user.ore = 20000
+	user = updateEnergy(user)
+	await db.putUser(user)
+	let response = 'Welcome to Vibranium Wars (pre-release)! For testing purposes, you are entering this war cloaked, shielded and supplied with 20,000 ore to spend how you see fit. Use /vw help to review how to play & have fun!'
+	return respondAndCheckForCloak(user, response)
+}
+
+
+async function welcomeBack(user, millisEllapsed) {
 	let dayElapsed = Math.floor(millisEllapsed / 86400000)
 	if(dayElapsed > 10) {
 		dayElapsed = 10
@@ -1327,7 +1425,7 @@ async function protect(user, millisEllapsed) {
 	user.city += addedCity
 	user = updateEnergy(user)
 	await db.putUser(user)
-	let response = 'Welcome back to the war! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play.'
+	let response = 'Welcome back to Vibranium Wars! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play & have fun!'
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -1426,39 +1524,54 @@ function compare( a, b ) {
   }
 
 
-  const helpResponse = '```Welcome to Vibranium Wars!\
-  \nObjective:\
-  \nAcquire more vibranium bars than your opponents.\
-  \n\
-  \nHow to play:\
-  \nUse /vw mine command to mine for vibranium ore & rare equipment chests.\
-  \n\
-  \nUse /vw build & /vw train to increase your city & military size.\
-  \n\
-  \nUse /vw attack to attack & steal a portion of a player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a rout, awarding 15% more ore. If the opponent\'s warehouse is "Location known", routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\
-  \n\
-  \nUse /vw smelt to convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\
-  \n\
-  \nEquipment chests unlock advanced commands. These can be purchased with ore using /vw buy, or found during mining.\
-  \n\Fuel - Gain 20 energy, 30m cool down\
-  \n\Cloak - Hide your stats & non-offensive moves from other players for 8h\
-  \n\Stealth - Anonymize your offensive moves from other players for 20m\
-  \n\Jam - Prevent opponent from using attack command for 20m\
-  \n\Shield - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\
-  \n\Sabotage - Destroy 30% of an opponent\'s city\
-  \n\Strike - Destroy 30% of an opponent\'s military\
-  \n\Nuke - Destroy 40% of an opponent\'s city & military\
-  \n\
-  \nUse /vw leaderboard to check this war\'s standings & /vw stats for individual player info.\
-  \nEnergy regens 1 per every 5m.\
-  \n\
-  \n\End game: \
-  \n\Use /vw hall to view the historical leaderboard for this server\'s Vibranium Wars players (COMING SOON).\
-  \n\
-  \nCreator & developer:\
-  \nGeneral Ronimus\
-  \n\
-  \nGame design:\
-  \nPlayBoyPK\
-  \n```\
-  '
+  function respondWithHelp() {
+
+	const helpEmbed = new EmbedBuilder()
+		.setTitle('Welcome to Vibranium Wars!')
+		.setDescription('**Objective:** Acquire more vibranium bars than your opponents.')
+		.setImage('https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png')
+		.addFields(
+			{ name: 'How to play', value: 'Type `/vw` followed by the desired command and command options (when applicable). Here is an example of using `mine` command with required option `energy` of 10: \n`/vw mine 10`\n\n' },
+			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 5m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack & steal a portion of another player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
+			{ name: 'Informational Commands', value: '*No cost*\n`/vw stats` - Receive a war report on yourself or another player \n`/vw leaderboard` -  Check current war standings & time remaining\n`/vw hall` - Check overall server standings or player profiles\n\n' },
+			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves from other players for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n\n' },
+			{ name: 'Conclusion', value: 'At the conclusion of a war, the Hall of Legends is updated to include the results of the war including issued medals, issued titles, vibranium bars earned, player statistics and player population all viewable using the `/vw hall` command.\n\n' },
+		  )
+		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
+			
+	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
+  
+	  const response = {
+		  statusCode: 200,
+		  body: JSON.stringify(responseBody),
+	  };
+  
+	  return response;
+  }
+
+  function respondWithHelpReleaseNotes() {
+
+	const helpEmbed = new EmbedBuilder()
+		.setTitle('Release Notes')
+		.setDescription('**Version:** v3.0')
+		.addFields(
+			{ name: 'Permanent player records', value: 'User standings and stats now persist at the server level. At the conclusion of each war, medals, stats & vibranium bars earned get saved to a player\'s permanent server record.\n\n' },
+			{ name: 'New command: hall', value: 'Introduced new hall command for displaying a server\'s standings and player permanent records.\n\n' },
+			{ name: 'New command: stealth', value: 'Introduced new stealth equipment & command for anonymizing your offensive movements.\n\n' },
+			{ name: 'Improved help, stats & leaderboard', value: 'Aesthetic uplift to help, stats and leaderboard commands.\n\n' },
+			{ name: 'Scaffolding for Structures', value: 'Structures (upon their full release) are permanent assets players can invest in during "peace" time (no active war) to give them a strategic advantage in future wars. v3.0 introduces structures as part of players\' hall profiles. The ability to build and utilize them will come in a later release. Example structure:'
+			+ '\nNuclear Silo - 0/5\nFor each level invested, increase inventory cap by 1 & damage output by 2%. Nukes now deal an additional damage over time effect called *radiation*.' },
+			{ name: 'Other updates and bug fixes', value: '* Bug fix to mining collapse rate\n* Rebalancing to equipment and shatter, most notably the introduction of inventory caps starting at 5 but expandable via structures\n* Add check-only option to check cloak and stealth timer and inventory' },
+		  )
+		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
+			
+	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
+  
+	  const response = {
+		  statusCode: 200,
+		  body: JSON.stringify(responseBody),
+	  };
+  
+	  return response;
+  }
+  

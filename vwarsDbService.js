@@ -97,9 +97,10 @@ async function putUser(user) {
 			netStolen : user.netStolen,
 			netCityDamage : user.netCityDamage,
 			netMilitaryDamage : user.netMilitaryDamage,
-			netMine: user.netMine,
 			netAttack: user.netAttack,
 			netRout: user.netRout,
+			netShatter: user.netShatter,
+			netEquipmentSteal: user.netEquipmentSteal,
 			netFuel : user.netFuel,
 			netCloak : user.netCloak,
 			netStealth : user.netStealth,
@@ -236,6 +237,10 @@ async function putGuildUser(user) {
 			netStolen : user.netStolen,
 			netCityDamage : user.netCityDamage,
 			netMilitaryDamage : user.netMilitaryDamage,
+			netAttack: user.netAttack,
+			netRout: user.netRout,
+			netShatter: user.netShatter,
+			netEquipmentSteal: user.netEquipmentSteal,
 			netFuel : user.netFuel,
 			netCloak : user.netCloak,
 			netStealth : user.netStealth,
@@ -357,7 +362,8 @@ async function putWar(war) {
 			start: war.start,
 			expiration: war.expiration,
 			energyRefreshMinutes: war.energyRefreshMinutes,
-			speed: war.speed
+			speed: war.speed,
+			isPreRelease: war.isPreRelease
   		},
 		ReturnValues: 'ALL_OLD'
 	};
