@@ -396,9 +396,9 @@ async function build(user, slashCommand) {
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
-			if(routRoll >= 11 && routRoll <= 18 ) {
+			if(routRoll >= 93 && routRoll <= 100 ) {
 				isRoutBar = true
-			} else if(routRoll >= 1 && routRoll <= 8) {
+			} else if(routRoll >= 1 && routRoll <= 16) {
 				isRoutEquipment = true
 			}
 		}
@@ -406,7 +406,7 @@ async function build(user, slashCommand) {
 
 	//Rout special scenarios logic
 	if(isRoutBar && targetUser.shieldHealth <= 0) {
-		let shatteredOre = randomInteger(8500, 12000)
+		let shatteredOre = randomInteger(9000, 12000)
 		targetUser.bar -= 1
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
@@ -414,49 +414,49 @@ async function build(user, slashCommand) {
 		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
 	} else if(isRoutEquipment && targetUser.shieldHealth <= 0) {
 		let equipmentStolen = null
-		if(routRoll === 1) {
+		if(routRoll >= 1 && routRoll <= 2) {
 			if(targetUser.equipmentFuel > 0) {
 				targetUser.equipmentFuel -= 1
 				user.equipmentFuel += 1
 				equipmentStolen = 'fuel reserve'
 			}
-		} else if(routRoll === 2) {
+		} else if(routRoll >= 3 && routRoll <= 4) {
 			if(targetUser.equipmentCloak > 0) {
 				targetUser.equipmentCloak -= 1
 				user.equipmentCloak += 1
 				equipmentStolen = 'cloaking device'
 			}
-		} else if(routRoll === 3) {
+		} else if(routRoll >= 5 && routRoll <= 6) {
 			if(targetUser.equipmentShield > 0) {
 				targetUser.equipmentShield -= 1
 				user.equipmentShield += 1
 				equipmentStolen = 'shield generator'
 			}
-		} else if(routRoll === 4) {
+		} else if(routRoll >= 7 && routRoll <= 8) {
 			if(targetUser.equipmentJam > 0) {
 				targetUser.equipmentJam -= 1
 				user.equipmentJam += 1
 				equipmentStolen = 'communications jammer'
 			}
-		} else if(routRoll === 5) {
+		} else if(routRoll >= 9 && routRoll <= 10) {
 			if(targetUser.equipmentSabotage > 0) {
 				targetUser.equipmentSabotage -= 1
 				user.equipmentSabotage += 1
 				equipmentStolen = 'crate of artillery rounds'
 			}
-		} else if(routRoll === 6) {
+		} else if(routRoll >= 11 && routRoll <= 12) {
 			if(targetUser.equipmentStrike > 0) {
 				targetUser.equipmentStrike -= 1
 				user.equipmentStrike += 1
 				equipmentStolen = 'ballistic missile'
 			}
-		} else if(routRoll === 7) {
+		} else if(routRoll >= 13 && routRoll <= 14) {
 			if(targetUser.equipmentNuke > 0) {
 				targetUser.equipmentNuke -= 1
 				user.equipmentNuke += 1
 				equipmentStolen = 'nuclear warhead'
 			}
-		} else if(routRoll === 8) {
+		} else if(routRoll >= 15 && routRoll <= 16) {
 			if(targetUser.equipmentStealth > 0) {
 				targetUser.equipmentStealth -= 1
 				user.equipmentStealth += 1
@@ -882,11 +882,12 @@ async function fuel(user, slashCommand) {
  * 
  */
 async function cloak(user, slashCommand) {
-	let checkOnly = false
+	let action = 'check'
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		checkOnly = JSON.parse(slashCommand.subCommandArgs[0])
+		action = slashCommand.subCommandArgs[0]
 	}
-	if(checkOnly == true) {
+
+	if('check' === action) {
 		let response = 'Cloak time remaining: No active cloak'
 		if(isCloaked(user.lastCloaked)) {
 			let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
@@ -894,19 +895,30 @@ async function cloak(user, slashCommand) {
 		}
 		response += '\nInventory: ' + user.equipmentCloak
 		return respondEphemeral(response)
+	} else if('activate' === action) {
+		if(user.equipmentCloak < 1) {
+			return respondEphemeral('You have no cloaking devices in your inventory.')
+		}
+		if(isCloaked(user.lastCloaked)) {
+			let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
+			return respondEphemeral('You are already cloaked. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
+		}
+		user.equipmentCloak -= 1
+		user.netCloak += 1
+		user.lastCloaked = currentTime
+		await db.putUser(user)
+		return respondEphemeral('You are now cloaked. Your stats and non-offensive movements are hidden from players for the next 8 hours.')
+	} else if('deactivate' === action) {
+		if(!isCloaked(user.lastCloaked)) {
+			return respondEphemeral('You have no active cloak.')
+		} else {
+			user.lastCloaked = 0
+			await db.putUser(user)
+			return respondEphemeral('Your cloak has been deactivated.')
+		}
+	} else {
+		return respondEphemeral('Invalid option.')
 	}
-	if(user.equipmentCloak < 1) {
-		return respondAndCheckForCloak(user, 'You have no cloaking devices in your inventory.')
-	}
-	if(isCloaked(user.lastCloaked)) {
-		let remainingMillis = (user.lastCloaked + (cloakIntervalMinutes * 60 * 1000)) - currentTime
-		return respondAndCheckForCloak(user, 'You are already cloaked. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
-	}
-	user.equipmentCloak -= 1
-	user.netCloak += 1
-	user.lastCloaked = currentTime
-	await db.putUser(user)
-	return respondEphemeral('You are now cloaked. Your stats and non-offensive movements are hidden from players for the next 8 hours.')
 }
 
  
@@ -915,11 +927,12 @@ async function cloak(user, slashCommand) {
  * 
  */
 async function stealth(user, slashCommand) {
-	let checkOnly = false
+	let action = 'check'
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		checkOnly = JSON.parse(slashCommand.subCommandArgs[0])
+		action = slashCommand.subCommandArgs[0]
 	}
-	if(checkOnly == true) {
+
+	if('check' === action) {
 		let response = 'Stealth time remaining: No deployed stealth UAVs'
 		if(isStealthed(user.lastStealthed)) {
 			let remainingMillis = (user.lastStealthed + (stealthIntervalMinutes * 60 * 1000)) - currentTime
@@ -927,20 +940,30 @@ async function stealth(user, slashCommand) {
 		}
 		response += '\nInventory: ' + user.equipmentStealth
 		return respondEphemeral(response)
+	} else if('activate' === action) {
+		if(user.equipmentStealth < 1) {
+			return respondEphemeral('You have no stealth UAVs in your inventory.')
+		}
+		if(isStealthed(user.lastStealthed)) {
+			let remainingMillis = (user.lastStealthed + (convertToSpeedAdjustedMillis(stealthIntervalMinutes))) - currentTime
+			return respondEphemeral('You already have a stealth UAV deployed. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
+		}
+		user.equipmentStealth -= 1
+		user.netStealth += 1
+		user.lastStealthed = currentTime
+		await db.putUser(user)
+		return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized for the next 20 minutes.')
+	} else if('deactivate' === action) {
+		if(!isStealthed(user.lastStealthed)) {
+			return respondEphemeral('You have no stealth UAV deployed at this time.')
+		} else {
+			user.lastStealthed = 0
+			await db.putUser(user)
+			return respondEphemeral('Your stealth mission has been concluded.')
+		}
+	} else {
+		return respondEphemeral('Invalid option.')
 	}
-
-	if(user.equipmentStealth < 1) {
-		return respondEphemeral('You have no stealth UAVs in your inventory.')
-	}
-	if(isStealthed(user.lastStealthed)) {
-		let remainingMillis = (user.lastStealthed + (convertToSpeedAdjustedMillis(stealthIntervalMinutes))) - currentTime
-		return respondEphemeral('You already have a stealth UAV deployed. Time remaining: ' + timeRemainingAsCountdown(remainingMillis))
-	}
-	user.equipmentStealth -= 1
-	user.netStealth += 1
-	user.lastStealthed = currentTime
-	await db.putUser(user)
-	return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized for the next 20 minutes.')
 }
 
 
@@ -1357,8 +1380,8 @@ function getInvulnerableIntervalMinutes(user) {
 	}
 	let minInvulnerableIntervalMinutes = 480
 
-	// Starting with a max cooldown of 5 days (120 hours), for every bar a user owns reduce the cooldown by 4 hours
-	let invulnerableIntervalMinutes = 60 * (120 - 4 * user.bar)
+	// Starting with a max cooldown of 4 days (96 hours), for every bar a user owns reduce the cooldown by 4 hours
+	let invulnerableIntervalMinutes = 60 * (96 - 4 * user.bar)
 	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
 		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
 	}
