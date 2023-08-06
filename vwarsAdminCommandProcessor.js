@@ -29,6 +29,8 @@ async function processCommand(slashCommandBody) {
 		return await deactivate(slashCommand)
 	} else if('conclude' === slashCommand.subCommand) {
 		return await conclude(slashCommand)
+	} else if('leaderboard' === slashCommand.subCommand) {
+		return await leaderboard(slashCommand)
 	}
 	return respondEphemeral('Invalid command')
 }
@@ -276,6 +278,46 @@ async function conclude(slashCommand) {
 	return respondEphemeral('War ' + warId + ' has been concluded. ' + result + ' users\' server records have been updated.')
 }
 
+async function leaderboard(slashCommand) {
+	let warId = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('id')) {
+			warId = slashCommand.subCommandArgs.get('id')
+		} else {
+			return respondEphemeral('Missing or improperly formatted argument.')
+		}
+	}
+
+	let warRecord = await db.getWar(slashCommand.guildId, warId)
+	let retrievedWar = warRecord.Item
+
+	if(!retrievedWar.isConcluded) {
+		return respondEphemeral('Unable to reveal results of an unconcluded war.')
+	}
+
+	let responseString = '```Leaderboard'
+	responseString += '\nWar: ' + retrievedWar.name
+	responseString += '\n💠 - Vibranium bars\n🪨 - Vibranium ore'
+
+	let retrievedUsers = await db.getUsers(retrievedWar.warId)
+	if(retrievedUsers.Items.length > 0) {
+		// Calculate the maximum length for each column
+		let longestBars = 1
+        let longestOre = 1
+        retrievedUsers.Items.forEach(user => {
+            if (user.bar.toString().length > longestBars) longestBars = user.bar.toString().length;
+            if (user.ore.toString().length > longestOre) longestOre = user.ore.toString().length;
+        });
+
+        // Generate table data
+        retrievedUsers.Items.sort(compare).forEach(user => {
+            responseString += `\n|${user.bar.toString().padStart(longestBars)}💠|${user.ore.toString().padStart(longestOre)}🪨|${user.username}`;
+        });
+    }
+
+	 responseString += '```'
+	 return respond(responseString)
+}
 
 /**
  * HELPER FUNCTIONS
