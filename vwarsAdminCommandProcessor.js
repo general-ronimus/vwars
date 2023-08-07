@@ -353,11 +353,18 @@ function isNumeric(value) {
 }
 
 function compare( a, b ) {
-	if ( a.ore < b.ore ){ 
-	  return 1;
+	if ( a.bar === '??' || a.bar < b.bar ){ 
+		return 1;
 	}
-	if ( a.ore > b.ore ){
-	  return -1;
+	if ( b.bar === '??' || a.bar > b.bar ){
+		return -1;
+	}
+
+	if ( a.ore === '??' || a.ore < b.ore ){ 
+		return 1;
+	}
+	if ( b.ore === '??' || a.ore > b.ore ){
+	  	return -1;
 	}
 	return 0;
   }
