@@ -17,7 +17,7 @@ const cloakIntervalMinutes = 480
 const stealthIntervalMinutes = 20
 const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 20
-let energyIntervalMinutes = 5
+let energyIntervalMinutes = 4
 let idleIntervalMinutes = 2880
 let speed = 1
 let currentTime = null
@@ -666,7 +666,7 @@ async function hall(slashCommand) {
 		responseString += '\nRadio communications jammed: ' + guildUser.netJam
 		responseString += '\nShield generators engaged: ' + guildUser.netShield
 		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
-		responseString += '\nArtillery barrages ordered: ' + guildUser.netSabotage
+		responseString += '\nArtillery bombardments ordered: ' + guildUser.netSabotage
 		responseString += '\nNukes launched: ' + guildUser.netNuke
 
 		responseString += '\n\nCapital city'
@@ -1067,7 +1067,7 @@ async function sabotage(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' orders an artillery barrage on ' + targetUser.username
+	response += ' orders an artillery bombardment on ' + targetUser.username
 	targetUser = updateShield(targetUser) 
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
@@ -1394,15 +1394,14 @@ async function welcome(user, slashCommand) {
 	let guildUserRecord = await db.getGuildUser(slashCommand.guildId, slashCommand.userId)
 	let guildUser = guildUserRecord.Item
 	if(guildUser) {
-		let settlers = guildUser.population / 20
+		let settlers = Math.floor(guildUser.population / 20)
 		let maxSettlers = 10000
-		if(settlers < maxSettlers) {
-			settlers = guildUser.population / 20
-		} else {
+		if(settlers > maxSettlers) {
 			settlers = maxSettlers
 		}
-		user.city += settlers / 2
-		user.military += settlers / 2
+		
+		user.city += Math.floor(settlers / 2)
+		user.military += Math.floor(settlers / 2)
 		guildUser.population -= settlers
 		user = updateEnergy(user)
 		await db.putGuildUser(guildUser)
