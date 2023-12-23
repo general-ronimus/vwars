@@ -76,11 +76,13 @@ async function processCommand(slashCommandBody) {
 	if(firstTime) {
 		if(activeWar.isPreRelease) {
 			return await welcomePreRelease(user)
+		} else if(millisElapsed > idleIntervalMillis) {
+			return await welcomeAndResupply(user, millisElapsed, true)
 		} else {
 			return await welcome(user, slashCommand)
 		}
 	} else if(millisElapsed > idleIntervalMillis) {
-		return await welcomeBack(user, millisElapsed)
+		return await welcomeAndResupply(user, millisElapsed, false)
 	} else {
 		user = updateEnergy(user)
 		user = updateShield(user)
@@ -400,7 +402,7 @@ async function build(user, slashCommand) {
 				isRoutBar = true
 			} else if(routRoll >= 1 && routRoll <= 16) {
 				isRoutEquipment = true
-			}
+			}12000
 		}
 	}
 
@@ -638,75 +640,136 @@ async function leaderboard(user, slashCommand) {
 async function hall(slashCommand) {
 
 	let responseString = '```Hall of Legends'
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+	let targetUserId = null
+	let warId = null
+	let retrievedWar = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('user')) {
+			targetUserId = slashCommand.subCommandArgs.get('user')
+		} 
+		if(slashCommand.subCommandArgs.get('war')) {
+			warId = JSON.parse(slashCommand.subCommandArgs.get('war'))
+			let warRecord = await db.getWar(slashCommand.guildId, warId)
+			retrievedWar = warRecord.Item
+			if(null == retrievedWar) {
+				return respond('Invalid war id.')
+			}
+			if(!retrievedWar.isConcluded) {
+				return respondEphemeral('Unable to reveal data from an unconcluded war.')
+			}
+		} 
+	}
 
-		let targetUserId = slashCommand.subCommandArgs[0]
-		let targetUserRecord = await db.getGuildUser(slashCommand.guildId, targetUserId)
-		let guildUser = targetUserRecord.Item
-		if(null == guildUser) {
+	if(targetUserId) {
+		if(warId) {
+			let targetUserRecord = await db.getUser(warId, targetUserId)
+			let user = targetUserRecord.Item
+			if(null == user) {
 			return respond('Invalid user.')
-		}
-		responseString += '\nPlayer: ' + guildUser.username
-		let medalColumnLength = 4
-		responseString += '\nAccolades\n| ' + (guildUser.medalFirst || 0).toString().padStart(medalColumnLength) + '🥇| ' + (guildUser.medalSecond || 0).toString().padStart(medalColumnLength) + '🥈| ' + (guildUser.medalThird || 0).toString().padStart(medalColumnLength) + '🥉| ' + (guildUser.medalStar || 0).toString().padStart(medalColumnLength) + '🎖|'
-		responseString += '\n💠(total earned): ' + guildUser.barHistoricalVibranium
-		responseString += '\nWars fought: ' + guildUser.wars
+			}
+			responseString += '\nCommander: ' + user.username
+			responseString += '\nWar: ' + warId
 
-		responseString += '\n\nStatistics'
-		responseString += '\nBuildings burned: ' + guildUser.netCityDamage
-		responseString += '\nTroops destroyed: ' + guildUser.netMilitaryDamage
-		responseString += '\nOre mined: ' + guildUser.netMined
-		responseString += '\nOre stolen: ' + guildUser.netStolen
-		responseString += '\nForces routed: ' + guildUser.netRout
-		responseString += '\nVibranium warehouses raided: ' + guildUser.netShatter
-		responseString += '\nEquipment stolen: ' + guildUser.netEquipmentSteal
-		responseString += '\nBarrels of fuel used: ' + guildUser.netFuel
-		responseString += '\nCloaking devices activated: ' + guildUser.netCloak
-		responseString += '\nStealth missions completed: ' + guildUser.netStealth
-		responseString += '\nRadio communications jammed: ' + guildUser.netJam
-		responseString += '\nShield generators engaged: ' + guildUser.netShield
-		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
-		responseString += '\nArtillery bombardments ordered: ' + guildUser.netSabotage
-		responseString += '\nNukes launched: ' + guildUser.netNuke
+			responseString += '\n\nWar Statistics'
+			responseString += '\n💠 (final count): ' + user.bar
+			responseString += '\n🪨 (final count): ' + user.ore
+			responseString += '\nOre mined: ' + user.netMined
+			responseString += '\nOre stolen: ' + user.netStolen
+			responseString += '\nBuildings burned: ' + user.netCityDamage
+			responseString += '\nTroops destroyed: ' + user.netMilitaryDamage
+			responseString += '\nForces routed: ' + user.netRout
+			responseString += '\nVibranium warehouses raided: ' + user.netShatter
+			responseString += '\nEquipment stolen: ' + user.netEquipmentSteal
+			responseString += '\nBarrels of fuel used: ' + user.netFuel
+			responseString += '\nCloaking devices activated: ' + user.netCloak
+			responseString += '\nStealth missions completed: ' + user.netStealth
+			responseString += '\nRadio communications jammed: ' + user.netJam
+			responseString += '\nShield generators engaged: ' + user.netShield
+			responseString += '\nBallistic missiles launched: ' + user.netStrike
+			responseString += '\nArtillery bombardments ordered: ' + user.netSabotage
+			responseString += '\nNukes launched: ' + user.netNuke
 
-		responseString += '\n\nCapital city'
-		responseString += '\nPopulation: ' + guildUser.population
-		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/5'
-		responseString += '\nReinforced hangar: ' + guildUser.structReinforcedHangar + '/5'
-		responseString += '\nResearch facility: ' + guildUser.structResearchFacility + '/5'
-		responseString += '\nComms array: ' + guildUser.structCommsArray + '/5'
-		responseString += '\nNaval base: ' + guildUser.structNavalBase + '/5'
-		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/5'
-		responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/5'
-		responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/5     '
+		} else {
+			let targetUserRecord = await db.getGuildUser(slashCommand.guildId, targetUserId)
+			let guildUser = targetUserRecord.Item
+			if(null == guildUser) {
+			return respond('Invalid user.')
+			}
 
-		responseString += '\n\nResources'
-		let resourceColumnLength = 10
-		let countColumnLength = 7
-		responseString += '\n|' + 'Material'.padStart(resourceColumnLength) + '|' + 'Ore'.padStart(countColumnLength) + '|' + 'Bars'.padStart(countColumnLength) + '|'
-		responseString += '\n|' + '-'.repeat(resourceColumnLength) + '|' + '-'.repeat(countColumnLength) + '|' + '-'.repeat(countColumnLength) + '|'
-		//Future full set of materials let resourceNames = ['vibranium','uranium', 'beryllium', 'gold', 'silver', 'tungsten', 'titanium', 'cobalt', 'copper', 'lead', 'iron', 'aluminum'];
-		let resourceNames = ['vibranium','uranium','gold', 'lead', 'iron', 'aluminum'];
-		for(let resource of resourceNames) {
-    		let oreField = 'ore' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		let barField = 'bar' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		responseString += '\n|' + resource.padStart(resourceColumnLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countColumnLength) + '|' + (guildUser[barField] || 0).toString().padStart(countColumnLength) + '|';
+			let medalColumnLength = 4
+			responseString += '\nCommander: ' + guildUser.username
+			responseString += '\nAccolades\n| ' + (guildUser.medalFirst || 0).toString().padStart(medalColumnLength) + '🥇| ' + (guildUser.medalSecond || 0).toString().padStart(medalColumnLength) + '🥈| ' + (guildUser.medalThird || 0).toString().padStart(medalColumnLength) + '🥉| ' + (guildUser.medalStar || 0).toString().padStart(medalColumnLength) + '🎖|'
+			responseString += '\n💠(total earned): ' + guildUser.barHistoricalVibranium
+			responseString += '\nWars fought: ' + guildUser.wars
+
+			responseString += '\n\nAll-Time Statistics'
+			responseString += '\nOre mined: ' + guildUser.netMined
+			responseString += '\nOre stolen: ' + guildUser.netStolen
+			responseString += '\nBuildings burned: ' + guildUser.netCityDamage
+			responseString += '\nTroops destroyed: ' + guildUser.netMilitaryDamage
+			responseString += '\nForces routed: ' + guildUser.netRout
+			responseString += '\nVibranium warehouses raided: ' + guildUser.netShatter
+			responseString += '\nEquipment stolen: ' + guildUser.netEquipmentSteal
+			responseString += '\nBarrels of fuel used: ' + guildUser.netFuel
+			responseString += '\nCloaking devices activated: ' + guildUser.netCloak
+			responseString += '\nStealth missions completed: ' + guildUser.netStealth
+			responseString += '\nRadio communications jammed: ' + guildUser.netJam
+			responseString += '\nShield generators engaged: ' + guildUser.netShield
+			responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
+			responseString += '\nArtillery bombardments ordered: ' + guildUser.netSabotage
+			responseString += '\nNukes launched: ' + guildUser.netNuke
+
+			responseString += '\n\nCapital city'
+			responseString += '\nPopulation: ' + guildUser.population
+			responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/5'
+			responseString += '\nReinforced hangar: ' + guildUser.structReinforcedHangar + '/5'
+			responseString += '\nResearch facility: ' + guildUser.structResearchFacility + '/5'
+			responseString += '\nComms array: ' + guildUser.structCommsArray + '/5'
+			responseString += '\nNaval base: ' + guildUser.structNavalBase + '/5'
+			responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/5'
+			responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/5'
+			responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/5     '
+
 		}
 
 	} else {		
-		responseString += '\n1 - First place medals 🥇\n2 - Second place medals 🥈\n3 - Third place medals 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
-		let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
-		let playerColumnWidth = 15
-		let medalColumnWidth = 2
-		let barColumnWidth = 5
-		let warColumnWidth = 3
-		if(retrievedGuildUsers.Items.length > 0) {
-			responseString += '\n|Player         | 1| 2| 3|  Bar|War|'
-			responseString += '\n|----------------------------------|'
-			retrievedGuildUsers.Items.sort(compareGuildUser).forEach(guildUser => {
-				responseString += `\n|${(guildUser.username.substring(0, playerColumnWidth).padStart(playerColumnWidth) || 0)}|${(guildUser.medalFirst.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.medalSecond.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.medalThird.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.barHistoricalVibranium.toString().padStart(barColumnWidth) || 0)}|${(guildUser.wars.toString().padStart(warColumnWidth) || 0)}|`;
-			});
+		if(warId) {
+			let responseString = '```Leaderboard'
+			responseString += '\nWar: ' + retrievedWar.name
+			responseString += '\n💠 - Vibranium bars\n🪨 - Vibranium ore'
+
+			let retrievedUsers = await db.getUsers(retrievedWar.warId)
+			if(retrievedUsers.Items.length > 0) {
+				// Calculate the maximum length for each column
+				let longestBars = 1
+        		let longestOre = 1
+        		retrievedUsers.Items.forEach(user => {
+            		if (user.bar.toString().length > longestBars) longestBars = user.bar.toString().length;
+            		if (user.ore.toString().length > longestOre) longestOre = user.ore.toString().length;
+        		});
+
+        		// Generate table data
+        		retrievedUsers.Items.sort(compare).forEach(user => {
+            	responseString += `\n|${user.bar.toString().padStart(longestBars)}💠|${user.ore.toString().padStart(longestOre)}🪨|${user.username}`;
+        		});
+    		}
+			
+		} else {
+			responseString += '\n1 - First place medals 🥇\n2 - Second place medals 🥈\n3 - Third place medals 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
+			let retrievedGuildUsers = await db.getGuildUsers(slashCommand.guildId)
+			let playerColumnWidth = 15
+			let medalColumnWidth = 2
+			let barColumnWidth = 5
+			let warColumnWidth = 3
+			if(retrievedGuildUsers.Items.length > 0) {
+				responseString += '\n|Player         | 1| 2| 3|  Bar|War|'
+				responseString += '\n|----------------------------------|'
+				retrievedGuildUsers.Items.sort(compareGuildUser).forEach(guildUser => {
+					responseString += `\n|${(guildUser.username.substring(0, playerColumnWidth).padStart(playerColumnWidth) || 0)}|${(guildUser.medalFirst.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.medalSecond.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.medalThird.toString().padStart(medalColumnWidth) || 0)}|${(guildUser.barHistoricalVibranium.toString().padStart(barColumnWidth) || 0)}|${(guildUser.wars.toString().padStart(warColumnWidth) || 0)}|`;
+				});
+			}
 		}
+	
 	}
 	responseString += '```'
 	return respond(responseString)
@@ -1428,8 +1491,8 @@ async function welcomePreRelease(user) {
 }
 
 
-async function welcomeBack(user, millisEllapsed) {
-	let dayElapsed = Math.floor(millisEllapsed / 86400000)
+async function welcomeAndResupply(user, millisElapsed, firstTime) {
+	let dayElapsed = Math.floor(millisElapsed / 86400000)
 	if(dayElapsed > 10) {
 		dayElapsed = 10
 	}
@@ -1447,7 +1510,11 @@ async function welcomeBack(user, millisEllapsed) {
 	user.city += addedCity
 	user = updateEnergy(user)
 	await db.putUser(user)
-	let response = 'Welcome back to Vibranium Wars! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play & have fun!'
+
+	let response = 'Welcome back to Vibranium Wars! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an activated cloaking device and shield generator. Use /vw help to review how to play & have fun!'
+	if(firstTime) {
+		response = 'Welcome to Vibranium Wars! Your late entry into this war has allowed your forces to better prepare granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an activated cloaking device and shield generator. Use /vw help to review how to play & have fun!'
+	}
 	return respondAndCheckForCloak(user, response)
 }
 
