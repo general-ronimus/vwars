@@ -2,7 +2,7 @@ const db = require('./vwarsDbService.js')
 const crypto = require('crypto');
 
 module.exports ={
-    initUser, initGuildUser, migrateUser, migrateGuildUser
+    initUser, initGuildUser, migrateUser, migrateGuildUser, initGlobalUser, migrateGlobalUsers
 }
 
 function initUser(warId, slashCommand, currentTime, initialEnergy) {
@@ -28,6 +28,17 @@ function initGuildUser(guildId, userId, username) {
         titles: [],
     }   
     return migrateGuildUser(initializedGuildUser)
+}
+
+function initGlobalUser(slashCommand, currentTime, initialEnergy) {
+	console.log('Initializing new global user - userId: ' + slashCommand.userId + ", username: " + slashCommand.username)
+	let initializedUser = {
+		userId: slashCommand.userId,
+		username: slashCommand.username,
+		energy: initialEnergy,
+		energyUpdatedAt: currentTime, //May be able to replace with 0
+	};
+	return migrateGlobalUser(initializedUser)
 }
 
 function migrateUser(user) {
@@ -75,6 +86,33 @@ function migrateGuildUser(user) {
 			user[attribute] = 0
 		}
 	});
+		
+	return user
+}
+
+function migrateGlobalUser(user) {
+
+	let attributes = [
+		'energy', 'energyUpdatedAt', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
+		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 
+		'netShatter', 'netEquipmentSteal', 'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke',
+		'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 'structNavalBase', 
+		'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
+		'structArmoredVehicleDepot', 'structCommandCenter',
+		'coinVibranium', 'oreVibranium', 'barVibranium', 'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
+		'barSilver', 'oreTungsten', 'barTungsten', 'oreTitanium', 'barTitanium', 'oreCobalt', 'barCobalt', 'oreCopper', 
+		'barCopper', 'oreLead', 'barLead', 'oreIron', 'barIron', 'oreAluminum', 'barAluminum'
+	];
+	
+	attributes.forEach(attribute => {
+		if(user[attribute] === undefined) {
+			user[attribute] = 0
+		}
+	});
+
+	if(user.energy === undefined) {
+		user.energy = maxEnergy
+	}
 		
 	return user
 }
