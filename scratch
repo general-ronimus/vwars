@@ -1,0 +1,2 @@
+//"clean-windows": "del /S /F /Q node_modules && rmdir /S /Q -rf node_modules && del /S /F /Q layer/nodejs && rmdir /S /Q -rf layer/nodejs && mkdir -p layer/nodejs && npm install -omit=dev && cp -r node_modules layer/nodejs && npm install",
+    //"build-windows": "mkdir -p layer/nodejs && npm install -omit=dev && cp -r node_modules layer/nodejs && npm install",

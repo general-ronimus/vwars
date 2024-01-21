@@ -12,8 +12,10 @@ const { EmbedBuilder } = require('@discordjs/builders');
 const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
 const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
 const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
+const oreTypes = ['aluminum', 'lead', 'copper', 'iron', 'silver', 'gold', 'cobalt', 'tungsten', 'titanium', 'beryllium', 'uranium', 'vibranium']
 const maxEnergy = 100
-let energyIntervalMinutes = 4
+//let energyIntervalMinutes = 4
+let energyIntervalMinutes = 0.1
 let idleIntervalMinutes = 2880
 let speed = 1
 let currentTime = null
@@ -57,9 +59,9 @@ async function processCommand(slashCommandBody) {
 	} else if('construct' === slashCommand.subCommand) {
 		return await construct(user, slashCommand)
 	} else if('export' === slashCommand.subCommand) {
-		return await export(user, slashCommand)
+		return await exportGoods(user, slashCommand)
 	} else if('import' === slashCommand.subCommand) {
-		return await import(user, slashCommand)
+		return await importGoods(user, slashCommand)
 	} else if('profile' === slashCommand.subCommand) {
 		return await profile(user, slashCommand)
 	} else if('leaderboard' === slashCommand.subCommand) {
@@ -73,27 +75,26 @@ async function processCommand(slashCommandBody) {
 function parseSlashCommand(slashCommandBody) {
 	console.log('Slash command body: ' + JSON.stringify(slashCommandBody))
 	let guildId = JSON.stringify(slashCommandBody.guild_id).replace(/\"/g, "")
-	let channelId = JSON.stringify(slashCommandBody.channel_id).replace(/\"/g, "")
 	let userId = JSON.stringify(slashCommandBody.member.user.id).replace(/\"/g, "")
 	let username = JSON.stringify(slashCommandBody.member.user.username).replace(/\"/g, "")
 	let command = JSON.stringify(slashCommandBody.data.name).replace(/\"/g, "");
 	let subCommand = JSON.stringify(slashCommandBody.data.options[0].name).replace(/\"/g, "");
-	let subCommandArgs = [];
+	let subCommandArgs = new Map();
+
 	if(slashCommandBody.data.options[0].hasOwnProperty('options') && slashCommandBody.data.options[0].options.length > 0) {
 		for (let i = 0; i < slashCommandBody.data.options[0].options.length; i++) {
-			subCommandArgs.push(JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
+			subCommandArgs.set(JSON.stringify(slashCommandBody.data.options[0].options[i].name).replace(/\"|@|<|>|!/g, ""),JSON.stringify(slashCommandBody.data.options[0].options[i].value).replace(/\"|@|<|>|!/g, ""))
 		}
 	}
 	let slashCommand = {
 		guildId: guildId,
-		channelId: channelId,
 		userId: userId,
 		username: username,
 		command: command,
 		subCommand: subCommand,
 		subCommandArgs: subCommandArgs
 	  };
-	  console.log('Command parsed; guildId: ' + guildId + ', channelId: ' + channelId + ', userId: ' + userId + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
+	  console.log('Command parsed; guildId: ' + guildId + ', userId: ' + userId + ', username: ' + username + ', command: ' + command + ', subcommand: ' + subCommand + ', subCommandArgs: ' + subCommandArgs)
 	  return slashCommand
 }
 
@@ -106,11 +107,211 @@ function parseSlashCommand(slashCommandBody) {
  */
  
 
+
+
 /**
  * MINE
  * 
  */
 async function mine(user, slashCommand) {
+
+	let spend = 1
+	let specifiedOreType = null
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
+		if(slashCommand.subCommandArgs.get('spend')) {
+			if(!isNumeric(slashCommand.subCommandArgs.get('spend')) || slashCommand.subCommandArgs.get('spend') < 0) {
+				respond('Improperly formatted argument.')
+			}
+			spend = parseInt(slashCommand.subCommandArgs.get('spend'))
+		} 
+		if(slashCommand.subCommandArgs.get('ore')) {
+			specifiedOreType = slashCommand.subCommandArgs.get('ore')
+			console.log('Specified ore type: ' + specifiedOreType)
+			if(!oreTypes.includes(specifiedOreType)) {
+				return respondEphemeral('Invalid ore type.')
+			}
+		} 
+	}
+	if(user.energy < spend) {
+		return respondEphemeral(user, 'You do not have enough energy.')
+	}
+	let oreType = 'aluminum'
+	if(specifiedOreType) {
+		oreType = specifiedOreType
+	} else if(user.lastMinedOreType) {
+		oreType = user.lastMinedOreType
+	}
+	user.lastMinedOreType = oreType
+	console.log('Ore type: ' + oreType)
+	/**
+	 * MIRACLE AND CHAOS ROLLS
+	 * Natural daily energy gain: 288 
+	 * Maximum daily energy gain if average ore gains are spent on fuel: 470
+	 * At 10,000 chaos roll, chance per 100 energy spent of each chaos event is 1 in 100
+	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
+	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
+	 */
+	/*
+	let chaosRoll = randomInteger(1, Math.round(50 * spend))
+	if(chaosRoll === 1) {
+		user.energy -= spend
+		let cityDamage = Math.round(user.city * .10 * (spend / 100))
+		user.city -= cityDamage
+		await db.putUser(user)
+		return respondAndCheckForCloak(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
+	}
+	let miracleRoll = randomInteger(1, Math.round(5000 / spend))
+	if(miracleRoll === 1) {
+		user.energy -= spend
+		user.bar += 1
+		await db.putUser(user)
+		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
+	}
+	*/
+
+	// STANDARD ROLL
+	let minedOre = 0
+	let oreFound = false
+	let equipmentFound = 0
+	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['crate of artillery rounds', 0], ['nuclear warhead', 0]]);
+	let rolls = 'rolls: '
+	for(let i = 0; i < spend; i++) {
+		let roll = randomInteger(1, 1201) //Roll reduced from 1209 to 1201 until peace time equipment is decided on
+		console.log('Roll: ' + roll)
+		rolls += roll + ' '
+		if(roll <= 900) {
+			oreFound = true
+			minedOre += smallPrizeMap.get(randomInteger(1,9))
+		} else if(roll <= 1080) {
+			oreFound = true
+			minedOre += mediumPrizeMap.get(randomInteger(1,9))
+		} else if(roll <= 1200) {
+			oreFound = true
+			minedOre += largePrizeMap.get(randomInteger(1,9))
+		} else if(roll <= 1201) {
+			oreFound = true
+			minedOre += 4000
+		} else {
+			/*
+			equipmentFound += 1
+			if(roll <= 1202) {
+				user.equipmentFuel += 1
+				equipmentMap.set('fuel reserve', equipmentMap.get('fuel reserve') + 1)
+			} else if(roll <= 1203) {
+				user.equipmentCloak += 1
+				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') + 1)
+			} else if(roll <= 1204) {
+				user.equipmentShield += 1
+				equipmentMap.set('shield generator', equipmentMap.get('shield generator') + 1)
+			} else if(roll <= 1205) {
+				user.equipmentStrike += 1
+				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
+			} else if(roll <= 1206) {
+				user.equipmentSabotage += 1
+				equipmentMap.set('crate of artillery rounds', equipmentMap.get('crate of artillery rounds') + 1)
+			} else if(roll == 1207) {
+				user.equipmentNuke += 1
+				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
+			} else if(roll == 1208) {
+				user.equipmentJam += 1
+				equipmentMap.set('communications jammer', equipmentMap.get('communications jammer') + 1)
+			} else if(roll == 1209) {
+				user.equipmentStealth += 1
+				equipmentMap.set('stealth UAV', equipmentMap.get('stealth UAV') + 1)
+			}
+			*/
+		}
+	}
+	console.log(rolls)
+	if('aluminum' === oreType) {
+		user.oreAluminum += minedOre
+		user.netMinedAluminum += minedOre
+	} else if('lead' === oreType) {
+		user.oreLead += minedOre
+		user.netMinedLead += minedOre
+	} else if('copper' === oreType) {
+		user.oreCopper += minedOre
+		user.netMinedCopper += minedOre
+	} else if('iron' === oreType) {
+		user.oreIron += minedOre
+		user.netMinedIron += minedOre
+	} else if('silver' === oreType) {
+		user.oreSilver += minedOre
+		user.netMinedSilver += minedOre
+	} else if('gold' === oreType) {
+		user.oreGold += minedOre
+		user.netMinedGold += minedOre
+	} else if('cobalt' === oreType) {
+		user.oreCobalt += minedOre
+		user.netMinedCobalt += minedOre
+	} else if('tungsten' === oreType) {
+		user.oreTungsten += minedOre
+		user.netMinedTungsten += minedOre
+	} else if('titanium' === oreType) {
+		user.oreTitanium += minedOre
+		user.netMinedTitanium += minedOre
+	} else if('beryllium' === oreType) {
+		user.oreBeryllium += minedOre
+		user.netMinedBeryllium += minedOre
+	} else if('uranium' === oreType) {
+		user.oreUranium += minedOre
+		user.netMinedUranium += minedOre
+	} else if('vibranium' === oreType) {
+		user.oreVibranium += minedOre
+		user.netMinedVibranium += minedOre
+	} else {
+		return respondEphemeral('Invalid ore type')
+	}	
+	
+	user.energy -= spend
+	user.netMined += minedOre
+	await db.putGlobalUser(user)
+
+	//Form vibranium found response
+	let miningResponse = 'You found '
+	if(oreFound) {
+		miningResponse += minedOre + ' ' + oreType + ' ore'
+		if(equipmentFound > 0) {
+			miningResponse += ' and '
+		}
+	}
+
+	//Append equipment found response
+	if(equipmentFound > 0) {
+		miningResponse += 'an equipment chest containing'
+		let equipmentIter = 0
+		equipmentMap.forEach(function(value, key) {
+			if(value > 0) {
+				equipmentIter += value
+				if(value == 1) {
+					miningResponse += ' ' + value + ' ' + key
+				} else if(value > 1) {
+					if(key === 'crate of artillery rounds') {
+						miningResponse += ' ' + value + ' ' + 'crates of artillery rounds'
+					} else {
+						miningResponse += ' ' + value + ' ' + key + 's'
+					}
+				}
+				if(equipmentIter < equipmentFound) {
+					miningResponse += ','
+				}
+			}
+		})
+	}
+	let lastCommaIndex = miningResponse.lastIndexOf(',')
+	if(lastCommaIndex > 0) {
+		miningResponse = miningResponse.substring(0, lastCommaIndex) + ' and' + miningResponse.substring(lastCommaIndex + 1)
+	}
+	miningResponse += '!'
+	return respond(miningResponse)
+}
+
+
+/**
+ * MINE
+ * 
+ */
+async function mineAlwaysVibranium(user, slashCommand) {
 	let spend = 1
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
 		if(!isNumeric(slashCommand.subCommandArgs[0]) || slashCommand.subCommandArgs[0] < 0) {
@@ -284,7 +485,7 @@ async function construct(user, slashCommand) {
  * EXPORT
  * 
  */
-async function export(user, slashCommand) {
+async function exportGoods(user, slashCommand) {
 	let arg = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
 		if(slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')) {
@@ -300,7 +501,7 @@ async function export(user, slashCommand) {
  * IMPORT
  * 
  */
-async function import(user, slashCommand) {
+async function importGoods(user, slashCommand) {
 	let arg = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
 		if(slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')) {

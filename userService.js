@@ -2,7 +2,7 @@ const db = require('./vwarsDbService.js')
 const crypto = require('crypto');
 
 module.exports ={
-    initUser, initGuildUser, migrateUser, migrateGuildUser, initGlobalUser, migrateGlobalUsers
+    initUser, initGuildUser, migrateUser, migrateGuildUser, initGlobalUser, migrateGlobalUser
 }
 
 function initUser(warId, slashCommand, currentTime, initialEnergy) {
@@ -93,16 +93,83 @@ function migrateGuildUser(user) {
 function migrateGlobalUser(user) {
 
 	let attributes = [
-		'energy', 'energyUpdatedAt', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
-		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 
-		'netShatter', 'netEquipmentSteal', 'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke',
-		'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 'structNavalBase', 
-		'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
-		'structArmoredVehicleDepot', 'structCommandCenter',
-		'coinVibranium', 'oreVibranium', 'barVibranium', 'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
-		'barSilver', 'oreTungsten', 'barTungsten', 'oreTitanium', 'barTitanium', 'oreCobalt', 'barCobalt', 'oreCopper', 
-		'barCopper', 'oreLead', 'barLead', 'oreIron', 'barIron', 'oreAluminum', 'barAluminum'
+		'energy', 
+		'energyUpdatedAt',
+		'lastMinedOreType',
+		'medalFirst', 
+		'medalSecond', 
+		'medalThird',
+		'titles',
+		'wars',
+		'netMined',
+		'netStolen',
+		'netCityDamage',
+		'netMilitaryDamage',
+		'netAttack',
+		'netRout',
+		'netShatter',
+		'netEquipmentSteal',
+		'netFuel',
+		'netCloak',
+		'netStealth',
+		'netJam',
+		'netShield',
+		'netSabotage',
+		'netStrike',
+		'netNuke',
+		'population',
+		'structFuelDepot',
+		'structResearchFacility',
+		'structReinforcedHangar',
+		'structCommsArray',
+		'structNavalBase',
+		'structMunitionsDepot',
+		'structSupercapacitors',
+		'structNuclearSilo',
+		'structAEWCHangar',
+		'structEMPTower',
+		'structArmoredVehicleDepot',
+		'structCommandCenter',
+		'oreAluminum',
+		'netMinedAluminum',
+		'barAluminum',
+		'oreLead',
+		'netMinedLead',
+		'barLead',
+		'oreIron',
+		'netMinedIron',
+		'barIron',
+		'oreCopper',
+		'netMinedCopper',
+		'barCopper',
+		'oreSilver',
+		'netMinedSilver',
+		'barSilver',
+		'oreGold',
+		'netMinedGold',
+		'barGold',
+		'oreCobalt',
+		'netMinedCobalt',
+		'barCobalt',
+		'oreTungsten',
+		'netMinedTungsten',
+		'barTungsten',
+		'oreTitanium',
+		'netMinedTitanium',
+		'barTitanium',
+		'oreBeryllium',
+		'netMinedBeryllium',
+		'barBeryllium',
+		'barUranium',
+		'netMinedUranium',
+		'oreUranium',
+		'oreVibranium',
+		'netMinedVibranium',
+		'barVibranium',
+		'barHistoricalVibranium',
+		'creditVibranium'
 	];
+	
 	
 	attributes.forEach(attribute => {
 		if(user[attribute] === undefined) {

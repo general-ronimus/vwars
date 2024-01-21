@@ -1,5 +1,5 @@
 const nacl = require('tweetnacl')
-const vwarsCommandProcessor = require('./vwarsCommandProcessor')
+const vwarsPeaceCommandProcessor = require('./vwarsPeaceCommandProcessor')
 const vwarsWarCommandProcessor = require('./vwarsWarCommandProcessor')
 const vwarsAdminCommandProcessor = require('./vwarsAdminCommandProcessor')
 
@@ -38,9 +38,9 @@ async function processEvent(event) {
           console.log('Processing vwars slash command: ' + command)
           if("vw" === command) {
             response = await vwarsWarCommandProcessor.processCommand(body)
-          } else if("vp" === command) {
+          } else if("vwp" === command) {
             response = await vwarsPeaceCommandProcessor.processCommand(body)
-          } else if("va" === command) {
+          } else if("vwadmin" === command) {
             response = await vwarsAdminCommandProcessor.processCommand(body)
           }
           
