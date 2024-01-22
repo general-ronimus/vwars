@@ -40,7 +40,7 @@ async function processEvent(event) {
             response = await vwarsWarCommandProcessor.processCommand(body)
           } else if("vwp" === command) {
             response = await vwarsPeaceCommandProcessor.processCommand(body)
-          } else if("vwadmin" === command) {
+          } else if("vwa" === command) {
             response = await vwarsAdminCommandProcessor.processCommand(body)
           }
           

@@ -178,7 +178,7 @@ async function mine(user, slashCommand) {
 	 * MIRACLE AND CHAOS ROLLS
 	 * Natural daily energy gain: 288 
 	 * Maximum daily energy gain if average ore gains are spent on fuel: 470
-	 * At 10,000 chaos roll, chance per 100 energy spent of each chaos event is 1 in 100
+	 * At 10,000 chaos roll, cha nce per 100 energy spent of each chaos event is 1 in 100
 	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
 	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
 	 */
@@ -486,6 +486,13 @@ async function build(user, slashCommand) {
 		} else {
 			response += ' attacks ' + targetUser.username
 		}
+
+		//If the attacker has at least 10 more bars than the defender, dampen damage starting at 15%, increasing by an additional 15% for every 5 bars additional difference
+		if(user.bar >= targetUser.bar + 10) {
+			let dampenerMultipler = Math.floor((user.bar - (targetUser.bar + 5))/5)*0.15
+			winPercentage = winPercentage - winPercentage * dampenerMultipler
+		}
+		
 
 		if(targetUser.shieldHealth > 0) {
 			response += ' however the defender\'s shield absorbs the damage!'
