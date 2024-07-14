@@ -9,16 +9,17 @@ const warService = require('./warService.js')
 const queuingService = require('./vwarsQueuingService.js')
 const { MessageEmbed } = require('discord.js');
 const { EmbedBuilder } = require('@discordjs/builders');
-const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
-const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
-const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
-const oreTypes = ['aluminum', 'lead', 'copper', 'iron', 'silver', 'gold', 'cobalt', 'tungsten', 'titanium', 'beryllium', 'uranium', 'vibranium']
+const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 3], [4, 6], [5, 11], [6, 15], [7, 18], [8, 24], [9, 30]]);
+const mediumPrizeMap = new Map([[1, 25], [2, 32], [3, 40], [4, 48], [5, 59], [6, 76], [7, 115], [8, 135], [9,177]]);
+const largePrizeMap = new Map([[1, 100], [2, 125], [3, 142], [4, 165], [5, 243], [6, 291], [7, 375], [8, 850], [9, 1330]]);
+const xlPrizeMap = new Map([[1, 2000], [2, 3000], [3, 4000], [4, 5000], [5, 6000]]);
 const maxEnergy = 100
 //let energyIntervalMinutes = 4
 let energyIntervalMinutes = 0.1
 let idleIntervalMinutes = 2880
 let speed = 1
 let currentTime = null
+let defaultPeaceMiningRate = 0.1
 
 module.exports ={
         processCommand
@@ -58,10 +59,6 @@ async function processCommand(slashCommandBody) {
 		return await smelt(user, slashCommand)
 	} else if('construct' === slashCommand.subCommand) {
 		return await construct(user, slashCommand)
-	} else if('export' === slashCommand.subCommand) {
-		return await exportGoods(user, slashCommand)
-	} else if('import' === slashCommand.subCommand) {
-		return await importGoods(user, slashCommand)
 	} else if('profile' === slashCommand.subCommand) {
 		return await profile(user, slashCommand)
 	} else if('leaderboard' === slashCommand.subCommand) {
@@ -105,8 +102,6 @@ function parseSlashCommand(slashCommandBody) {
  * SUBCOMMANDS
  * 
  */
- 
-
 
 
 /**
@@ -114,9 +109,7 @@ function parseSlashCommand(slashCommandBody) {
  * 
  */
 async function mine(user, slashCommand) {
-
 	let spend = 1
-	let specifiedOreType = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
 		if(slashCommand.subCommandArgs.get('spend')) {
 			if(!isNumeric(slashCommand.subCommandArgs.get('spend')) || slashCommand.subCommandArgs.get('spend') < 0) {
@@ -124,25 +117,11 @@ async function mine(user, slashCommand) {
 			}
 			spend = parseInt(slashCommand.subCommandArgs.get('spend'))
 		} 
-		if(slashCommand.subCommandArgs.get('ore')) {
-			specifiedOreType = slashCommand.subCommandArgs.get('ore')
-			console.log('Specified ore type: ' + specifiedOreType)
-			if(!oreTypes.includes(specifiedOreType)) {
-				return respondEphemeral('Invalid ore type.')
-			}
-		} 
 	}
 	if(user.energy < spend) {
 		return respondEphemeral(user, 'You do not have enough energy.')
 	}
-	let oreType = 'aluminum'
-	if(specifiedOreType) {
-		oreType = specifiedOreType
-	} else if(user.lastMinedOreType) {
-		oreType = user.lastMinedOreType
-	}
-	user.lastMinedOreType = oreType
-	console.log('Ore type: ' + oreType)
+
 	/**
 	 * MIRACLE AND CHAOS ROLLS
 	 * Natural daily energy gain: 288 
@@ -160,29 +139,35 @@ async function mine(user, slashCommand) {
 		await db.putUser(user)
 		return respondAndCheckForCloak(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
 	}
+	*/
+	//TODO: Refactor miracle and chaos rolls to trigger other events such as striking oil
 	let miracleRoll = randomInteger(1, Math.round(5000 / spend))
 	if(miracleRoll === 1) {
 		user.energy -= spend
-		user.bar += 1
+		user.barVibranium += 1
 		await db.putUser(user)
 		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
 	}
-	*/
+
 
 	// STANDARD ROLL
 	let minedOre = 0
 	let oreFound = false
 	let equipmentFound = 0
-	let equipmentMap = new Map([['fuel reserve', 0], ['cloaking device', 0], ['stealth UAV', 0], ['communications jammer', 0], ['shield generator', 0], ['ballistic missle', 0], ['crate of artillery rounds', 0], ['nuclear warhead', 0]]);
+	let equipmentMap = new Map([['TODO1', 0], ['TODO2', 0]]);
 	let rolls = 'rolls: '
 	for(let i = 0; i < spend; i++) {
-		let roll = randomInteger(1, 1201) //Roll reduced from 1209 to 1201 until peace time equipment is decided on
+		let roll = randomInteger(1, 1000)
 		console.log('Roll: ' + roll)
 		rolls += roll + ' '
-		if(roll <= 900) {
+		let increasedLuck = 0
+		if(user.structMiningFacility && isNumeric(user.structMiningFacility)) {
+			increasedLuck = user.structMiningFacility * 20
+		}
+		if(roll <= (990 - increasedLuck)) {
 			oreFound = true
 			minedOre += smallPrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 1080) {
+		} else if(roll <= 1000) {
 			oreFound = true
 			minedOre += mediumPrizeMap.get(randomInteger(1,9))
 		} else if(roll <= 1200) {
@@ -190,80 +175,48 @@ async function mine(user, slashCommand) {
 			minedOre += largePrizeMap.get(randomInteger(1,9))
 		} else if(roll <= 1201) {
 			oreFound = true
-			minedOre += 4000
-		} else {
-			/*
+			minedOre += xlPrizeMap.get(randomInteger(1,5))
+		} /*else {
 			equipmentFound += 1
 			if(roll <= 1202) {
-				user.equipmentFuel += 1
-				equipmentMap.set('fuel reserve', equipmentMap.get('fuel reserve') + 1)
+				user.oreAluminum += 1
+				equipmentMap.set('aluminum', equipmentMap.get('aluminum') + 1)
 			} else if(roll <= 1203) {
-				user.equipmentCloak += 1
-				equipmentMap.set('cloaking device', equipmentMap.get('cloaking device') + 1)
+				user.oreLead += 1
+				equipmentMap.set('lead', equipmentMap.get('lead') + 1)
 			} else if(roll <= 1204) {
-				user.equipmentShield += 1
-				equipmentMap.set('shield generator', equipmentMap.get('shield generator') + 1)
+				user.oreCopper += 1
+				equipmentMap.set('copper', equipmentMap.get('copper') + 1)
 			} else if(roll <= 1205) {
-				user.equipmentStrike += 1
-				equipmentMap.set('ballistic missle', equipmentMap.get('ballistic missle') + 1)
+				user.oreIron += 1
+				equipmentMap.set('iron', equipmentMap.get('iron') + 1)
 			} else if(roll <= 1206) {
-				user.equipmentSabotage += 1
-				equipmentMap.set('crate of artillery rounds', equipmentMap.get('crate of artillery rounds') + 1)
-			} else if(roll == 1207) {
-				user.equipmentNuke += 1
-				equipmentMap.set('nuclear warhead', equipmentMap.get('nuclear warhead') + 1)
-			} else if(roll == 1208) {
-				user.equipmentJam += 1
-				equipmentMap.set('communications jammer', equipmentMap.get('communications jammer') + 1)
+				user.oreSilver += 1
+				equipmentMap.set('silver', equipmentMap.get('silver') + 1)
+			} else if(roll <= 1207) {
+				user.oreGold += 1
+				equipmentMap.set('gold', equipmentMap.get('gold') + 1)
+			} else if(roll <= 1208) {
+				user.oreCobalt += 1
+				equipmentMap.set('cobalt', equipmentMap.get('cobalt') + 1)
 			} else if(roll == 1209) {
-				user.equipmentStealth += 1
-				equipmentMap.set('stealth UAV', equipmentMap.get('stealth UAV') + 1)
+				user.oreTungsten += 1
+				equipmentMap.set('tungsten', equipmentMap.get('tungsten') + 1)
+			} else if(roll == 1210) {
+				user.oreTitanium += 1
+				equipmentMap.set('titanium', equipmentMap.get('titanium') + 1)
+			} else if(roll == 1211) {
+				user.oreBeryllium += 1
+				equipmentMap.set('beryllium', equipmentMap.get('beryllium') + 1)
+			} else if(roll == 1212) {
+				user.oreUranium += 1
+				equipmentMap.set('uranium', equipmentMap.get('uranium') + 1)
 			}
-			*/
-		}
+		}*/
 	}
 	console.log(rolls)
-	if('aluminum' === oreType) {
-		user.oreAluminum += minedOre
-		user.netMinedAluminum += minedOre
-	} else if('lead' === oreType) {
-		user.oreLead += minedOre
-		user.netMinedLead += minedOre
-	} else if('copper' === oreType) {
-		user.oreCopper += minedOre
-		user.netMinedCopper += minedOre
-	} else if('iron' === oreType) {
-		user.oreIron += minedOre
-		user.netMinedIron += minedOre
-	} else if('silver' === oreType) {
-		user.oreSilver += minedOre
-		user.netMinedSilver += minedOre
-	} else if('gold' === oreType) {
-		user.oreGold += minedOre
-		user.netMinedGold += minedOre
-	} else if('cobalt' === oreType) {
-		user.oreCobalt += minedOre
-		user.netMinedCobalt += minedOre
-	} else if('tungsten' === oreType) {
-		user.oreTungsten += minedOre
-		user.netMinedTungsten += minedOre
-	} else if('titanium' === oreType) {
-		user.oreTitanium += minedOre
-		user.netMinedTitanium += minedOre
-	} else if('beryllium' === oreType) {
-		user.oreBeryllium += minedOre
-		user.netMinedBeryllium += minedOre
-	} else if('uranium' === oreType) {
-		user.oreUranium += minedOre
-		user.netMinedUranium += minedOre
-	} else if('vibranium' === oreType) {
-		user.oreVibranium += minedOre
-		user.netMinedVibranium += minedOre
-	} else {
-		return respondEphemeral('Invalid ore type')
-	}	
-	
 	user.energy -= spend
+	user.oreVibranium += minedOre
 	user.netMined += minedOre
 	await db.putGlobalUser(user)
 
@@ -308,160 +261,19 @@ async function mine(user, slashCommand) {
 
 
 /**
- * MINE
- * 
- */
-async function mineAlwaysVibranium(user, slashCommand) {
-	let spend = 1
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0) {
-		if(!isNumeric(slashCommand.subCommandArgs[0]) || slashCommand.subCommandArgs[0] < 0) {
-			respond('Improperly formatted argument.')
-		}
-		spend = parseInt(slashCommand.subCommandArgs[0])
-	}
-	if(user.energy < spend) {
-		return respondAndCheckForCloak(user, 'You do not have enough energy.')
-	}
-
-	/**
-	 * MIRACLE AND CHAOS ROLLS
-	 * Natural daily energy gain: 288 
-	 * Maximum daily energy gain if average ore gains are spent on fuel: 470
-	 * At 10,000 chaos roll, chance per 100 energy spent of each chaos event is 1 in 100
-	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
-	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
-	 */
-	/*
-	let chaosRoll = randomInteger(1, Math.round(50 * spend))
-	if(chaosRoll === 1) {
-		user.energy -= spend
-		let cityDamage = Math.round(user.city * .10 * (spend / 100))
-		user.city -= cityDamage
-		await db.putUser(user)
-		return respondAndCheckForCloak(user, 'Your vibranium mine collapsed unexpectedly reducing city size by ' + cityDamage + '!')
-	}
-	*/
-	let miracleRoll = randomInteger(1, Math.round(5000 / spend))
-	if(miracleRoll === 1) {
-		user.energy -= spend
-		user.barVibranium += 1
-		await db.putUser(user)
-		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
-	}
-
-
-	// STANDARD ROLL
-	let minedOre = 0
-	let oreFound = false
-	let equipmentFound = 0
-	let equipmentMap = new Map([['aluminum', 0], ['lead', 0], ['copper', 0], ['iron', 0], ['silver', 0], ['gold', 0], 
-	['cobalt', 0], ['tungsten', 0], ['titanium', 0], ['beryllium', 0], ['uranium', 0]]);
-	let rolls = 'rolls: '
-	for(let i = 0; i < spend; i++) {
-		let roll = randomInteger(1, 1209)
-		console.log('Roll: ' + roll)
-		rolls += roll + ' '
-		if(roll <= 900) {
-			oreFound = true
-			minedOre += smallPrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 1080) {
-			oreFound = true
-			minedOre += mediumPrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 1200) {
-			oreFound = true
-			minedOre += largePrizeMap.get(randomInteger(1,9))
-		} else if(roll <= 1201) {
-			oreFound = true
-			minedOre += 4000
-		} else {
-			equipmentFound += 1
-			if(roll <= 1202) {
-				user.oreAluminum += 1
-				equipmentMap.set('aluminum', equipmentMap.get('aluminum') + 1)
-			} else if(roll <= 1203) {
-				user.oreLead += 1
-				equipmentMap.set('lead', equipmentMap.get('lead') + 1)
-			} else if(roll <= 1204) {
-				user.oreCopper += 1
-				equipmentMap.set('copper', equipmentMap.get('copper') + 1)
-			} else if(roll <= 1205) {
-				user.oreIron += 1
-				equipmentMap.set('iron', equipmentMap.get('iron') + 1)
-			} else if(roll <= 1206) {
-				user.oreSilver += 1
-				equipmentMap.set('silver', equipmentMap.get('silver') + 1)
-			} else if(roll <= 1207) {
-				user.oreGold += 1
-				equipmentMap.set('gold', equipmentMap.get('gold') + 1)
-			} else if(roll <= 1208) {
-				user.oreCobalt += 1
-				equipmentMap.set('cobalt', equipmentMap.get('cobalt') + 1)
-			} else if(roll == 1209) {
-				user.oreTungsten += 1
-				equipmentMap.set('tungsten', equipmentMap.get('tungsten') + 1)
-			} else if(roll == 1210) {
-				user.oreTitanium += 1
-				equipmentMap.set('titanium', equipmentMap.get('titanium') + 1)
-			} else if(roll == 1211) {
-				user.oreBeryllium += 1
-				equipmentMap.set('beryllium', equipmentMap.get('beryllium') + 1)
-			} else if(roll == 1212) {
-				user.oreUranium += 1
-				equipmentMap.set('uranium', equipmentMap.get('uranium') + 1)
-			}
-		}
-	}
-	console.log(rolls)
-	user.energy -= spend
-	user.oreVibranium += minedOre
-	user.netMined += minedOre
-	await db.putGlobal(user)
-
-	//Form vibranium found response
-	let miningResponse = 'You found '
-	if(oreFound) {
-		miningResponse += minedOre + ' vibranium ore'
-		if(equipmentFound > 0) {
-			miningResponse += ' and '
-		}
-	}
-
-	//Append equipment found response
-	if(equipmentFound > 0) {
-		miningResponse += 'a mineral deposit of '
-		let equipmentIter = 0
-		equipmentMap.forEach(function(value, key) {
-			if(value > 0) {
-				equipmentIter += value
-				miningResponse += ' ' + value + ' ' + key
-				if(equipmentIter < equipmentFound) {
-					miningResponse += ','
-				}
-			}
-		})
-	}
-	let lastCommaIndex = miningResponse.lastIndexOf(',')
-	if(lastCommaIndex > 0) {
-		miningResponse = miningResponse.substring(0, lastCommaIndex) + ' and' + miningResponse.substring(lastCommaIndex + 1)
-	}
-	miningResponse += '!'
-	return respond(miningResponse)
-}
-
-
-/**
  * SMELT
  * 
  */
 async function smelt(user, slashCommand) {
-	let arg = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
-		if(slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')) {
-			arg = slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')
-		} 
+	if(user.ore < 10000) {
+		return respond(user, 'You do not have enough vibranium ore.')
 	}
-	let response = 'Command coming soon!'
-	return respondEphemeral(response)
+	user.ore -= 10000
+	user.bar += 1
+
+	await db.putGlobalUser(user)
+	let response = 'You have created a vibranium bar.'
+	return respond(response)
 }
 
 
@@ -482,50 +294,58 @@ async function construct(user, slashCommand) {
 
 
 /**
- * EXPORT
- * 
- */
-async function exportGoods(user, slashCommand) {
-	let arg = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
-		if(slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')) {
-			arg = slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')
-		} 
-	}
-	let response = 'Command coming soon!'
-	return respondEphemeral(response)	
-}
-
-
-/**
- * IMPORT
- * 
- */
-async function importGoods(user, slashCommand) {
-	let arg = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
-		if(slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')) {
-			arg = slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')
-		} 
-	}
-	let response = 'Command coming soon!'
-	return respondEphemeral(response)	
-}
-
-
-/**
  * PROFILE
  * 
  */
-async function profile(user, slashCommand) {
-	let arg = null
-	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
-		if(slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')) {
-			arg = slashCommand.subCommandArgs.get('INSERT_ARG_NAME_HERE')
-		} 
+async function stats(user, slashCommand) {
+	let targetUser = user
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		if(slashCommand.subCommandArgs.get('user')) {
+			let targetUserId = slashCommand.subCommandArgs.get('user')
+			let targetUserRecord = await db.getGlobalUser(targetUserId)
+			targetUser = targetUserRecord.Item
+			if(null == targetUser) {
+				return respond('Invalid target.')
+			}
+			updateEnergy(targetUser)
+			userService.migrateGlobalUser(targetUser)
+		}
 	}
-	let response = 'Command coming soon!'
-	return respondEphemeral(response)	
+
+	let response = '```Operational Report\n'
+	response += 'Player: ' + targetUser.username + 
+		'\nEnergy: ' + targetUser.energy + '/' + maxEnergy +
+		'\nPopulation: ' + targetUser.population +		
+		'\Global rank: ' + targetUser.rankGlobal +		
+		'\Server rank: ' + targetUser.rankServer +		
+		'\Vibranium bars: ' + targetUser.barVibranium +		
+		'\Vibranium ore: ' + targetUser.oreVibranium +	
+		'\Vibranium coins: ' + targetUser.coinVibranium	
+		
+		response += '\n\Structures'
+		let structColumnLength = 20
+		let structCountColumnLength = 7
+		response += '\n|' + 'Structure'.padStart(structColumnLength) + '|' + 'Level'.padStart(structCountColumnLength) + '|' + 'Active'.padStart(structCountColumnLength) + '|'
+		response += '\n|' + '-'.repeat(structColumnLength) + '|' + '-'.repeat(structCountColumnLength) + '|' + '-'.repeat(structCountColumnLength) + '|'
+		let structNames = ['fuelDepot', 'reinforcedHanger', 'researchFacility', 'commsArray', 'navalBase', 'munitionsDepot', 'supercapacitors', 'nuclearSilo'];
+		let activeStructs = targetUser['activeStructs']; // Assuming this is the correct property
+		for (let struct of structNames) {
+			let structField = 'struct' + struct.charAt(0).toUpperCase() + struct.slice(1);
+			let isActive = activeStructs.includes(structField) ? 'X' : ' ';
+			response += '\n|' + struct.padStart(structColumnLength) + '|' + (targetUser[structField] || 0).toString().padStart(structCountColumnLength) + '|' + isActive.padStart(structCountColumnLength) + '|';
+		}
+		/*
+		response += '\n\nSmuggled Equipment' +
+		'\n| fuel|  cloak| stealth| shield|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|     ?/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
+		'\n|  jam| strike|   shell|   nuke|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'```'
+		*/
+
+		response += '```'
+
+	return respond(response)
 }
 
 
@@ -664,14 +484,10 @@ async function welcomeBack(user, millisEllapsed) {
 	}
 	user.lastCloaked = currentTime
 	let addedFuel = Math.floor(dayElapsed / 2)
-	let addedMilitary = dayElapsed * 200
-	let addedCity = dayElapsed * 200
 	user.equipmentFuel += addedFuel
-	user.military += addedMilitary 
-	user.city += addedCity
 	user = updateEnergy(user)
-	await db.putUser(user)
-	let response = 'Welcome back to Vibranium Wars! Your forces have regrouped and resupplied while you were away granting you ' + addedFuel + ' fuel reserves, ' + addedMilitary + ' military, ' + addedCity + ' city and an active cloak and shield. Use /vw help to review how to play & have fun!'
+	await db.putGlobalUser(user)
+	let response = 'Welcome back to Vibranium Wars! Your time away has resulted in a stockpile of ' + addedFuel + ' additional fueld reserves. Use /vw help to review how to play & have fun!'
 	return respondAndCheckForCloak(user, response)
 }
 

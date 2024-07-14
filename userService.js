@@ -24,8 +24,7 @@ function initGuildUser(guildId, userId, username) {
     let initializedGuildUser = {
         guildId: guildId,
         userId: userId,
-        username: username,
-        titles: [],
+        username: username
     }   
     return migrateGuildUser(initializedGuildUser)
 }
@@ -36,7 +35,9 @@ function initGlobalUser(slashCommand, currentTime, initialEnergy) {
 		userId: slashCommand.userId,
 		username: slashCommand.username,
 		energy: initialEnergy,
-		energyUpdatedAt: currentTime, //May be able to replace with 0
+		energyUpdatedAt: currentTime, //May be able to replace with 0,
+		titles: [],
+        activeStructs: []
 	};
 	return migrateGlobalUser(initializedUser)
 }
@@ -70,15 +71,12 @@ function migrateUser(user) {
 function migrateGuildUser(user) {
 	
 	let attributes = [
-		'barHistoricalVibranium', 'barVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
+		'barHistoricalVibranium', 'oreVibranium', 'barVibranium', 'coinVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
 		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 'netShatter', 'netEquipmentSteal', 
 		'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 
 		'population', 'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 
 		'structNavalBase', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
-		'structArmoredVehicleDepot', 'structCommandCenter', 
-		'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
-		'barSilver', 'oreTungsten', 'barTungsten', 'oreTitanium', 'barTitanium', 'oreCobalt', 'barCobalt', 'oreCopper', 
-		'barCopper', 'oreLead', 'barLead', 'oreIron', 'barIron', 'oreAluminum', 'barAluminum'
+		'structArmoredVehicleDepot', 'structCommandCenter'
 	];
 	
 	attributes.forEach(attribute => {
@@ -118,6 +116,7 @@ function migrateGlobalUser(user) {
 		'netStrike',
 		'netNuke',
 		'population',
+		'activeStructs',
 		'structFuelDepot',
 		'structResearchFacility',
 		'structReinforcedHangar',
@@ -130,56 +129,27 @@ function migrateGlobalUser(user) {
 		'structEMPTower',
 		'structArmoredVehicleDepot',
 		'structCommandCenter',
-		'oreAluminum',
-		'netMinedAluminum',
-		'barAluminum',
-		'oreLead',
-		'netMinedLead',
-		'barLead',
-		'oreIron',
-		'netMinedIron',
-		'barIron',
-		'oreCopper',
-		'netMinedCopper',
-		'barCopper',
-		'oreSilver',
-		'netMinedSilver',
-		'barSilver',
-		'oreGold',
-		'netMinedGold',
-		'barGold',
-		'oreCobalt',
-		'netMinedCobalt',
-		'barCobalt',
-		'oreTungsten',
-		'netMinedTungsten',
-		'barTungsten',
-		'oreTitanium',
-		'netMinedTitanium',
-		'barTitanium',
-		'oreBeryllium',
-		'netMinedBeryllium',
-		'barBeryllium',
-		'barUranium',
-		'netMinedUranium',
-		'oreUranium',
 		'oreVibranium',
 		'netMinedVibranium',
 		'barVibranium',
 		'barHistoricalVibranium',
-		'creditVibranium'
+		'coinVibranium'
 	];
 	
-	
+	if(user.energy === undefined) {
+		user.energy = maxEnergy
+	}
+	if(user.titles === undefined) {
+		user.titles = []
+	}
+	if(user.activeStructs === undefined) {
+		user.activeStructs = []
+	}
 	attributes.forEach(attribute => {
 		if(user[attribute] === undefined) {
 			user[attribute] = 0
 		}
 	});
-
-	if(user.energy === undefined) {
-		user.energy = maxEnergy
-	}
 		
 	return user
 }

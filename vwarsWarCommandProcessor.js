@@ -487,12 +487,11 @@ async function build(user, slashCommand) {
 			response += ' attacks ' + targetUser.username
 		}
 
-		//If the attacker has at least 10 more bars than the defender, dampen damage starting at 15%, increasing by an additional 15% for every 5 bars additional difference
-		if(user.bar >= targetUser.bar + 10) {
+		//For defenders with less than 20 bars, if the attacker has 10 or more bars than the defender, dampen damage starting at 15%, increasing by an additional 15% for every 5 bars additional difference
+		if(targetUser.bar < 20 && user.bar >= targetUser.bar + 10) {
 			let dampenerMultipler = Math.floor((user.bar - (targetUser.bar + 5))/5)*0.15
 			winPercentage = winPercentage - winPercentage * dampenerMultipler
 		}
-		
 
 		if(targetUser.shieldHealth > 0) {
 			response += ' however the defender\'s shield absorbs the damage!'
@@ -675,30 +674,6 @@ async function hall(slashCommand) {
 		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
 		responseString += '\nArtillery bombardments ordered: ' + guildUser.netSabotage
 		responseString += '\nNukes launched: ' + guildUser.netNuke
-
-		responseString += '\n\nCapital city'
-		responseString += '\nPopulation: ' + guildUser.population
-		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/5'
-		responseString += '\nReinforced hangar: ' + guildUser.structReinforcedHangar + '/5'
-		responseString += '\nResearch facility: ' + guildUser.structResearchFacility + '/5'
-		responseString += '\nComms array: ' + guildUser.structCommsArray + '/5'
-		responseString += '\nNaval base: ' + guildUser.structNavalBase + '/5'
-		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/5'
-		responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/5'
-		responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/5     '
-
-		responseString += '\n\nResources'
-		let resourceColumnLength = 10
-		let countColumnLength = 7
-		responseString += '\n|' + 'Material'.padStart(resourceColumnLength) + '|' + 'Ore'.padStart(countColumnLength) + '|' + 'Bars'.padStart(countColumnLength) + '|'
-		responseString += '\n|' + '-'.repeat(resourceColumnLength) + '|' + '-'.repeat(countColumnLength) + '|' + '-'.repeat(countColumnLength) + '|'
-		//Future full set of materials let resourceNames = ['vibranium','uranium', 'beryllium', 'gold', 'silver', 'tungsten', 'titanium', 'cobalt', 'copper', 'lead', 'iron', 'aluminum'];
-		let resourceNames = ['vibranium','uranium','gold', 'lead', 'iron', 'aluminum'];
-		for(let resource of resourceNames) {
-    		let oreField = 'ore' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		let barField = 'bar' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		responseString += '\n|' + resource.padStart(resourceColumnLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countColumnLength) + '|' + (guildUser[barField] || 0).toString().padStart(countColumnLength) + '|';
-		}
 
 	} else {		
 		responseString += '\n1 - First place medals 🥇\n2 - Second place medals 🥈\n3 - Third place medals 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
