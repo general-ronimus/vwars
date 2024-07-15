@@ -396,7 +396,7 @@ async function build(user, slashCommand) {
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
-			if(routRoll >= 93 && routRoll <= 100 ) {
+			if(!isGuerilla(user, targetUser) && (routRoll >= 93 && routRoll <= 100 )) {
 				isRoutBar = true
 			} else if(routRoll >= 1 && routRoll <= 16) {
 				isRoutEquipment = true
@@ -466,6 +466,10 @@ async function build(user, slashCommand) {
 
 		if(equipmentStolen != null) {
 			user.netEquipmentSteal += 1
+			let equipmentShatterRoll = randomInteger(1, 100)
+			if(equipmentShatterRoll > 80) {
+				targetUser.lastShattered = currentTime
+			}
 			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
 		} else {
 			isRoutEquipment = false
@@ -487,10 +491,9 @@ async function build(user, slashCommand) {
 			response += ' attacks ' + targetUser.username
 		}
 
-		//For defenders with less than 20 bars, if the attacker has 10 or more bars than the defender, dampen damage starting at 15%, increasing by an additional 15% for every 5 bars additional difference
-		if(targetUser.bar < 20 && user.bar >= targetUser.bar + 10) {
-			let dampenerMultipler = Math.floor((user.bar - (targetUser.bar + 5))/5)*0.15
-			winPercentage = winPercentage - winPercentage * dampenerMultipler
+		//If guerilla advantage applies, reduce damage by 50% on the target user
+		if(isGuerilla(user, targetUser)) {
+			winPercentage = winPercentage - winPercentage * 0.5
 		}
 
 		if(targetUser.shieldHealth > 0) {
@@ -533,6 +536,9 @@ async function build(user, slashCommand) {
 	}
 	if('release notes' === page) {
 		return respondWithHelpReleaseNotes()
+	}
+	if('attack command' === page) {
+		return respondWithHelpUnderstandingAttackCommand()
 	}
 	return respondWithHelp()
 }
@@ -1356,10 +1362,14 @@ function isVulnerable(user) {
 	return false
 }
 
-function getInvulnerableIntervalMinutes(user) {
-	if(user.bar < 5) {
-		return null
+function isGuerilla(user, targetUser) {
+	if(user.bar >= targetUser.bar * 4) {
+		return true
 	}
+	return false
+}
+
+function getInvulnerableIntervalMinutes(user) {
 	let minInvulnerableIntervalMinutes = 480
 
 	// Starting with a max cooldown of 4 days (96 hours), for every bar a user owns reduce the cooldown by 4 hours
@@ -1536,7 +1546,7 @@ function compare( a, b ) {
 		.setImage('https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png')
 		.addFields(
 			{ name: 'How to play', value: 'Type `/vw` followed by the desired command and command options (when applicable). Here is an example of using `mine` command with required option `energy` of 10: \n`/vw mine 10`\n\n' },
-			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 4m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack & steal a portion of another player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
+			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 4m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack another player to steal ore and, in certain circumstances, steal equipment or shatter bars. For a more detailed explanation, use `/vw help page: Understanding the Attack Command`\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
 			{ name: 'Informational Commands', value: '*No cost*\n`/vw stats` - Receive a war report on yourself or another player \n`/vw leaderboard` -  Check current war standings & time remaining\n`/vw hall` - Check overall server standings or player profiles\n\n' },
 			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves from other players for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n\n' },
 			{ name: 'Conclusion', value: 'At the conclusion of a war, the Hall of Legends is updated to include the results of the war including issued medals, issued titles, vibranium bars earned, player statistics and player population all viewable using the `/vw hall` command.\n\n' },
@@ -1553,19 +1563,37 @@ function compare( a, b ) {
 	  return response;
   }
 
+  function respondWithHelpUnderstandingAttackCommand() {
+
+	const helpEmbed = new EmbedBuilder()
+		.setTitle('Understanding the Attack Command')
+		.setDescription('The effects of an attack command depend on certain conditions such as the attacking military size, the defending city size, bar count and warehouse location status.')
+		.addFields(
+			{ name: 'Ore stolen', value: 'Attacking an opponent rewards you between 0 and 10% of the defender\s ore based on the size of the attacking military and the defending city.\n\n' },
+			{ name: 'Rout advantage', value: 'An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a small chance to steal equipment or even shatter an opponent\'s bar back into ore.\n\n' },
+			{ name: 'Warehouse location', value: 'A player enters the game with their warehouse location known. Losing equipment during a rout has a chance of causing the defender\'s warehouse location to become temporarily unknown. Losing a bar during a rout guaruntees the player\'s warehouse becomes temporarily unknown. Intelligence will reveal the warehouse location again in 12-96 hours depending on how many bars the player currently holds. \n\n' },
+			{ name: 'Guerilla advantage', value: 'When an attacking player has at least 4 times as many bars as the defender, the defender employs **guerilla warfare** reducing ore stolen by 50% and preventing routs from shattering bars.\n\n' },
+		  )
+		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
+			
+	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
+  
+	  const response = {
+		  statusCode: 200,
+		  body: JSON.stringify(responseBody),
+	  };
+  
+	  return response;
+	}
+
   function respondWithHelpReleaseNotes() {
 
 	const helpEmbed = new EmbedBuilder()
 		.setTitle('Release Notes')
-		.setDescription('**Version:** v3.0')
+		.setDescription('**Version:** v3.1')
 		.addFields(
-			{ name: 'Permanent player records', value: 'User standings and stats now persist at the server level. At the conclusion of each war, medals, stats & vibranium bars earned get saved to a player\'s permanent server record.\n\n' },
-			{ name: 'New command: hall', value: 'Introduced new hall command for displaying a server\'s standings and player permanent records.\n\n' },
-			{ name: 'New command: stealth', value: 'Introduced new stealth equipment & command for anonymizing your offensive movements.\n\n' },
-			{ name: 'Improved help, stats & leaderboard', value: 'Aesthetic uplift to help, stats and leaderboard commands.\n\n' },
-			{ name: 'Scaffolding for Structures', value: 'Structures (upon their full release) are permanent assets players can invest in during "peace" time (no active war) to give them a strategic advantage in future wars. v3.0 introduces structures as part of players\' hall profiles. The ability to build and utilize them will come in a later release. Example structure:'
-			+ '\nNuclear Silo - 0/5\nFor each level invested, increase inventory cap by 1 & damage output by 2%. Nukes now deal an additional damage over time effect called *radiation*.' },
-			{ name: 'Other updates and bug fixes', value: '* Bug fix to mining collapse rate\n* Rebalancing to equipment and shatter, most notably the introduction of inventory caps starting at 5 but expandable via structures\n* Add action options for activating, deactiving or checking timers & inventory for cloak and stealth' },
+			{ name: 'Changes to warehouse location', value: 'Arbitrary 5 bar minimum for warehouse location removed. Equipment stealing now has a chance to cause warehouse location to change.\n\n' },
+			{ name: 'Guerilla advantage', value: 'When an attacking player possesses at least 4 times as many bars as the defender, the defender gains certain strategic advantages.\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
 			
