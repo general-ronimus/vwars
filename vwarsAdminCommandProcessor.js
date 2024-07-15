@@ -151,10 +151,10 @@ async function remove(slashCommand) {
 }
 
 async function activate(slashCommand) {
-	let warId = null
-	let start = currentTime
 	let defaultWarLengthMillis = 1000 * 60 * 40320
-	let expiration = start + defaultWarLengthMillis
+	let warId = null
+	let start = null
+	let expiration = null
 	let energy = null
 	let prerelease = null
 	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.size > 0) {
@@ -199,11 +199,16 @@ async function activate(slashCommand) {
 		return respondEphemeral('Unable to activate an already concluded war: ' + warId)
 	}
 
-	if(expiration) {
-		warToActivate.expiration = expiration
-	}
+
 	if(start) {
 		warToActivate.start = start
+	} else if(!warToActivate.start) {
+		warToActivate.start = currentTime
+	}
+	if(expiration) {
+		warToActivate.expiration = expiration
+	} else if(!warToActivate.expiration) {
+		warToActivate.expiration = warToActivate.start + defaultWarLengthMillis
 	}
 	if(energy) {
 		warToActivate.energyRefreshMinutes = energy

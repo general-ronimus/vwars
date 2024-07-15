@@ -32,6 +32,7 @@ async function queueMessageTask(channel, message) {
 	let queueUrlParams = {
 		QueueName: vwarsTaskQueue,
 	  };
+	console.log('Queuing message for channel: ' + channel + ', queue: ' + vwarsTaskQueue)
 	let retrievedQueueUrl = await sqs.getQueueUrl(queueUrlParams).promise()
 	let vwarsTaskQueueUrl = JSON.stringify(retrievedQueueUrl.QueueUrl).replace(/\"/g, "")
 	let uuid = crypto.randomUUID()
@@ -53,7 +54,6 @@ async function queueMessageTask(channel, message) {
 		MessageDeduplicationId: uuid
 	  };
 
-	console.log('Queuing message for channel: ' + channel + ', queue: ' + vwarsTaskQueue + ', vwarsTaskQueueUrl: ' + vwarsTaskQueueUrl)
 
 	try {
         let result = await sqs.sendMessage(sendParams).promise();

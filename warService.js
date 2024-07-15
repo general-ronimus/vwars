@@ -46,7 +46,7 @@ async function createWar(requestedWar) {
 	let name = uuid
     let start = null
 	let expiration = null
-	let energyRefreshMinutes = 5
+	let energyRefreshMinutes = 4
     let isActive = false
     let isConcluded = false
     let iteration = 1
@@ -253,7 +253,7 @@ function migrateWar(war) {
 		war.isConcluded = false
 	}
     if(war.energyRefreshMinutes === undefined) {
-		war.energyRefreshMinutes = 5
+		war.energyRefreshMinutes = 4
 	}
     if(war.speed === undefined) {
 		war.speed = 1

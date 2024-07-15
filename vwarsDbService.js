@@ -2,7 +2,8 @@ const AWS = require("aws-sdk");
 const { migrateGuildUser } = require("./userService");
 
 module.exports ={
-        getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getGuildUser, putGuildUser, getGuildUsers, deleteGuildUser, getWar, putWar, getWars, deleteWar
+        getUser, putUser, getUsers, deleteUser, getGuild, putGuild, deleteGuild, getGuildUser, putGuildUser, getGuildUsers, deleteGuildUser, getWar, putWar, getWars, deleteWar,
+		getGlobalUser, putGlobalUser, deleteGlobalUser
     }
 
 let stage = 'local'
@@ -261,30 +262,7 @@ async function putGuildUser(user) {
 			structAEWCHangar: user.structAEWCHangar,
 			structEMPTower : user.structEMPTower,
 			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
-			structCommandCenter : user.structCommandCenter,
-			oreUranium : user.oreUranium,
-			barUranium : user.barUranium,
-			oreBeryllium : user.oreBeryllium,
-			barBeryllium : user.barBeryllium,
-			oreGold : user.oreGold,
-			barGold : user.barGold,
-			oreSilver : user.oreSilver,
-			barSilver : user.barSilver,
-			oreTungsten : user.oreTungsten,			
-			barTungsten : user.barTungsten,
-			oreTitanium : user.oreTitanium,
-			barTitanium : user.barTitanium,
-			oreCobalt : user.oreCobalt,
-			barCobalt : user.barCobalt,
-			oreCopper : user.oreCopper,
-			barCopper : user.barCopper,
-			oreLead : user.oreLead,
-			barLead : user.barLead,
-			oreIron : user.oreIron,
-			barIron : user.barIron,
-			oreAluminum : user.oreAluminum,		
-			barAluminum : user.barAluminum
-			
+			structCommandCenter : user.structCommandCenter
   		},
 		ReturnValues: 'ALL_OLD'
 	};
@@ -321,6 +299,100 @@ async function deleteGuildUser(guildId, userId) {
 		}
 	  };
 	console.log('db delete guild user - guildId: ' + guildId + ', userId: ' + userId)
+	let result = await ddb.delete(params).promise()
+	return result
+}
+
+
+
+/**
+ * GLOBAL USER DB OPERATIONS
+ * 
+ */
+
+async function getGlobalUser(userId) {
+	let params = {
+  		TableName: vwarsTable,
+  		Key: {
+    		PK: 'USER#' + userId,
+			SK: 'USER#' + userId
+  		}
+	};
+	console.log('db get global user - userId: ' + userId)
+	let result = await ddb.get(params).promise()
+	if(result.Item) {
+		console.log("Retrieved global user object: " + JSON.stringify(result.Item))
+		result.Item.userId = result.Item.SK.replace(/^(USER#)/,"");
+	}
+	return result
+}
+
+async function putGlobalUser(user) {
+	var params = {
+ 		TableName: vwarsTable,
+  		Item: {
+			PK : 'USER#' + user.userId,
+    		SK : 'USER#' + user.userId,
+    		username : user.username,
+    		energy : user.energy,
+			energyUpdatedAt : user.energyUpdatedAt,
+			medalFirst : user.medalFirst,
+			medalSecond : user.medalSecond,
+			medalThird : user.medalThird,
+			titles : user.titles,
+			wars: user.wars,
+			netMined : user.netMined,
+			netStolen : user.netStolen,
+			netCityDamage : user.netCityDamage,
+			netMilitaryDamage : user.netMilitaryDamage,
+			netAttack: user.netAttack,
+			netRout: user.netRout,
+			netShatter: user.netShatter,
+			netEquipmentSteal: user.netEquipmentSteal,
+			netFuel : user.netFuel,
+			netCloak : user.netCloak,
+			netStealth : user.netStealth,
+			netJam : user.netJam,
+			netShield : user.netShield,
+			netSabotage : user.netSabotage,
+			netStrike : user.netStrike,
+			netNuke : user.netNuke,
+			population : user.population,
+			activeStructs : user.activeStructs,
+			structFuelDepot : user.structFuelDepot,
+			structResearchFacility : user.structResearchFacility,
+			structReinforcedHangar : user.structReinforcedHangar,
+			structCommsArray : user.structCommsArray,
+			structNavalBase : user.structNavalBase,
+			structMunitionsDepot : user.structMunitionsDepot,
+			structSupercapacitors : user.structSupercapacitors,
+			structNuclearSilo : user.structNuclearSilo,
+			structAEWCHangar: user.structAEWCHangar,
+			structEMPTower : user.structEMPTower,
+			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
+			structCommandCenter : user.structCommandCenter,
+			oreVibranium : user.oreVibranium,
+			netMinedVibranium : user.netMinedVibranium,
+			barVibranium : user.barVibranium,
+			barHistoricalVibranium : user.barHistoricalVibranium,
+			coinVibranium : user.coinVibranium
+  		},
+		ReturnValues: 'ALL_OLD'
+	};
+	console.log('db put global user - userId: ' + user.userId)
+	await ddb.put(params).promise()
+	return true
+}
+
+async function deleteGlobalUser(userId) {
+	var params = {
+		TableName : vwarsTable,
+		Key: {
+			PK: 'WORLD#' + worldId,
+			SK: 'USER#' + userId
+		}
+	  };
+	console.log('db delete user - worldId: ' + worldId + ', userId: ' + userId)
 	let result = await ddb.delete(params).promise()
 	return result
 }

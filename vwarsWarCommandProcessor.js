@@ -9,15 +9,19 @@ const warService = require('./warService.js')
 const queuingService = require('./vwarsQueuingService.js')
 const { MessageEmbed } = require('discord.js');
 const { EmbedBuilder } = require('@discordjs/builders');
-const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
-const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
-const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
+//const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
+//const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
+//const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
+const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 3], [4, 6], [5, 11], [6, 15], [7, 18], [8, 24], [9, 30]]);
+const mediumPrizeMap = new Map([[1, 25], [2, 32], [3, 40], [4, 48], [5, 59], [6, 76], [7, 115], [8, 135], [9,177]]);
+const largePrizeMap = new Map([[1, 100], [2, 125], [3, 142], [4, 165], [5, 243], [6, 291], [7, 375], [8, 850], [9, 1330]]);
+const xlPrizeMap = new Map([[1, 2000], [2, 3000], [3, 4000], [4, 5000], [5, 6000]]);
 const maxEnergy = 100
 const cloakIntervalMinutes = 480
 const stealthIntervalMinutes = 20
 const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 20
-let energyIntervalMinutes = 5
+let energyIntervalMinutes = 4
 let idleIntervalMinutes = 2880
 let speed = 1
 let currentTime = null
@@ -178,7 +182,7 @@ async function mine(user, slashCommand) {
 	 * MIRACLE AND CHAOS ROLLS
 	 * Natural daily energy gain: 288 
 	 * Maximum daily energy gain if average ore gains are spent on fuel: 470
-	 * At 10,000 chaos roll, chance per 100 energy spent of each chaos event is 1 in 100
+	 * At 10,000 chaos roll, cha nce per 100 energy spent of each chaos event is 1 in 100
 	 * At 10,000 chaos roll, natural daily chance of each chaos event is 1 in 35
 	 * At 10,000 chaos roll, maximum daily chance of each chaos event is 1 in 21
 	 */
@@ -220,7 +224,7 @@ async function mine(user, slashCommand) {
 			minedOre += largePrizeMap.get(randomInteger(1,9))
 		} else if(roll <= 1201) {
 			oreFound = true
-			minedOre += 4000
+			minedOre += xlPrizeMap.get(randomInteger(1,5))
 		} else {
 			equipmentFound += 1
 			if(roll <= 1202) {
@@ -396,7 +400,7 @@ async function build(user, slashCommand) {
 		winPercentage += 0.015
 		routRoll = randomInteger(1, 100)
 		if(isVulnerable(targetUser)) {
-			if(routRoll >= 93 && routRoll <= 100 ) {
+			if(!isGuerilla(user, targetUser) && (routRoll >= 93 && routRoll <= 100 )) {
 				isRoutBar = true
 			} else if(routRoll >= 1 && routRoll <= 16) {
 				isRoutEquipment = true
@@ -411,7 +415,7 @@ async function build(user, slashCommand) {
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
 		user.netShatter += 1
-		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
+		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore. ' + targetUser.username + ' relocates operations to an undisclosed warehouse location.'
 	} else if(isRoutEquipment && targetUser.shieldHealth <= 0) {
 		let equipmentStolen = null
 		if(routRoll >= 1 && routRoll <= 2) {
@@ -466,7 +470,12 @@ async function build(user, slashCommand) {
 
 		if(equipmentStolen != null) {
 			user.netEquipmentSteal += 1
+			let equipmentShatterRoll = randomInteger(1, 100)
 			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
+			if(equipmentShatterRoll > 80) {
+				targetUser.lastShattered = currentTime
+				response += ' ' + targetUser.username + ' relocates operations to an undisclosed warehouse location.'
+			}
 		} else {
 			isRoutEquipment = false
 		}
@@ -485,6 +494,11 @@ async function build(user, slashCommand) {
 			response += ' routs ' + targetUser.username + '\'s forces'
 		} else {
 			response += ' attacks ' + targetUser.username
+		}
+
+		//If guerilla advantage applies, reduce damage by 50% on the target user
+		if(isGuerilla(user, targetUser)) {
+			winPercentage = winPercentage - winPercentage * 0.5
 		}
 
 		if(targetUser.shieldHealth > 0) {
@@ -527,6 +541,9 @@ async function build(user, slashCommand) {
 	}
 	if('release notes' === page) {
 		return respondWithHelpReleaseNotes()
+	}
+	if('attack command' === page) {
+		return respondWithHelpUnderstandingAttackCommand()
 	}
 	return respondWithHelp()
 }
@@ -666,32 +683,8 @@ async function hall(slashCommand) {
 		responseString += '\nRadio communications jammed: ' + guildUser.netJam
 		responseString += '\nShield generators engaged: ' + guildUser.netShield
 		responseString += '\nBallistic missiles launched: ' + guildUser.netStrike
-		responseString += '\nArtillery barrages ordered: ' + guildUser.netSabotage
+		responseString += '\nArtillery bombardments ordered: ' + guildUser.netSabotage
 		responseString += '\nNukes launched: ' + guildUser.netNuke
-
-		responseString += '\n\nCapital city'
-		responseString += '\nPopulation: ' + guildUser.population
-		responseString += '\nFuel depot: ' + guildUser.structFuelDepot + '/5'
-		responseString += '\nReinforced hangar: ' + guildUser.structReinforcedHangar + '/5'
-		responseString += '\nResearch facility: ' + guildUser.structResearchFacility + '/5'
-		responseString += '\nComms array: ' + guildUser.structCommsArray + '/5'
-		responseString += '\nNaval base: ' + guildUser.structNavalBase + '/5'
-		responseString += '\nMunitions depot: ' + guildUser.structMunitionsDepot + '/5'
-		responseString += '\nSupercapicitors: ' + guildUser.structSupercapacitors + '/5'
-		responseString += '\nNuclear silo: ' + guildUser.structNuclearSilo + '/5     '
-
-		responseString += '\n\nResources'
-		let resourceColumnLength = 10
-		let countColumnLength = 7
-		responseString += '\n|' + 'Material'.padStart(resourceColumnLength) + '|' + 'Ore'.padStart(countColumnLength) + '|' + 'Bars'.padStart(countColumnLength) + '|'
-		responseString += '\n|' + '-'.repeat(resourceColumnLength) + '|' + '-'.repeat(countColumnLength) + '|' + '-'.repeat(countColumnLength) + '|'
-		//Future full set of materials let resourceNames = ['vibranium','uranium', 'beryllium', 'gold', 'silver', 'tungsten', 'titanium', 'cobalt', 'copper', 'lead', 'iron', 'aluminum'];
-		let resourceNames = ['vibranium','uranium','gold', 'lead', 'iron', 'aluminum'];
-		for(let resource of resourceNames) {
-    		let oreField = 'ore' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		let barField = 'bar' + resource.charAt(0).toUpperCase() + resource.slice(1);
-    		responseString += '\n|' + resource.padStart(resourceColumnLength) + '|' + (guildUser[oreField] || 0).toString().padStart(countColumnLength) + '|' + (guildUser[barField] || 0).toString().padStart(countColumnLength) + '|';
-		}
 
 	} else {		
 		responseString += '\n1 - First place medals 🥇\n2 - Second place medals 🥈\n3 - Third place medals 🥉\nBar - 💠 (total earned)\nWar - Wars fought'
@@ -1067,7 +1060,7 @@ async function sabotage(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' orders an artillery barrage on ' + targetUser.username
+	response += ' orders an artillery bombardment on ' + targetUser.username
 	targetUser = updateShield(targetUser) 
 	if(targetUser.shieldHealth > 0) {
 		response += ' however the defender\'s shield absorbs the damage!'
@@ -1374,14 +1367,18 @@ function isVulnerable(user) {
 	return false
 }
 
-function getInvulnerableIntervalMinutes(user) {
-	if(user.bar < 5) {
-		return null
+function isGuerilla(user, targetUser) {
+	if(user.bar >= targetUser.bar * 4) {
+		return true
 	}
+	return false
+}
+
+function getInvulnerableIntervalMinutes(user) {
 	let minInvulnerableIntervalMinutes = 480
 
-	// Starting with a max cooldown of 4 days (96 hours), for every bar a user owns reduce the cooldown by 4 hours
-	let invulnerableIntervalMinutes = 60 * (96 - 4 * user.bar)
+	// Starting with a max cooldown of 2 days (48 hours), for every bar a user owns reduce the cooldown by 4 hours
+	let invulnerableIntervalMinutes = 60 * (48 - 4 * user.bar)
 	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
 		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
 	}
@@ -1394,15 +1391,14 @@ async function welcome(user, slashCommand) {
 	let guildUserRecord = await db.getGuildUser(slashCommand.guildId, slashCommand.userId)
 	let guildUser = guildUserRecord.Item
 	if(guildUser) {
-		let settlers = guildUser.population / 20
+		let settlers = Math.floor(guildUser.population / 20)
 		let maxSettlers = 10000
-		if(settlers < maxSettlers) {
-			settlers = guildUser.population / 20
-		} else {
+		if(settlers > maxSettlers) {
 			settlers = maxSettlers
 		}
-		user.city += settlers / 2
-		user.military += settlers / 2
+		
+		user.city += Math.floor(settlers / 2)
+		user.military += Math.floor(settlers / 2)
 		guildUser.population -= settlers
 		user = updateEnergy(user)
 		await db.putGuildUser(guildUser)
@@ -1555,7 +1551,7 @@ function compare( a, b ) {
 		.setImage('https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png')
 		.addFields(
 			{ name: 'How to play', value: 'Type `/vw` followed by the desired command and command options (when applicable). Here is an example of using `mine` command with required option `energy` of 10: \n`/vw mine 10`\n\n' },
-			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 5m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack & steal a portion of another player\'s ore. The amount stolen is determined by the attacking military & the defending city sizes. An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a chance to steal equipment & even shatter an opponent\'s bar back into ore.\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
+			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 4m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack another player to steal ore and, in certain circumstances, steal equipment or shatter bars. For a more detailed explanation, use `/vw help page: Understanding the Attack Command`\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
 			{ name: 'Informational Commands', value: '*No cost*\n`/vw stats` - Receive a war report on yourself or another player \n`/vw leaderboard` -  Check current war standings & time remaining\n`/vw hall` - Check overall server standings or player profiles\n\n' },
 			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves from other players for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n\n' },
 			{ name: 'Conclusion', value: 'At the conclusion of a war, the Hall of Legends is updated to include the results of the war including issued medals, issued titles, vibranium bars earned, player statistics and player population all viewable using the `/vw hall` command.\n\n' },
@@ -1572,19 +1568,38 @@ function compare( a, b ) {
 	  return response;
   }
 
+  function respondWithHelpUnderstandingAttackCommand() {
+
+	const helpEmbed = new EmbedBuilder()
+		.setTitle('Understanding the Attack Command')
+		.setDescription('The effects of an attack command depend on certain conditions such as the attacking military size, the defending city size, bar count and warehouse location status.')
+		.addFields(
+			{ name: 'Ore stolen', value: 'Attacking an opponent rewards you between 0 and 10% of the defender\s ore based on the size of the attacking military and the defending city.\n\n' },
+			{ name: 'Rout advantage', value: 'An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a small chance to steal equipment or even shatter an opponent\'s bar back into ore.\n\n' },
+			{ name: 'Warehouse location', value: 'A player enters the game with their warehouse location known. Losing equipment during a rout has a chance of causing the defender\'s warehouse location to become temporarily unknown. Losing a bar during a rout guaruntees the player\'s warehouse becomes temporarily unknown. Intelligence will reveal the warehouse location again in 12-48 hours depending on how many bars the player currently holds. \n\n' },
+			{ name: 'Guerilla advantage', value: 'When an attacking player has at least 4 times as many bars as the defender, the defender employs **guerilla warfare** reducing ore stolen by 50% and preventing routs from shattering bars.\n\n' },
+		  )
+		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
+			
+	  const responseBody = { type: 4, data: { embeds: [helpEmbed.toJSON()], flags: 64 } };
+  
+	  const response = {
+		  statusCode: 200,
+		  body: JSON.stringify(responseBody),
+	  };
+  
+	  return response;
+	}
+
   function respondWithHelpReleaseNotes() {
 
 	const helpEmbed = new EmbedBuilder()
 		.setTitle('Release Notes')
-		.setDescription('**Version:** v3.0')
+		.setDescription('**Version:** v3.1')
 		.addFields(
-			{ name: 'Permanent player records', value: 'User standings and stats now persist at the server level. At the conclusion of each war, medals, stats & vibranium bars earned get saved to a player\'s permanent server record.\n\n' },
-			{ name: 'New command: hall', value: 'Introduced new hall command for displaying a server\'s standings and player permanent records.\n\n' },
-			{ name: 'New command: stealth', value: 'Introduced new stealth equipment & command for anonymizing your offensive movements.\n\n' },
-			{ name: 'Improved help, stats & leaderboard', value: 'Aesthetic uplift to help, stats and leaderboard commands.\n\n' },
-			{ name: 'Scaffolding for Structures', value: 'Structures (upon their full release) are permanent assets players can invest in during "peace" time (no active war) to give them a strategic advantage in future wars. v3.0 introduces structures as part of players\' hall profiles. The ability to build and utilize them will come in a later release. Example structure:'
-			+ '\nNuclear Silo - 0/5\nFor each level invested, increase inventory cap by 1 & damage output by 2%. Nukes now deal an additional damage over time effect called *radiation*.' },
-			{ name: 'Other updates and bug fixes', value: '* Bug fix to mining collapse rate\n* Rebalancing to equipment and shatter, most notably the introduction of inventory caps starting at 5 but expandable via structures\n* Add action options for activating, deactiving or checking timers & inventory for cloak and stealth' },
+			{ name: 'Changes to warehouse location', value: 'Bar minimum for warehouse location removed, cooldown reduced, equipment stealing now has a chance to cause warehouse location to change.\n\n' },
+			{ name: 'Guerilla advantage', value: 'When an attacking player possesses at least 4 times as many bars as the defender, the defender gains certain strategic advantages.\n\n' },
+			{ name: 'Other game balance, stability and bug fixes', value: 'Updated drop tables with slightly higher ore per energy spent ratios on average.\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
 			

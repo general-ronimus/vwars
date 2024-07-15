@@ -2,7 +2,7 @@ const db = require('./vwarsDbService.js')
 const crypto = require('crypto');
 
 module.exports ={
-    initUser, initGuildUser, migrateUser, migrateGuildUser
+    initUser, initGuildUser, migrateUser, migrateGuildUser, initGlobalUser, migrateGlobalUser
 }
 
 function initUser(warId, slashCommand, currentTime, initialEnergy) {
@@ -24,10 +24,22 @@ function initGuildUser(guildId, userId, username) {
     let initializedGuildUser = {
         guildId: guildId,
         userId: userId,
-        username: username,
-        titles: [],
+        username: username
     }   
     return migrateGuildUser(initializedGuildUser)
+}
+
+function initGlobalUser(slashCommand, currentTime, initialEnergy) {
+	console.log('Initializing new global user - userId: ' + slashCommand.userId + ", username: " + slashCommand.username)
+	let initializedUser = {
+		userId: slashCommand.userId,
+		username: slashCommand.username,
+		energy: initialEnergy,
+		energyUpdatedAt: currentTime, //May be able to replace with 0,
+		titles: [],
+        activeStructs: []
+	};
+	return migrateGlobalUser(initializedUser)
 }
 
 function migrateUser(user) {
@@ -59,17 +71,80 @@ function migrateUser(user) {
 function migrateGuildUser(user) {
 	
 	let attributes = [
-		'barHistoricalVibranium', 'barVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
+		'barHistoricalVibranium', 'oreVibranium', 'barVibranium', 'coinVibranium', 'medalFirst', 'medalSecond', 'medalThird', 'medalStar', 'wars', 
 		'netMined', 'netStolen', 'netCityDamage', 'netMilitaryDamage', 'netMine', 'netAttack', 'netRout', 'netShatter', 'netEquipmentSteal', 
 		'netFuel', 'netCloak', 'netStealth', 'netJam', 'netShield', 'netSabotage', 'netStrike', 'netNuke', 
 		'population', 'structFuelDepot', 'structResearchFacility', 'structReinforcedHangar', 'structCommsArray', 
 		'structNavalBase', 'structMunitionsDepot', 'structSupercapacitors', 'structNuclearSilo', 'structAEWCHangar', 'structEMPTower', 
-		'structArmoredVehicleDepot', 'structCommandCenter', 
-		'oreUranium', 'barUranium', 'oreBeryllium', 'barBeryllium', 'oreGold', 'barGold', 'oreSilver', 
-		'barSilver', 'oreTungsten', 'barTungsten', 'oreTitanium', 'barTitanium', 'oreCobalt', 'barCobalt', 'oreCopper', 
-		'barCopper', 'oreLead', 'barLead', 'oreIron', 'barIron', 'oreAluminum', 'barAluminum'
+		'structArmoredVehicleDepot', 'structCommandCenter'
 	];
 	
+	attributes.forEach(attribute => {
+		if(user[attribute] === undefined) {
+			user[attribute] = 0
+		}
+	});
+		
+	return user
+}
+
+function migrateGlobalUser(user) {
+
+	let attributes = [
+		'energy', 
+		'energyUpdatedAt',
+		'lastMinedOreType',
+		'medalFirst', 
+		'medalSecond', 
+		'medalThird',
+		'titles',
+		'wars',
+		'netMined',
+		'netStolen',
+		'netCityDamage',
+		'netMilitaryDamage',
+		'netAttack',
+		'netRout',
+		'netShatter',
+		'netEquipmentSteal',
+		'netFuel',
+		'netCloak',
+		'netStealth',
+		'netJam',
+		'netShield',
+		'netSabotage',
+		'netStrike',
+		'netNuke',
+		'population',
+		'activeStructs',
+		'structFuelDepot',
+		'structResearchFacility',
+		'structReinforcedHangar',
+		'structCommsArray',
+		'structNavalBase',
+		'structMunitionsDepot',
+		'structSupercapacitors',
+		'structNuclearSilo',
+		'structAEWCHangar',
+		'structEMPTower',
+		'structArmoredVehicleDepot',
+		'structCommandCenter',
+		'oreVibranium',
+		'netMinedVibranium',
+		'barVibranium',
+		'barHistoricalVibranium',
+		'coinVibranium'
+	];
+	
+	if(user.energy === undefined) {
+		user.energy = maxEnergy
+	}
+	if(user.titles === undefined) {
+		user.titles = []
+	}
+	if(user.activeStructs === undefined) {
+		user.activeStructs = []
+	}
 	attributes.forEach(attribute => {
 		if(user[attribute] === undefined) {
 			user[attribute] = 0
