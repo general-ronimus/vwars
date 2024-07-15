@@ -262,30 +262,7 @@ async function putGuildUser(user) {
 			structAEWCHangar: user.structAEWCHangar,
 			structEMPTower : user.structEMPTower,
 			structArmoredVehicleDepot : user.structArmoredVehicleDepot,
-			structCommandCenter : user.structCommandCenter,
-			oreUranium : user.oreUranium,
-			barUranium : user.barUranium,
-			oreBeryllium : user.oreBeryllium,
-			barBeryllium : user.barBeryllium,
-			oreGold : user.oreGold,
-			barGold : user.barGold,
-			oreSilver : user.oreSilver,
-			barSilver : user.barSilver,
-			oreTungsten : user.oreTungsten,			
-			barTungsten : user.barTungsten,
-			oreTitanium : user.oreTitanium,
-			barTitanium : user.barTitanium,
-			oreCobalt : user.oreCobalt,
-			barCobalt : user.barCobalt,
-			oreCopper : user.oreCopper,
-			barCopper : user.barCopper,
-			oreLead : user.oreLead,
-			barLead : user.barLead,
-			oreIron : user.oreIron,
-			barIron : user.barIron,
-			oreAluminum : user.oreAluminum,		
-			barAluminum : user.barAluminum
-			
+			structCommandCenter : user.structCommandCenter
   		},
 		ReturnValues: 'ALL_OLD'
 	};

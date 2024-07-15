@@ -9,9 +9,13 @@ const warService = require('./warService.js')
 const queuingService = require('./vwarsQueuingService.js')
 const { MessageEmbed } = require('discord.js');
 const { EmbedBuilder } = require('@discordjs/builders');
-const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
-const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
-const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
+//const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 2], [4, 5], [5, 10], [6, 15], [7, 16], [8, 20], [9,25]]);
+//const mediumPrizeMap = new Map([[1, 25], [2, 30], [3, 35], [4, 40], [5, 50], [6, 70], [7, 100], [8, 125], [9,160]]);
+//const largePrizeMap = new Map([[1, 100], [2, 100], [3, 125], [4, 150], [5, 225], [6, 275], [7, 350], [8, 700], [9, 1200]]);
+const smallPrizeMap = new Map([[1, 0], [2, 1], [3, 3], [4, 6], [5, 11], [6, 15], [7, 18], [8, 24], [9, 30]]);
+const mediumPrizeMap = new Map([[1, 25], [2, 32], [3, 40], [4, 48], [5, 59], [6, 76], [7, 115], [8, 135], [9,177]]);
+const largePrizeMap = new Map([[1, 100], [2, 125], [3, 142], [4, 165], [5, 243], [6, 291], [7, 375], [8, 850], [9, 1330]]);
+const xlPrizeMap = new Map([[1, 2000], [2, 3000], [3, 4000], [4, 5000], [5, 6000]]);
 const maxEnergy = 100
 const cloakIntervalMinutes = 480
 const stealthIntervalMinutes = 20
@@ -220,7 +224,7 @@ async function mine(user, slashCommand) {
 			minedOre += largePrizeMap.get(randomInteger(1,9))
 		} else if(roll <= 1201) {
 			oreFound = true
-			minedOre += 4000
+			minedOre += xlPrizeMap.get(randomInteger(1,5))
 		} else {
 			equipmentFound += 1
 			if(roll <= 1202) {
@@ -411,7 +415,7 @@ async function build(user, slashCommand) {
 		targetUser.ore += shatteredOre
 		targetUser.lastShattered = currentTime
 		user.netShatter += 1
-		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore.'
+		response += ' routs ' + targetUser.username + '\'s forces destroying a vibranium warehouse! The attack shattered 1 bar into ' + shatteredOre + ' ore. ' + targetUser.username + ' relocates operations to an undisclosed warehouse location.'
 	} else if(isRoutEquipment && targetUser.shieldHealth <= 0) {
 		let equipmentStolen = null
 		if(routRoll >= 1 && routRoll <= 2) {
@@ -467,10 +471,11 @@ async function build(user, slashCommand) {
 		if(equipmentStolen != null) {
 			user.netEquipmentSteal += 1
 			let equipmentShatterRoll = randomInteger(1, 100)
+			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
 			if(equipmentShatterRoll > 80) {
 				targetUser.lastShattered = currentTime
+				response += ' ' + targetUser.username + ' relocates operations to an undisclosed warehouse location.'
 			}
-			response += ' routs ' + targetUser.username + '\'s forces capturing a supply truck containing 1 ' + equipmentStolen + '!'
 		} else {
 			isRoutEquipment = false
 		}
@@ -1372,8 +1377,8 @@ function isGuerilla(user, targetUser) {
 function getInvulnerableIntervalMinutes(user) {
 	let minInvulnerableIntervalMinutes = 480
 
-	// Starting with a max cooldown of 4 days (96 hours), for every bar a user owns reduce the cooldown by 4 hours
-	let invulnerableIntervalMinutes = 60 * (96 - 4 * user.bar)
+	// Starting with a max cooldown of 2 days (48 hours), for every bar a user owns reduce the cooldown by 4 hours
+	let invulnerableIntervalMinutes = 60 * (48 - 4 * user.bar)
 	if(invulnerableIntervalMinutes < minInvulnerableIntervalMinutes) {
 		invulnerableIntervalMinutes = minInvulnerableIntervalMinutes
 	}
@@ -1571,7 +1576,7 @@ function compare( a, b ) {
 		.addFields(
 			{ name: 'Ore stolen', value: 'Attacking an opponent rewards you between 0 and 10% of the defender\s ore based on the size of the attacking military and the defending city.\n\n' },
 			{ name: 'Rout advantage', value: 'An attacking military 4 times larger than the defending city constitutes a **rout**, awarding 15% more ore. If the opponent\'s warehouse location is known, routs also have a small chance to steal equipment or even shatter an opponent\'s bar back into ore.\n\n' },
-			{ name: 'Warehouse location', value: 'A player enters the game with their warehouse location known. Losing equipment during a rout has a chance of causing the defender\'s warehouse location to become temporarily unknown. Losing a bar during a rout guaruntees the player\'s warehouse becomes temporarily unknown. Intelligence will reveal the warehouse location again in 12-96 hours depending on how many bars the player currently holds. \n\n' },
+			{ name: 'Warehouse location', value: 'A player enters the game with their warehouse location known. Losing equipment during a rout has a chance of causing the defender\'s warehouse location to become temporarily unknown. Losing a bar during a rout guaruntees the player\'s warehouse becomes temporarily unknown. Intelligence will reveal the warehouse location again in 12-48 hours depending on how many bars the player currently holds. \n\n' },
 			{ name: 'Guerilla advantage', value: 'When an attacking player has at least 4 times as many bars as the defender, the defender employs **guerilla warfare** reducing ore stolen by 50% and preventing routs from shattering bars.\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
@@ -1592,8 +1597,9 @@ function compare( a, b ) {
 		.setTitle('Release Notes')
 		.setDescription('**Version:** v3.1')
 		.addFields(
-			{ name: 'Changes to warehouse location', value: 'Arbitrary 5 bar minimum for warehouse location removed. Equipment stealing now has a chance to cause warehouse location to change.\n\n' },
+			{ name: 'Changes to warehouse location', value: 'Bar minimum for warehouse location removed, cooldown reduced, equipment stealing now has a chance to cause warehouse location to change.\n\n' },
 			{ name: 'Guerilla advantage', value: 'When an attacking player possesses at least 4 times as many bars as the defender, the defender gains certain strategic advantages.\n\n' },
+			{ name: 'Other game balance, stability and bug fixes', value: 'Updated drop tables with slightly higher ore per energy spent ratios on average.\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
 			
