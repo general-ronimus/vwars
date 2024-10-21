@@ -1226,7 +1226,11 @@ async function railgun(user, slashCommand) {
 	}
 
 	//calculate damage dealt
-	response += ' orders a railgun strike on ' + targetUser.username + '\'s warehouse '  
+	if(isVulnerable(targetUser)) {
+		response += ' orders a railgun strike on ' + targetUser.username + '\'s warehouse'  
+	} else {
+		response += ' orders a railgun strike on ' + targetUser.username  
+	}
 	targetUser = updateShield(targetUser) 
 	let barsDisentegrated = 0
 	if(targetUser.shieldHealth > 0) {
@@ -1251,22 +1255,36 @@ async function railgun(user, slashCommand) {
 		barsDisentegrated = 3
 	}
 
-	if(barsDisentegrated > 0) {
-		if(targetUser.bar < barsDisentegrated) {
-			barsDisentegrated = targetUser.bar
+	if(isVulnerable(targetUser)) {
+		if(barsDisentegrated > 0) {
+			if(targetUser.bar < barsDisentegrated) {
+				barsDisentegrated = targetUser.bar
+			}
+			if(barsDisentegrated == 1) {
+				response += 'disentegrating ' + barsDisentegrated + ' vibranium bar!'
+			} else {
+				response += 'disentegrating ' + barsDisentegrated + ' vibranium bars!'
+			}
+			console.log('Final barsDisentegrated: ' + barsDisentegrated)
+			targetUser.bar -= barsDisentegrated
 		}
-		if(barsDisentegrated = 1) {
-			response += 'disentegrating ' + barsDisentegrated + ' vibranium bar!'
-		} else {
-			response += 'disentegrating ' + barsDisentegrated + ' vibranium bars!'
+		targetUser.lastShattered = currentTime
+	} else {
+		if(barsDisentegrated > 0) {
+			let cityDamage = randomInteger(500, 1500) * barsDisentegrated
+			if(targetUser.city < cityDamage) {
+				cityDamage = targetUser.city
+			}
+			targetUser.city -= cityDamage
+			response += ' reducing city size by ' + cityDamage + '!'
 		}
-		console.log('Final barsDisentegrated: ' + barsDisentegrated)
-		targetUser.bar -= barsDisentegrated
+		
 	}
 
 	user.equipmentRailgun -= 1
 	user.netRailgun += 1
 	await db.putUser(user)
+	console.log('target barsDisentegrated: ' + targetUser.barsDisentegrated + ' shield: ' + targetUser.shieldHealth)
 	await db.putUser(targetUser)
 	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
