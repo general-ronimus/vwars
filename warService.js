@@ -46,7 +46,7 @@ async function createWar(requestedWar) {
 	let name = uuid
     let start = null
 	let expiration = null
-	let energyRefreshMinutes = 4
+	let energyRefreshMinutes = 3
     let isActive = false
     let isConcluded = false
     let iteration = 1
@@ -195,6 +195,7 @@ async function concludeWar(warToConclude) {
             guildUser.netSabotage += user.netSabotage
             guildUser.netStrike += user.netStrike
             guildUser.netNuke += user.netNuke
+            guildUser.netRailgun += user.netRailgun
     
             if(!firstIssued) {
                 /*
@@ -253,7 +254,7 @@ function migrateWar(war) {
 		war.isConcluded = false
 	}
     if(war.energyRefreshMinutes === undefined) {
-		war.energyRefreshMinutes = 4
+		war.energyRefreshMinutes = 3
 	}
     if(war.speed === undefined) {
 		war.speed = 1

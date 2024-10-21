@@ -21,7 +21,7 @@ const cloakIntervalMinutes = 480
 const stealthIntervalMinutes = 20
 const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 20
-let energyIntervalMinutes = 4
+let energyIntervalMinutes = 3
 let idleIntervalMinutes = 2880
 let speed = 1
 let currentTime = null
@@ -113,7 +113,9 @@ async function processCommand(slashCommandBody) {
 	} else if('strike' === slashCommand.subCommand) {
 		return await strike(user, slashCommand)
 	} else if('nuke' === slashCommand.subCommand) {
-		return await nuke(user, slashCommand)
+		return await nuke(user, slashCommand)		
+	} else if('railgun' === slashCommand.subCommand) {
+		return await railgun(user, slashCommand)
 	} else if('buy' === slashCommand.subCommand) {
 		return await buy(user, slashCommand)
 	} else if('smelt' === slashCommand.subCommand) {
@@ -200,6 +202,12 @@ async function mine(user, slashCommand) {
 		user.bar += 1
 		await db.putUser(user)
 		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
+	}
+	if(miracleRoll === 2) {
+		user.energy -= spend
+		user.equipmentRailgun += 1
+		await db.putUser(user)
+		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing railgun rounds!')
 	}
 
 
@@ -381,7 +389,7 @@ async function build(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactivates shield and'
 	}
@@ -595,10 +603,12 @@ async function build(user, slashCommand) {
 		'\nShield integrity: ' + shieldIntegrity +
 		'\nWarehouse: ' + warehouse +
 		'\nEquipment' +
-		'\n| fuel|  cloak| stealth| shield|' +
+		'\n| fuel| cloak| stealth| shield|' +
 		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|     ?/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
-		'\n|  jam| strike|   shell|   nuke|' +
-		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'\n|  jam| shell|  strike|   nuke|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(5) + '/5|'+ targetUser.equipmentStrike.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'\n|     |      | railgun|       |' +
+		'\n|     |      |' + targetUser.equipmentRailgun.toString().padStart(6) + '/5|       |' +
 		'```'
 
 	return respondAndCheckForCloak(user, response)
@@ -945,7 +955,7 @@ async function stealth(user, slashCommand) {
 		user.netStealth += 1
 		user.lastStealthed = currentTime
 		await db.putUser(user)
-		return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized for the next 20 minutes.')
+		return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized and do not cause shield deactivation for the next 20 minutes.')
 	} else if('deactivate' === action) {
 		if(!isStealthed(user.lastStealthed)) {
 			return respondEphemeral('You have no stealth UAV deployed at this time.')
@@ -1054,7 +1064,7 @@ async function sabotage(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
@@ -1106,7 +1116,7 @@ async function sabotage(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
@@ -1157,7 +1167,7 @@ async function sabotage(user, slashCommand) {
 	}
 	let response = user.username
 
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
@@ -1191,7 +1201,71 @@ async function sabotage(user, slashCommand) {
 	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
 
+/**
+ * RAILGUN
+ * 
+ */
+async function railgun(user, slashCommand) {
+	let targetUser = null
+	if(user.equipmentRailgun < 1) {
+		return respondAndCheckForStealth(user, 'You have no railgun rounds in your inventory.', null)
+	}
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
+		targetUser = targetUserRecord.Item
+	}
+	if(null == targetUser || user.userId == targetUser.userId) {
+		return respondAndCheckForStealth(user, 'Invalid target.', null)
+	}
+	let response = user.username
 
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
+		user.shieldHealth = 0
+		response += ' deactives shield and'
+	}
+
+	//calculate damage dealt
+	response += ' orders a railgun strike on ' + targetUser.username + '\'s warehouse '  
+	targetUser = updateShield(targetUser) 
+	let barsDisentegrated = 0
+	if(targetUser.shieldHealth > 0) {
+		targetUser.shieldHealth -= 300
+		if(targetUser.shieldHealth > 0) {
+			response += ' however the defender\'s shield absorbs the damage!'
+			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+		} else {
+			response += ' disabling the defender\'s shield and '
+			if(targetUser.shieldHealth <= 0 && targetUser.shieldHealth > -100) {
+				barsDisentegrated = 1
+			} else if(targetUser.shieldHealth <= -100 && targetUser.shieldHealth > -200) {
+				barsDisentegrated = 2
+			}  else {
+				barsDisentegrated = 3
+			} 
+		}
+	} else {
+		barsDisentegrated = 3
+	}
+
+	if(barsDisentegrated > 0) {
+		if(targetUser.bar < barsDisentegrated) {
+			barsDisentegrated = targetUser.bar
+		}
+		if(barsDisentegrated = 1) {
+			response += 'disentegrating ' + barsDisentegrated + ' vibranium bar!'
+		} else {
+			response += 'disentegrating ' + barsDisentegrated + ' vibranium bars!'
+		}
+		targetUser.bar -= barsDisentegrated
+	}
+
+	user.equipmentRailgun -= 1
+	user.netRailgun += 1
+	await db.putUser(user)
+	await db.putUser(targetUser)
+	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
+}
 
 
 /**

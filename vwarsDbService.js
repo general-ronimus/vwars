@@ -82,6 +82,7 @@ async function putUser(user) {
 			equipmentSabotage: user.equipmentSabotage,
 			equipmentStrike: user.equipmentStrike,
 			equipmentNuke: user.equipmentNuke,
+			equipmentRailgun: user.equipmentRailgun,
 			structFuelDepot : user.structFuelDepot,
 			structResearchFacility : user.structResearchFacility,
 			structReinforcedHangar : user.structReinforcedHangar,
@@ -109,7 +110,8 @@ async function putUser(user) {
 			netShield : user.netShield,
 			netSabotage : user.netSabotage,
 			netStrike : user.netStrike,
-			netNuke : user.netNuke
+			netNuke : user.netNuke,
+			netRailgun : user.netRailgun
   		},
 		ReturnValues: 'ALL_OLD'
 	};
@@ -250,6 +252,7 @@ async function putGuildUser(user) {
 			netSabotage : user.netSabotage,
 			netStrike : user.netStrike,
 			netNuke : user.netNuke,
+			netRailgun : user.netRailgun,
 			population : user.population,
 			structFuelDepot : user.structFuelDepot,
 			structResearchFacility : user.structResearchFacility,
@@ -357,6 +360,7 @@ async function putGlobalUser(user) {
 			netSabotage : user.netSabotage,
 			netStrike : user.netStrike,
 			netNuke : user.netNuke,
+			netRailgun : user.netRailgun,
 			population : user.population,
 			activeStructs : user.activeStructs,
 			structFuelDepot : user.structFuelDepot,
