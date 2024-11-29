@@ -21,7 +21,7 @@ const cloakIntervalMinutes = 480
 const stealthIntervalMinutes = 20
 const fuelIntervalMinutes = 30
 const jamIntervalMinutes = 20
-let energyIntervalMinutes = 4
+let energyIntervalMinutes = 3
 let idleIntervalMinutes = 2880
 let speed = 1
 let currentTime = null
@@ -113,7 +113,9 @@ async function processCommand(slashCommandBody) {
 	} else if('strike' === slashCommand.subCommand) {
 		return await strike(user, slashCommand)
 	} else if('nuke' === slashCommand.subCommand) {
-		return await nuke(user, slashCommand)
+		return await nuke(user, slashCommand)		
+	} else if('railgun' === slashCommand.subCommand) {
+		return await railgun(user, slashCommand)
 	} else if('buy' === slashCommand.subCommand) {
 		return await buy(user, slashCommand)
 	} else if('smelt' === slashCommand.subCommand) {
@@ -200,6 +202,12 @@ async function mine(user, slashCommand) {
 		user.bar += 1
 		await db.putUser(user)
 		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing 1 vibranium bar!')
+	}
+	if(miracleRoll === 2) {
+		user.energy -= spend
+		user.equipmentRailgun += 1
+		await db.putUser(user)
+		return respondAndCheckForCloak(user, 'You found an abandoned shipping crate containing railgun rounds!')
 	}
 
 
@@ -381,7 +389,8 @@ async function build(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0) {
+	//Currently attack is not hidden by stealth
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) { //&& !isStealthed(user.lastStealthed)) 
 		user.shieldHealth = 0
 		response += ' deactivates shield and'
 	}
@@ -595,10 +604,12 @@ async function build(user, slashCommand) {
 		'\nShield integrity: ' + shieldIntegrity +
 		'\nWarehouse: ' + warehouse +
 		'\nEquipment' +
-		'\n| fuel|  cloak| stealth| shield|' +
-		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(5) + '/5|     ?/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
-		'\n|  jam| strike|   shell|   nuke|' +
-		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentStrike.toString().padStart(5) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'\n| fuel| cloak| stealth| shield|' +
+		'\n|' + targetUser.equipmentFuel.toString().padStart(3) + '/5|'+ targetUser.equipmentCloak.toString().padStart(4) + '/5|     ?/5|'+ targetUser.equipmentShield.toString().padStart(5) + '/5|' +
+		'\n|  jam| shell|  strike|   nuke|' +
+		'\n|' + targetUser.equipmentJam.toString().padStart(3) + '/5|'+ targetUser.equipmentSabotage.toString().padStart(4) + '/5|'+ targetUser.equipmentStrike.toString().padStart(6) + '/5|'+ targetUser.equipmentNuke.toString().padStart(5) + '/5|' +
+		'\n|     |      | railgun|       |' +
+		'\n|     |      |' + targetUser.equipmentRailgun.toString().padStart(6) + '/5|       |' +
 		'```'
 
 	return respondAndCheckForCloak(user, response)
@@ -945,7 +956,7 @@ async function stealth(user, slashCommand) {
 		user.netStealth += 1
 		user.lastStealthed = currentTime
 		await db.putUser(user)
-		return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized for the next 20 minutes.')
+		return respondEphemeral('You deploy a stealth UAV. Your offensive movements are anonymized and do not cause shield deactivation for the next 20 minutes.')
 	} else if('deactivate' === action) {
 		if(!isStealthed(user.lastStealthed)) {
 			return respondEphemeral('You have no stealth UAV deployed at this time.')
@@ -1054,7 +1065,7 @@ async function sabotage(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
@@ -1106,7 +1117,7 @@ async function sabotage(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
@@ -1157,7 +1168,7 @@ async function sabotage(user, slashCommand) {
 	}
 	let response = user.username
 
-	if(user.shieldHealth > 0) {
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
 		user.shieldHealth = 0
 		response += ' deactives shield and'
 	}
@@ -1191,7 +1202,93 @@ async function sabotage(user, slashCommand) {
 	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
 }
 
+/**
+ * RAILGUN
+ * 
+ */
+async function railgun(user, slashCommand) {
+	let targetUser = null
+	if(user.equipmentRailgun < 1) {
+		return respondAndCheckForStealth(user, 'You have no railgun rounds in your inventory.', null)
+	}
+	if(null != slashCommand.subCommandArgs && slashCommand.subCommandArgs.length > 0 ) {
+		let targetUserId = slashCommand.subCommandArgs[0]
+		let targetUserRecord = await db.getUser(activeWar.warId, targetUserId)
+		targetUser = targetUserRecord.Item
+	}
+	if(null == targetUser || user.userId == targetUser.userId) {
+		return respondAndCheckForStealth(user, 'Invalid target.', null)
+	}
+	let response = user.username
 
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
+		user.shieldHealth = 0
+		response += ' deactives shield and'
+	}
+
+	//calculate damage dealt
+	if(isVulnerable(targetUser)) {
+		response += ' orders a railgun strike on ' + targetUser.username + '\'s warehouse'  
+	} else {
+		response += ' orders a railgun strike on ' + targetUser.username  
+	}
+	targetUser = updateShield(targetUser) 
+	let barsDisentegrated = 0
+	if(targetUser.shieldHealth > 0) {
+		console.log('Railgun strike on shielded target')
+		targetUser.shieldHealth -= 300
+		if(targetUser.shieldHealth > 0) {
+			response += ' however the defender\'s shield absorbs the damage!'
+			response += ' Their shield integrity is now at ' + targetUser.shieldHealth + '%.'
+		} else {
+			response += ' disabling the defender\'s shield and '
+			if(targetUser.shieldHealth <= 0 && targetUser.shieldHealth > -100) {
+				barsDisentegrated = 1
+			} else if(targetUser.shieldHealth <= -100 && targetUser.shieldHealth > -200) {
+				barsDisentegrated = 2
+			}  else {
+				barsDisentegrated = 3
+			}
+			targetUser.shieldHealth = 0 
+		}
+	} else {
+		console.log('Railgun strike on unshielded target')
+		barsDisentegrated = 3
+	}
+
+	if(isVulnerable(targetUser)) {
+		if(barsDisentegrated > 0) {
+			if(targetUser.bar < barsDisentegrated) {
+				barsDisentegrated = targetUser.bar
+			}
+			if(barsDisentegrated == 1) {
+				response += ' vaporizing ' + barsDisentegrated + ' vibranium bar!'
+			} else {
+				response += ' vaporizing ' + barsDisentegrated + ' vibranium bars!'
+			}
+			console.log('Final barsDisentegrated: ' + barsDisentegrated)
+			targetUser.bar -= barsDisentegrated
+		}
+		targetUser.lastShattered = currentTime
+	} else {
+		if(barsDisentegrated > 0) {
+			let cityDamage = randomInteger(500, 1500) * barsDisentegrated
+			if(targetUser.city < cityDamage) {
+				cityDamage = targetUser.city
+			}
+			targetUser.city -= cityDamage
+			response += ' reducing city size by ' + cityDamage + '!'
+		}
+		
+	}
+
+	user.equipmentRailgun -= 1
+	user.netRailgun += 1
+	await db.putUser(user)
+	console.log('target barsDisentegrated: ' + targetUser.barsDisentegrated + ' shield: ' + targetUser.shieldHealth)
+	await db.putUser(targetUser)
+	return await respondAndCheckForStealth(user, response, slashCommand.channelId)
+}
 
 
 /**
@@ -1411,16 +1508,19 @@ async function welcome(user, slashCommand) {
 
 
 async function welcomePreRelease(user) {
-	user = updateShield(user)
-	if(user.shieldHealth < 100) {
-		user.shieldHealth = 100
-		user.shieldUpdatedAt = currentTime
-	}
-	user.lastCloaked = currentTime
-	user.ore = 20000
+	
+	user.equipmentFuel = 5
+	user.equipmentCloak = 5
+	user.equipmentStealth = 5
+	user.equipmentShield = 5
+	user.equipmentJam = 5
+	user.equipmentSabotage = 5
+	user.equipmentStrike = 5
+	user.equipmentNuke = 5
+	user.equipmentRailgun = 5
 	user = updateEnergy(user)
 	await db.putUser(user)
-	let response = 'Welcome to Vibranium Wars (pre-release)! For testing purposes, you are entering this war cloaked, shielded and supplied with 20,000 ore to spend how you see fit. Use /vw help to review how to play & have fun!'
+	let response = 'Welcome to Vibranium Wars (pre-release)! For testing purposes, you are entering this war fully stocked with equipment. Use /vw help to review how to play & have fun!'
 	return respondAndCheckForCloak(user, response)
 }
 
@@ -1553,7 +1653,7 @@ function compare( a, b ) {
 			{ name: 'How to play', value: 'Type `/vw` followed by the desired command and command options (when applicable). Here is an example of using `mine` command with required option `energy` of 10: \n`/vw mine 10`\n\n' },
 			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 4m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack another player to steal ore and, in certain circumstances, steal equipment or shatter bars. For a more detailed explanation, use `/vw help page: Understanding the Attack Command`\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
 			{ name: 'Informational Commands', value: '*No cost*\n`/vw stats` - Receive a war report on yourself or another player \n`/vw leaderboard` -  Check current war standings & time remaining\n`/vw hall` - Check overall server standings or player profiles\n\n' },
-			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves from other players for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n\n' },
+			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves and allow outbound projectiles through your shields for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n`/vw railgun` - Vaporize a known warehouse location, reducing opponent bar count by up to 3 depending on opponent\'s shield strength\n\n' },
 			{ name: 'Conclusion', value: 'At the conclusion of a war, the Hall of Legends is updated to include the results of the war including issued medals, issued titles, vibranium bars earned, player statistics and player population all viewable using the `/vw hall` command.\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
@@ -1595,11 +1695,11 @@ function compare( a, b ) {
 
 	const helpEmbed = new EmbedBuilder()
 		.setTitle('Release Notes')
-		.setDescription('**Version:** v3.1')
+		.setDescription('**Version:** v3.2')
 		.addFields(
-			{ name: 'Changes to warehouse location', value: 'Bar minimum for warehouse location removed, cooldown reduced, equipment stealing now has a chance to cause warehouse location to change.\n\n' },
-			{ name: 'Guerilla advantage', value: 'When an attacking player possesses at least 4 times as many bars as the defender, the defender gains certain strategic advantages.\n\n' },
-			{ name: 'Other game balance, stability and bug fixes', value: 'Updated drop tables with slightly higher ore per energy spent ratios on average.\n\n' },
+			{ name: 'Stealth buff', value: 'Stealth now allows for outbound projectiles to pass through your shield without disabling it.\n\n' },
+			{ name: 'Railgun command', value: 'New advanced command that reduces the opponent\'s bar count by up to 3 depending on their shield strength. Railgun rounds are currently only acquired by very rare chance during mining.\n\n' },
+			{ name: 'Energy refresh update', value: 'Standard energy refresh has been updated to 1 energy gained every 3 minutes (down from 4 minutes).\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
 			
