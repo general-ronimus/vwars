@@ -389,7 +389,8 @@ async function build(user, slashCommand) {
 	}
 	let response = user.username
 	
-	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) {
+	//Currently attack is not hidden by stealth
+	if(user.shieldHealth > 0 && !isStealthed(user.lastStealthed)) { //&& !isStealthed(user.lastStealthed)) 
 		user.shieldHealth = 0
 		response += ' deactivates shield and'
 	}
@@ -1261,9 +1262,9 @@ async function railgun(user, slashCommand) {
 				barsDisentegrated = targetUser.bar
 			}
 			if(barsDisentegrated == 1) {
-				response += 'disentegrating ' + barsDisentegrated + ' vibranium bar!'
+				response += ' vaporizing ' + barsDisentegrated + ' vibranium bar!'
 			} else {
-				response += 'disentegrating ' + barsDisentegrated + ' vibranium bars!'
+				response += ' vaporizing ' + barsDisentegrated + ' vibranium bars!'
 			}
 			console.log('Final barsDisentegrated: ' + barsDisentegrated)
 			targetUser.bar -= barsDisentegrated
@@ -1652,7 +1653,7 @@ function compare( a, b ) {
 			{ name: 'How to play', value: 'Type `/vw` followed by the desired command and command options (when applicable). Here is an example of using `mine` command with required option `energy` of 10: \n`/vw mine 10`\n\n' },
 			{ name: 'Basic Commands', value: '*Costs energy. Energy refreshes at a rate of 1 per 4m*\n`/vw mine` -  Mine for vibranium ore & rare equipment chests.\n`/vw build` & `/vw train` -  Increase your city & military size.\n`/vw attack` - Attack another player to steal ore and, in certain circumstances, steal equipment or shatter bars. For a more detailed explanation, use `/vw help page: Understanding the Attack Command`\n`/vw smelt` - Convert 10,000 ore into a vibranium bar. Bars cannot be stolen.\n\n' },
 			{ name: 'Informational Commands', value: '*No cost*\n`/vw stats` - Receive a war report on yourself or another player \n`/vw leaderboard` -  Check current war standings & time remaining\n`/vw hall` - Check overall server standings or player profiles\n\n' },
-			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves and allow outbound projectiles through your shields for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n`/vw railgun` - Disintegrate up to 3 of an opponent\'s bars depending on their shield strength\n\n' },
+			{ name: 'Advanced Commands', value: '*Costs equipment inventory. Equipment chests can be purchased with ore using `/vw buy`, or found during mining.*\n`/vw fuel` - Replenish 20 energy, 30m cool down\n`/vw cloak` - Hide your stats & non-offensive moves from other players for 8h\n`/vw stealth` - Anonymize your offensive moves and allow outbound projectiles through your shields for 20m\n`/vw jam` - Prevent opponent from using attack command for 20m\n`/vw shield` - Absorb incoming damage until shield integrity reaches 0% or upon your next offensive move. Reinforced shields degrade at a rate of 3% per hour for the first reinforced stack, increasing exponentially per each additional stack\n`/vw shell` - Destroy 30% of an opponent\'s city\n`/vw strike` - Destroy 30% of an opponent\'s military\n`/vw nuke` - Destroy 40% of an opponent\'s city & military\n`/vw railgun` - Vaporize a known warehouse location, reducing opponent bar count by up to 3 depending on opponent\'s shield strength\n\n' },
 			{ name: 'Conclusion', value: 'At the conclusion of a war, the Hall of Legends is updated to include the results of the war including issued medals, issued titles, vibranium bars earned, player statistics and player population all viewable using the `/vw hall` command.\n\n' },
 		  )
 		.setFooter({ text: 'Creator & developer: General Ronimus\nGame design: PlayboyPK', iconURL: 'https://vwars-assets.s3.us-west-2.amazonaws.com/vw_logo_prod.png' });
